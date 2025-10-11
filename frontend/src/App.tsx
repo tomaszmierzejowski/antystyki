@@ -12,7 +12,7 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <div className="min-h-screen bg-gradient-to-br from-gray-100 via-gray-200 to-gray-100">
+        <div className="min-h-screen" style={{ backgroundColor: '#f8f9fb' }}>
           <Navbar />
           <Routes>
             <Route path="/" element={<Home />} />

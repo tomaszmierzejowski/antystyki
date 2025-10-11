@@ -1,9 +1,17 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import Button from './Button';
-import Dropdown from './Dropdown';
 
+/**
+ * Navbar Component - Refactored to match mockup design
+ * 
+ * Design characteristics:
+ * - Fixed top bar with minimal shadow
+ * - White background with subtle shadow
+ * - Left: logo with gray circle icon
+ * - Right: navigation links with subtle hover underline
+ * - Far right: small faded site link
+ */
 const Navbar: React.FC = () => {
   const { user, logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -13,114 +21,74 @@ const Navbar: React.FC = () => {
     navigate('/');
   };
 
-  const userMenuItems = [
-    {
-      label: 'Mój profil',
-      icon: '👤',
-      onClick: () => navigate(`/user/${user?.id}`),
-    },
-    {
-      label: 'Moje antystyki',
-      icon: '📊',
-      onClick: () => navigate('/my-antistics'),
-    },
-    {
-      label: 'Ustawienia',
-      icon: '⚙️',
-      onClick: () => navigate('/settings'),
-    },
-    {
-      label: 'Wyloguj się',
-      icon: '🚪',
-      onClick: handleLogout,
-      variant: 'danger' as const,
-    },
-  ];
-
   return (
-    <nav className="bg-white/95 backdrop-blur-md shadow-lg border-b border-gray-300 sticky top-0 z-50">
-      {/* Top menu like Demotywatory */}
-      <div className="max-w-4xl mx-auto px-6">
+    <nav className="bg-white border-b border-gray-100 sticky top-0 z-50" style={{ boxShadow: '0 1px 6px rgba(0,0,0,0.05)' }}>
+      <div className="mx-auto px-6" style={{ maxWidth: '1000px' }}>
         <div className="flex justify-between items-center h-16">
-          {/* Logo - Compact */}
+          {/* Logo - Left side with gray circle icon */}
           <Link to="/" className="flex items-center gap-2 group">
-            <div className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-gray-600 via-gray-800 to-black group-hover:scale-105 transition-transform">
+            {/* Gray circle icon representing shades of gray */}
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-400 to-gray-600 group-hover:scale-105 transition-transform"></div>
+            <span className="text-xl font-semibold text-gray-900 group-hover:text-gray-700 transition-colors">
               Antystyki
-            </div>
-            <div className="flex gap-1">
-              <div className="w-1.5 h-1.5 rounded-full bg-black group-hover:animate-pulse"></div>
-              <div className="w-1.5 h-1.5 rounded-full bg-gray-600 group-hover:animate-pulse" style={{ animationDelay: '0.1s' }}></div>
-              <div className="w-1.5 h-1.5 rounded-full bg-gray-300 group-hover:animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-            </div>
+            </span>
           </Link>
 
-          {/* Navigation - Compact like Demotywatory */}
-          <div className="flex items-center gap-4">
-            {/* Main Navigation Links */}
-            <div className="hidden md:flex items-center gap-4">
-              <Link to="/" className="text-gray-700 hover:text-black font-medium text-sm transition-colors">
-                Główna
-              </Link>
-              <Link to="/create" className="text-gray-600 hover:text-black font-medium text-sm transition-colors">
-                Dodaj
-              </Link>
-              <Link to="/categories" className="text-gray-600 hover:text-black font-medium text-sm transition-colors">
-                Kategorie
-              </Link>
-            </div>
+          {/* Navigation Links - Center/Right */}
+          <div className="flex items-center gap-8">
+            <Link 
+              to="/" 
+              className="text-sm font-normal text-gray-900 hover:text-gray-600 transition-colors relative group"
+            >
+              Główna
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gray-900 group-hover:w-full transition-all duration-300"></span>
+            </Link>
+            <Link 
+              to="/create" 
+              className="text-sm font-normal text-gray-600 hover:text-gray-900 transition-colors relative group"
+            >
+              Dodaj
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gray-900 group-hover:w-full transition-all duration-300"></span>
+            </Link>
+            <Link 
+              to="/categories" 
+              className="text-sm font-normal text-gray-600 hover:text-gray-900 transition-colors relative group"
+            >
+              Topka
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gray-900 group-hover:w-full transition-all duration-300"></span>
+            </Link>
+            <Link 
+              to="/about" 
+              className="text-sm font-normal text-gray-600 hover:text-gray-900 transition-colors relative group"
+            >
+              O nas
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gray-900 group-hover:w-full transition-all duration-300"></span>
+            </Link>
 
-            {/* User Actions */}
+            {/* Divider */}
+            <div className="h-4 w-px bg-gray-300"></div>
+
+            {/* User Actions or Site Link */}
             {isAuthenticated ? (
-              <>
-                <Button
-                  to="/create"
-                  variant="primary"
-                  size="sm"
-                  icon="✍️"
+              <div className="flex items-center gap-4">
+                <span className="text-xs text-gray-400">👤 {user?.username}</span>
+                <button 
+                  onClick={handleLogout}
+                  className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
                 >
-                  Dodaj
-                </Button>
-                
-                {(user?.role === 'Admin' || user?.role === 'Moderator') && (
-                  <Button
-                    to="/admin"
-                    variant="outline"
-                    size="sm"
-                    icon="🛡️"
-                  >
-                    Panel
-                  </Button>
-                )}
-
-                {/* User Dropdown */}
-                <Dropdown
-                  trigger={
-                    <div className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 rounded-lg hover:border-gray-500 transition-all cursor-pointer group">
-                      <span className="text-sm group-hover:scale-110 transition-transform">👤</span>
-                      <span className="text-gray-600 font-medium group-hover:text-gray-900 transition-colors text-sm">{user?.username}</span>
-                      <span className="text-gray-400 group-hover:text-gray-600 transition-colors text-xs">▼</span>
-                    </div>
-                  }
-                  items={userMenuItems}
-                  align="right"
-                />
-              </>
+                  Wyloguj
+                </button>
+              </div>
             ) : (
               <>
-                <Button
+                <Link 
                   to="/login"
-                  variant="ghost"
-                  size="sm"
+                  className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
                 >
                   Zaloguj
-                </Button>
-                <Button
-                  to="/register"
-                  variant="primary"
-                  size="sm"
-                >
-                  Zarejestruj
-                </Button>
+                </Link>
+                {/* Far right: faded site link */}
+                <span className="text-xs text-gray-300">antystyki.pl</span>
               </>
             )}
           </div>
@@ -131,6 +99,3 @@ const Navbar: React.FC = () => {
 };
 
 export default Navbar;
-
-
-
