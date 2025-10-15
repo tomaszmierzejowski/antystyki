@@ -6,6 +6,8 @@ public class CreateAntisticRequest
     public string ReversedStatistic { get; set; } = string.Empty;
     public string SourceUrl { get; set; } = string.Empty;
     public string? BackgroundImageKey { get; set; }
+    public string? TemplateId { get; set; }
+    public object? ChartData { get; set; } // Chart data object
     public List<Guid> CategoryIds { get; set; } = new();
 }
 
@@ -24,12 +26,16 @@ public class AntisticDto
     public string ReversedStatistic { get; set; } = string.Empty;
     public string SourceUrl { get; set; } = string.Empty;
     public string ImageUrl { get; set; } = string.Empty;
+    public string? TemplateId { get; set; }
+    public object? ChartData { get; set; } // Chart data object
     public string Status { get; set; } = string.Empty;
     public int LikesCount { get; set; }
     public int ViewsCount { get; set; }
+    public int CommentsCount { get; set; }
     public bool IsLikedByCurrentUser { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? PublishedAt { get; set; }
+    public DateTime? HiddenAt { get; set; }
     public UserDto User { get; set; } = null!;
     public List<CategoryDto> Categories { get; set; } = new();
 }
@@ -51,6 +57,27 @@ public class ModerateAntisticRequest
 public class ReportAntisticRequest
 {
     public string Reason { get; set; } = string.Empty;
+}
+
+public class CommentDto
+{
+    public Guid Id { get; set; }
+    public string Content { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; }
+    public UserDto User { get; set; } = null!;
+}
+
+public class CommentListDto
+{
+    public List<CommentDto> Items { get; set; } = new();
+    public int TotalCount { get; set; }
+    public int Page { get; set; }
+    public int PageSize { get; set; }
+}
+
+public class CreateCommentRequest
+{
+    public string Content { get; set; } = string.Empty;
 }
 
 public class CategoryDto

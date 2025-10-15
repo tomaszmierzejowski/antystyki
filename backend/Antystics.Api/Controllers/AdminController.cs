@@ -246,6 +246,8 @@ public class AdminController : ControllerBase
             ReversedStatistic = antistic.ReversedStatistic,
             SourceUrl = antistic.SourceUrl,
             ImageUrl = antistic.ImageUrl,
+            TemplateId = antistic.TemplateId,
+            ChartData = !string.IsNullOrEmpty(antistic.ChartData) ? System.Text.Json.JsonSerializer.Deserialize<object>(antistic.ChartData) : null,
             Status = antistic.Status.ToString(),
             LikesCount = antistic.LikesCount,
             ViewsCount = antistic.ViewsCount,

@@ -8,14 +8,19 @@ public class Antistic
     public string SourceUrl { get; set; } = string.Empty;
     public string ImageUrl { get; set; } = string.Empty;
     public string? BackgroundImageKey { get; set; }
+    public string? TemplateId { get; set; }
+    public string? ChartData { get; set; } // JSON string containing chart data
     public ModerationStatus Status { get; set; } = ModerationStatus.Pending;
     public string? RejectionReason { get; set; }
     public int LikesCount { get; set; }
     public int ViewsCount { get; set; }
     public int ReportsCount { get; set; }
+    public int CommentsCount { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? PublishedAt { get; set; }
     public DateTime? ModeratedAt { get; set; }
+    public DateTime? HiddenAt { get; set; }
+    public Guid? HiddenByUserId { get; set; }
     
     // Foreign keys
     public Guid UserId { get; set; }
@@ -24,8 +29,10 @@ public class Antistic
     // Navigation properties
     public virtual User User { get; set; } = null!;
     public virtual User? ModeratedBy { get; set; }
+    public virtual User? HiddenBy { get; set; }
     public virtual ICollection<AntisticLike> Likes { get; set; } = new List<AntisticLike>();
     public virtual ICollection<AntisticReport> Reports { get; set; } = new List<AntisticReport>();
+    public virtual ICollection<AntisticComment> Comments { get; set; } = new List<AntisticComment>();
     public virtual ICollection<AntisticCategory> Categories { get; set; } = new List<AntisticCategory>();
 }
 

@@ -9,6 +9,8 @@ interface AuthContextType {
   register: (data: RegisterRequest) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
+  isAnonymous: boolean;
+  createAnonymousUser: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -16,20 +18,37 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAnonymous, setIsAnonymous] = useState(false);
 
   useEffect(() => {
     // Check if user is logged in on mount
     const token = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
+    const isAnonymousUser = localStorage.getItem('isAnonymous') === 'true';
     
     if (token && storedUser) {
       try {
         setUser(JSON.parse(storedUser));
+        setIsAnonymous(false);
       } catch (error) {
         console.error('Error parsing stored user:', error);
         localStorage.removeItem('token');
         localStorage.removeItem('user');
+        localStorage.removeItem('isAnonymous');
       }
+    } else if (isAnonymousUser) {
+      // Create anonymous user for temporary access
+      const anonymousUser: User = {
+        id: `anon_${Date.now()}`,
+        username: 'Anonimowy',
+        email: 'anonymous@antystyki.pl',
+        role: 'User'
+      };
+      
+      setUser(anonymousUser);
+      setIsAnonymous(true);
+      localStorage.setItem('user', JSON.stringify(anonymousUser));
+      localStorage.setItem('isAnonymous', 'true');
     }
     
     setLoading(false);
@@ -48,10 +67,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await api.post('/auth/register', data);
   };
 
+  const createAnonymousUser = () => {
+    const anonymousUser: User = {
+      id: `anon_${Date.now()}`,
+      username: 'Anonimowy',
+      email: 'anonymous@antystyki.pl',
+      role: 'User'
+    };
+    
+    setUser(anonymousUser);
+    setIsAnonymous(true);
+    localStorage.setItem('user', JSON.stringify(anonymousUser));
+    localStorage.setItem('isAnonymous', 'true');
+  };
+
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('isAnonymous');
     setUser(null);
+    setIsAnonymous(false);
   };
 
   return (
@@ -63,6 +98,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         register,
         logout,
         isAuthenticated: !!user,
+        isAnonymous,
+        createAnonymousUser,
       }}
     >
       {children}

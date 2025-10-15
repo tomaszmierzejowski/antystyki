@@ -13,6 +13,7 @@ public class User : IdentityUser<Guid>
     public virtual ICollection<Antistic> Antistics { get; set; } = new List<Antistic>();
     public virtual ICollection<AntisticLike> Likes { get; set; } = new List<AntisticLike>();
     public virtual ICollection<AntisticReport> Reports { get; set; } = new List<AntisticReport>();
+    public virtual ICollection<AntisticComment> Comments { get; set; } = new List<AntisticComment>();
 }
 
 public enum UserRole

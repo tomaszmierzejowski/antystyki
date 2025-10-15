@@ -13,12 +13,16 @@ export interface Antistic {
   sourceUrl: string;
   imageUrl: string;
   backgroundImageKey?: string;
+  templateId?: string;
+  chartData?: any; // Chart data object from backend
   status: string;
   likesCount: number;
   viewsCount: number;
+  commentsCount: number;
   isLikedByCurrentUser: boolean;
   createdAt: string;
   publishedAt?: string;
+  hiddenAt?: string;
   user: User;
   categories: Category[];
 }
@@ -60,7 +64,27 @@ export interface CreateAntisticRequest {
   reversedStatistic: string;
   sourceUrl: string;
   backgroundImageKey?: string;
+  templateId?: string;
+  chartData?: any; // Chart data object
   categoryIds: string[];
+}
+
+export interface Comment {
+  id: string;
+  content: string;
+  createdAt: string;
+  user: User;
+}
+
+export interface CommentListResponse {
+  items: Comment[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface CreateCommentRequest {
+  content: string;
 }
 
 

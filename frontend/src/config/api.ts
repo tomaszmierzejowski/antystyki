@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://localhost:7240/api';
 
 export const api = axios.create({
   baseURL: API_URL,
@@ -29,7 +29,13 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
-      window.location.href = '/login';
+      // Don't redirect to login if we're on the create page or if user is anonymous
+      const isAnonymous = localStorage.getItem('isAnonymous') === 'true';
+      const isOnCreatePage = window.location.pathname === '/create';
+      
+      if (!isAnonymous && !isOnCreatePage) {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

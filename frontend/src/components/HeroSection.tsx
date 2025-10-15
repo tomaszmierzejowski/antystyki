@@ -13,39 +13,28 @@ import { Link } from 'react-router-dom';
  */
 const HeroSection: React.FC = () => {
   return (
-    <section className="bg-gradient-to-b from-gray-50 py-20 px-6" style={{ background: 'linear-gradient(to bottom, #f9fafb, #f8f9fb)' }}>
+    <section className="bg-gradient-to-b from-gray-50 py-4 md:py-6 px-6" style={{ background: 'linear-gradient(to bottom, #f9fafb, #f8f9fb)' }}>
       <div className="mx-auto text-center" style={{ maxWidth: '1000px' }}>
-        {/* Main Heading - Bold, black text */}
-        <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
+        {/* Main Heading - Very compact */}
+        <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 mb-2 md:mb-3 leading-tight">
           Świat nie jest czarno-biały
         </h1>
 
-        {/* Subtext - Single paragraph of muted gray text */}
-        <p className="text-base md:text-lg text-gray-600 mb-10 max-w-3xl mx-auto leading-relaxed">
-          Odkrywaj odcienie prawdy. Zatrzymaj polaryzację społeczną poprzez inteligentny humor i refleksję.
+        {/* Subtext - Minimal */}
+        <p className="text-xs md:text-sm text-gray-600 mb-4 md:mb-5 max-w-xl mx-auto">
+          Odkrywaj odcienie prawdy. Zatrzymaj polaryzację społeczną.
         </p>
 
-        {/* Two centered buttons */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          {/* Primary button - Accent color */}
-          <Link
-            to="/create"
-            className="px-8 py-3 text-white font-medium rounded-full transition-colors hover:shadow-lg"
-            style={{ backgroundColor: '#FF6A00', boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#E55F00'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#FF6A00'}
-          >
-            Dodaj Antystyk
-          </Link>
-
-          {/* Secondary button - Outlined */}
-          <Link
-            to="/about"
-            className="px-8 py-3 bg-transparent border-2 border-gray-300 hover:border-gray-400 text-gray-700 hover:text-gray-900 font-medium rounded-full transition-all"
-          >
-            Dowiedz się więcej
-          </Link>
-        </div>
+        {/* Single primary button - Minimal */}
+        <Link
+          to="/create"
+          className="inline-block px-5 md:px-6 py-2 text-white font-medium rounded-full transition-colors hover:shadow-md text-sm"
+          style={{ backgroundColor: '#FF6A00', boxShadow: '0 1px 8px rgba(0,0,0,0.06)' }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#E55F00'}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#FF6A00'}
+        >
+          Dodaj Antystyk
+        </Link>
       </div>
     </section>
   );

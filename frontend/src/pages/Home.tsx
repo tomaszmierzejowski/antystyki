@@ -6,6 +6,7 @@ import HeroSection from '../components/HeroSection';
 import TagFilterBar from '../components/TagFilterBar';
 import LoadMoreButton from '../components/LoadMoreButton';
 import Footer from '../components/Footer';
+import CardSkeleton from '../components/CardSkeleton';
 
 /**
  * Home Page - Completely refactored to match mockup design
@@ -27,6 +28,7 @@ const Home: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [sortBy, setSortBy] = useState<'latest' | 'top' | 'trending'>('latest');
 
   useEffect(() => {
     fetchCategories();
@@ -34,7 +36,7 @@ const Home: React.FC = () => {
 
   useEffect(() => {
     fetchAntistics();
-  }, [page, searchQuery, selectedCategory]);
+  }, [page, searchQuery, selectedCategory, sortBy]);
 
   const fetchCategories = async () => {
     try {
@@ -48,7 +50,7 @@ const Home: React.FC = () => {
   const fetchAntistics = async () => {
     try {
       setLoading(true);
-      const params: any = { page, pageSize: 20 };
+      const params: any = { page, pageSize: 20, sortBy };
       if (searchQuery) params.search = searchQuery;
       if (selectedCategory) params.categoryId = selectedCategory;
       
@@ -73,6 +75,11 @@ const Home: React.FC = () => {
     setPage(1);
   };
 
+  const handleSortChange = (newSortBy: 'latest' | 'top' | 'trending') => {
+    setSortBy(newSortBy);
+    setPage(1);
+  };
+
   const handleLoadMore = () => {
     if (page < totalPages) {
       setPage((p) => p + 1);
@@ -81,15 +88,16 @@ const Home: React.FC = () => {
 
   if (loading && page === 1) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#f8f9fb' }}>
-        <div className="text-center">
-          <div className="relative">
-            <div className="w-16 h-16 border-4 border-gray-300 border-t-gray-900 rounded-full animate-spin mx-auto mb-4"></div>
+      <div className="min-h-screen" style={{ backgroundColor: '#f8f9fb' }}>
+        <HeroSection />
+        <main className="mx-auto px-6 py-8" style={{ maxWidth: '1000px' }}>
+          <div className="space-y-8">
+            {[1, 2, 3, 4].map((i) => (
+              <CardSkeleton key={i} />
+            ))}
           </div>
-          <div className="text-xl font-medium text-gray-700">
-            Ładowanie...
-          </div>
-        </div>
+        </main>
+        <Footer />
       </div>
     );
   }
@@ -109,6 +117,27 @@ const Home: React.FC = () => {
           searchQuery={searchQuery}
           onSearch={handleSearch}
         />
+
+        {/* Sort Tabs */}
+        <div className="flex gap-1 mb-6 bg-gray-100 p-1 rounded-lg">
+          {[
+            { key: 'latest', label: 'Latest' },
+            { key: 'top', label: 'Top' },
+            { key: 'trending', label: 'Trending' }
+          ].map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => handleSortChange(key as 'latest' | 'top' | 'trending')}
+              className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
+                sortBy === key
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
 
         {/* Results */}
         {antistics.length === 0 ? (

@@ -15,6 +15,7 @@ public class ApplicationDbContext : IdentityDbContext<User, IdentityRole<Guid>, 
     public DbSet<Antistic> Antistics { get; set; }
     public DbSet<AntisticLike> AntisticLikes { get; set; }
     public DbSet<AntisticReport> AntisticReports { get; set; }
+    public DbSet<AntisticComment> AntisticComments { get; set; }
     public DbSet<Category> Categories { get; set; }
     public DbSet<AntisticCategory> AntisticCategories { get; set; }
     public DbSet<EmailVerificationToken> EmailVerificationTokens { get; set; }
@@ -50,9 +51,16 @@ public class ApplicationDbContext : IdentityDbContext<User, IdentityRole<Guid>, 
                 .HasForeignKey(e => e.ModeratedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // HiddenBy relationship (admin/moderator who hid the antistic)
+            entity.HasOne(e => e.HiddenBy)
+                .WithMany()
+                .HasForeignKey(e => e.HiddenByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             entity.HasIndex(e => e.Status);
             entity.HasIndex(e => e.PublishedAt);
             entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.HiddenAt);
         });
 
         // AntisticLike configuration
@@ -97,6 +105,28 @@ public class ApplicationDbContext : IdentityDbContext<User, IdentityRole<Guid>, 
                 .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasIndex(e => e.Status);
+        });
+
+        // AntisticComment configuration
+        builder.Entity<AntisticComment>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Content).IsRequired().HasMaxLength(2000);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            entity.HasOne(e => e.Antistic)
+                .WithMany(a => a.Comments)
+                .HasForeignKey(e => e.AntisticId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.User)
+                .WithMany(u => u.Comments)
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(e => e.AntisticId);
+            entity.HasIndex(e => e.CreatedAt);
+            entity.HasIndex(e => new { e.AntisticId, e.DeletedAt });
         });
 
         // Category configuration

@@ -7,6 +7,9 @@ import Register from './pages/Register';
 import CreateAntistic from './pages/CreateAntistic';
 import AdminPanel from './pages/AdminPanel';
 import ButtonShowcase from './pages/ButtonShowcase';
+import TemplateShowcase from './components/TemplateShowcase';
+import AnonymousTest from './components/AnonymousTest';
+import ChartDataTest from './components/ChartDataTest';
 
 function App() {
   return (
@@ -21,6 +24,9 @@ function App() {
             <Route path="/create" element={<CreateAntistic />} />
             <Route path="/admin" element={<AdminPanel />} />
             <Route path="/buttons" element={<ButtonShowcase />} />
+            <Route path="/templates" element={<TemplateShowcase />} />
+            <Route path="/test-anonymous" element={<AnonymousTest />} />
+            <Route path="/test-charts" element={<ChartDataTest />} />
           </Routes>
         </div>
       </AuthProvider>
