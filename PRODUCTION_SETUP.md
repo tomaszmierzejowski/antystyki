@@ -743,7 +743,7 @@ docker-compose -f docker-compose.production.yml up -d
 
 **Estimated Total Setup Time: 3-4 hours**
 
-**Questions?** Check `DEPLOYMENT.md` and `MVP_PRODUCTION_CHECKLIST.md`
+**Questions?** Check `DEPLOYMENT.md` and `ANTYSTYKI_LAUNCH_GUIDE.md`
 
 Good luck with your launch! 🚀
 

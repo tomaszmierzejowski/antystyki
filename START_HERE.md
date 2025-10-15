@@ -33,7 +33,7 @@ Choose based on your timeline:
 ### Option 1: "I Need It Live TODAY" (8 hours)
 **Minimum viable launch - just the essentials**
 
-1. Read `QUICK_MVP_ACTIONS.md` (30 min to fix critical issues)
+1. Read `ANTYSTYKI_LAUNCH_GUIDE.md` (30 min to fix critical issues)
 2. Skip CAPTCHA for now (add it week 1)
 3. Deploy to server (4 hours following `PRODUCTION_SETUP.md`)
 4. Create basic Privacy Policy (2 hours)
@@ -49,13 +49,14 @@ Choose based on your timeline:
 - **Day 2** (4h): Server setup + deployment + SSL
 - **Day 3** (4h): Testing + legal pages + launch
 
+**Follow**: `ANTYSTYKI_LAUNCH_GUIDE.md` for complete roadmap  
 **Risk**: Minimal  
 **Reward**: Professional MVP you can be proud of
 
 ### Option 3: "Do It Right" (1 week)
 **Everything perfect, including nice-to-haves**
 
-Follow the full `MVP_PRODUCTION_CHECKLIST.md` with:
+Follow the full `ANTYSTYKI_LAUNCH_GUIDE.md` with:
 - All security features
 - Rate limiting
 - Monitoring & alerts
@@ -74,7 +75,7 @@ Follow the full `MVP_PRODUCTION_CHECKLIST.md` with:
 
 ```bash
 # Step 1: Critical security (30 min)
-# Read and execute: QUICK_MVP_ACTIONS.md sections 1-6
+# Read and execute: ANTYSTYKI_LAUNCH_GUIDE.md sections 2-3
 
 # Step 2: Deploy (4 hours)
 # Follow: PRODUCTION_SETUP.md steps 1-7
@@ -87,7 +88,7 @@ Follow the full `MVP_PRODUCTION_CHECKLIST.md` with:
 
 **Day 1: Security & CAPTCHA**
 ```bash
-# Morning: Read QUICK_MVP_ACTIONS.md and fix all issues (2h)
+# Morning: Read ANTYSTYKI_LAUNCH_GUIDE.md and fix all issues (2h)
 # Afternoon: Read CAPTCHA_IMPLEMENTATION.md and implement (2h)
 ```
 
@@ -121,14 +122,21 @@ Follow the full `MVP_PRODUCTION_CHECKLIST.md` with:
 
 **Start with these files in order:**
 
-### 1. Quick Actions (READ FIRST - 5 min read)
-**File**: `QUICK_MVP_ACTIONS.md`
+### 1. Product Overview (READ FIRST - 10 min read)
+**File**: `ANTYSTYKI_PRD.md`
+- Complete product vision and roadmap
+- Feature requirements by phase
+- Success metrics and KPIs
+- Long-term development strategy
+
+### 2. Launch Guide (IMMEDIATE ACTIONS - 5 min read)
+**File**: `ANTYSTYKI_LAUNCH_GUIDE.md`
 - 30-minute security sprint
 - Critical fixes you MUST do
 - Environment setup
 - Immediate action items
 
-### 2. Production Setup (Step-by-Step Guide)
+### 3. Production Setup (Step-by-Step Guide)
 **File**: `PRODUCTION_SETUP.md`
 - Complete deployment walkthrough
 - Copy-paste commands
@@ -136,33 +144,12 @@ Follow the full `MVP_PRODUCTION_CHECKLIST.md` with:
 - SSL certificate setup
 - Estimated 3-4 hours
 
-### 3. Full Checklist (Comprehensive)
-**File**: `MVP_PRODUCTION_CHECKLIST.md`
-- Complete production readiness checklist
-- All must-haves, should-haves, nice-to-haves
-- Organized by priority
-- Use as reference
+### 4. Technical Guides (As Needed)
+**Files**: 
+- `CAPTCHA_IMPLEMENTATION.md` - Security implementation
+- `DEPLOYMENT.md` - Advanced deployment options
+- `ENV_TEMPLATE.txt` - Environment configuration
 
-### 4. Launch Summary (Overview)
-**File**: `MVP_LAUNCH_SUMMARY.md`
-- Current status overview
-- Time estimates
-- Cost breakdown
-- Success metrics
-- Roadmap
-
-### 5. CAPTCHA Guide (Optional but Recommended)
-**File**: `CAPTCHA_IMPLEMENTATION.md`
-- Step-by-step CAPTCHA setup
-- Prevents bot spam
-- 45 minutes to implement
-- Can skip for immediate launch (add later)
-
-### 6. Environment Template
-**File**: `ENV_TEMPLATE.txt`
-- All environment variables needed
-- Secret generation commands
-- Copy-paste templates
 
 ---
 
@@ -314,7 +301,7 @@ policy.WithOrigins(
 
 **TODAY:**
 1. ✅ Read this file completely (15 min)
-2. ✅ Read `QUICK_MVP_ACTIONS.md` (10 min)
+2. ✅ Read `ANTYSTYKI_LAUNCH_GUIDE.md` (10 min)
 3. ✅ Do 30-min security sprint (30 min)
 4. ✅ Set up email service (15 min)
 5. ✅ Read `CAPTCHA_IMPLEMENTATION.md` (10 min)
@@ -336,7 +323,7 @@ policy.WithOrigins(
 
 ### If You Choose Path 3 (Professional - 1 Week):
 
-1. ✅ Read `MVP_PRODUCTION_CHECKLIST.md`
+1. ✅ Read `ANTYSTYKI_LAUNCH_GUIDE.md`
 2. ✅ Follow checklist systematically
 3. ✅ Don't rush, do everything right
 4. ✅ Launch with confidence
@@ -442,18 +429,18 @@ policy.WithOrigins(
 
 **Choose your path above, then:**
 
-1. **Path 1**: Jump to `QUICK_MVP_ACTIONS.md` → Launch today
+1. **Path 1**: Jump to `ANTYSTYKI_LAUNCH_GUIDE.md` → Launch today
 2. **Path 2**: Start with security sprint → Launch in 3 days (RECOMMENDED)
-3. **Path 3**: Read `MVP_PRODUCTION_CHECKLIST.md` → Launch in 1 week
+3. **Path 3**: Read `ANTYSTYKI_LAUNCH_GUIDE.md` → Launch in 1 week
 
 ---
 
 ## 📞 Need Help?
 
 **Documentation:**
-- Quick Actions: `QUICK_MVP_ACTIONS.md`
+- Product Requirements: `ANTYSTYKI_PRD.md`
+- Launch Guide: `ANTYSTYKI_LAUNCH_GUIDE.md`
 - Step-by-Step Deployment: `PRODUCTION_SETUP.md`
-- Full Checklist: `MVP_PRODUCTION_CHECKLIST.md`
 - CAPTCHA Guide: `CAPTCHA_IMPLEMENTATION.md`
 - Environment Template: `ENV_TEMPLATE.txt`
 
@@ -479,7 +466,7 @@ policy.WithOrigins(
 
 **Recommended**: Path 2 - 3 days to professional launch
 
-**Action**: Open `QUICK_MVP_ACTIONS.md` and start with the 30-minute security sprint!
+**Action**: Open `ANTYSTYKI_LAUNCH_GUIDE.md` and start with the 30-minute security sprint!
 
 Good luck! 🚀
 

@@ -1,0 +1,51 @@
+---
+alwaysApply: true
+---
+GLOBAL PROJECT RULE — Antystyki Compliance
+
+Role: Product strategist and documentation guardian
+
+Purpose:
+Cursor + Claude Sonnet 4.5 must always enforce and maintain alignment with the following project control documents:
+
+ANTYSTYKI_PRD.md (PRD)
+
+ANTYSTYKI_LAUNCH_GUIDE.md
+
+These define Antystyki’s product scope, roadmap, architecture, monetization model, and launch process.
+
+🧭 Directives
+
+Always read and reference both documents before producing any code, design, or business content.
+
+Never output work that conflicts with them.
+
+When new features, roadmap changes, or bug fixes are discussed:
+
+Update the PRD accordingly (feature ID, user story, dependencies).
+
+If launch conditions change, update the Go-Live file and note dependencies.
+
+Append timestamped changelog entries when either document is modified.
+
+Warn the user and propose compliant alternatives if any request violates scope or launch policy.
+
+Maintain both documents as synchronized living sources of truth.
+
+💾 Output Rules
+
+All deliverables must reference relevant PRD section or Go-Live step IDs.
+
+Use consistent Markdown formatting when editing these control documents.
+
+Keep the system self-auditing and transparent; all changes should be visible in the repo.
+
+🎯 Goal
+
+Guarantee that every chat, prompt, and code generation in Cursor:
+
+Aligns with Antystyki’s MVP, monetization, and security goals.
+
+Moves the project toward public launch safely.
+
+Keeps ANTYSTYKI_PRD.md and ANTYSTYKI_LAUNCH_GUIDE.md continuously accurate and up to date.
