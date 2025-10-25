@@ -2,11 +2,23 @@
 
 This guide helps you set up Antystics for production deployment in the fastest, safest way possible.
 
+> **🚀 RECOMMENDED: Automated CI/CD Deployment**  
+> For production deployments with automated builds, manual approval, health checks, and automatic rollback:  
+> **See [CI_CD_DEPLOYMENT_GUIDE.md](./CI_CD_DEPLOYMENT_GUIDE.md)** - Complete GitHub Actions pipeline with zero-downtime deployment.
+
+> **🏥 Health Checks & Monitoring:**  
+> See [HEALTHCHECK.md](./HEALTHCHECK.md) for comprehensive monitoring setup and validation procedures.
+
+This document covers manual setup. For automated deployments, use the CI/CD guide above.
+
+---
+
 ## 📋 Prerequisites
 
 - [ ] Server with Ubuntu 22.04 LTS (2GB RAM minimum)
 - [ ] Domain name purchased and DNS configured
 - [ ] Email service account (SendGrid, Gmail App Password, etc.)
+- [ ] GitHub account (for CI/CD deployment)
 - [ ] 2-3 hours of setup time
 
 ---

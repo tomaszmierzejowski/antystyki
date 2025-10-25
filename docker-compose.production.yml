@@ -9,10 +9,12 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_INITDB_ARGS: "-E UTF8 --locale=C"
     ports:
       - "127.0.0.1:5432:5432"  # Only bind to localhost for security
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./database/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro  # Auto-init script
       - ./backups:/backups  # Mount backups directory
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
@@ -29,72 +31,57 @@ services:
         reservations:
           memory: 256M
 
-  backend:
+  # Unified Application (Backend API + Frontend serving)
+  app:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: antystics-backend
+      context: .
+      dockerfile: Dockerfile.production
+    image: antystyki/app:latest
+    container_name: antystics-app
     restart: always
     environment:
       - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Production}
-      - ConnectionStrings__DefaultConnection=Host=postgres;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};Include Error Detail=false
       - Jwt__Secret=${JWT_SECRET}
-      - Jwt__Issuer=${JWT_ISSUER}
-      - Jwt__Audience=${JWT_AUDIENCE}
+      - Jwt__Issuer=${JWT_ISSUER:-Antystics}
+      - Jwt__Audience=${JWT_AUDIENCE:-AntysticsUsers}
       - Email__SmtpHost=${SMTP_HOST}
       - Email__SmtpPort=${SMTP_PORT}
       - Email__SmtpUser=${SMTP_USER}
       - Email__SmtpPassword=${SMTP_PASSWORD}
       - Email__FromAddress=${EMAIL_FROM_ADDRESS}
-      - Email__FromName=${EMAIL_FROM_NAME}
+      - Email__FromName=${EMAIL_FROM_NAME:-Antystyki}
+      - FrontendUrl=${FRONTEND_URL}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
+      - ASPNETCORE_URLS=http://+:5000
     ports:
-      - "127.0.0.1:5000:8080"  # Only bind to localhost, Nginx will proxy
+      - "127.0.0.1:5000:5000"  # Only bind to localhost, Nginx will proxy
     depends_on:
       postgres:
         condition: service_healthy
     volumes:
-      - ./backend/uploads:/app/wwwroot/uploads
-      - ./logs/backend:/app/logs  # Application logs
+      - app_uploads:/app/wwwroot/uploads
+      - ./logs:/app/logs  # Application logs
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
     networks:
       - antystics-network
-    # Resource limits
+    # Resource limits (increased for unified container)
     deploy:
       resources:
         limits:
-          memory: 1G
+          memory: 1536M
         reservations:
-          memory: 512M
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      args:
-        - VITE_API_URL=${VITE_API_URL}
-    container_name: antystics-frontend
-    restart: always
-    ports:
-      - "127.0.0.1:3000:80"  # Only bind to localhost, Nginx will proxy
-    depends_on:
-      - backend
-    networks:
-      - antystics-network
-    # Resource limits
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-        reservations:
-          memory: 128M
+          memory: 768M
 
 volumes:
   postgres_data:
+    driver: local
+  app_uploads:
     driver: local
 
 networks:

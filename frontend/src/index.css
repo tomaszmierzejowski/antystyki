@@ -13,6 +13,18 @@
   --color-accent-hover: #E55F00;
   --color-dark: #1A2238;
   
+  /* Primary color scale (orange accent) */
+  --color-primary-50: #fff7ed;
+  --color-primary-100: #ffedd5;
+  --color-primary-200: #fed7aa;
+  --color-primary-300: #fdba74;
+  --color-primary-400: #fb923c;
+  --color-primary-500: #FF6A00;
+  --color-primary-600: #E55F00;
+  --color-primary-700: #c2410c;
+  --color-primary-800: #9a3412;
+  --color-primary-900: #7c2d12;
+  
   /* Custom shadows */
   --shadow-soft: 0 1px 6px rgba(0, 0, 0, 0.05);
   --shadow-medium: 0 2px 12px rgba(0, 0, 0, 0.08);

@@ -29,11 +29,13 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
-      // Don't redirect to login if we're on the create page or if user is anonymous
+      // Don't redirect to login if we're already on login page, create page, or if user is anonymous
       const isAnonymous = localStorage.getItem('isAnonymous') === 'true';
       const isOnCreatePage = window.location.pathname === '/create';
+      const isOnLoginPage = window.location.pathname === '/login';
+      const isOnRegisterPage = window.location.pathname === '/register';
       
-      if (!isAnonymous && !isOnCreatePage) {
+      if (!isAnonymous && !isOnCreatePage && !isOnLoginPage && !isOnRegisterPage) {
         window.location.href = '/login';
       }
     }

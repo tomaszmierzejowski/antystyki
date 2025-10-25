@@ -41,8 +41,8 @@ const AdminPanel: React.FC = () => {
     }
   };
 
-  // Allow access for Admin, Moderator, or even anonymous users for testing
-  if (!user) {
+  // Only Admin and Moderator can access
+  if (!user || (user.role !== 'Admin' && user.role !== 'Moderator')) {
     return <Navigate to="/" />;
   }
 

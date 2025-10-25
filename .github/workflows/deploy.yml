@@ -1,0 +1,424 @@
+name: Deploy Antystyki to Production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:  # Allow manual trigger
+
+env:
+  DOCKER_IMAGE: antystyki/app
+  DOCKER_TAG: ${{ github.sha }}
+  
+jobs:
+  # ============================================================================
+  # JOB 1: BUILD AND TEST
+  # ============================================================================
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+        
+      - name: 🔧 Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+          
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+          
+      - name: 📦 Restore .NET Dependencies
+        run: |
+          cd backend/Antystics.Api
+          dotnet restore
+          
+      - name: 📦 Install Frontend Dependencies
+        run: |
+          cd frontend
+          npm ci
+          
+      - name: 🏗️ Build Backend
+        run: |
+          cd backend/Antystics.Api
+          dotnet build --configuration Release --no-restore
+          
+      - name: 🏗️ Build Frontend
+        run: |
+          cd frontend
+          npm run build
+          
+      - name: 🧪 Run Backend Tests
+        run: |
+          cd backend/Antystics.Api
+          dotnet test --configuration Release --no-build --verbosity normal
+          
+      - name: ✅ Build Success
+        run: echo "✅ Build and tests passed successfully!"
+
+  # ============================================================================
+  # JOB 2: BUILD DOCKER IMAGE
+  # ============================================================================
+  build-docker:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+        
+      - name: 🔧 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        
+      - name: 🔑 Login to Docker Hub (Optional)
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+        continue-on-error: true
+        
+      - name: 🏗️ Build Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.production
+          push: false
+          tags: |
+            ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}
+            ${{ env.DOCKER_IMAGE }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          outputs: type=docker,dest=/tmp/antystyki-image.tar
+          
+      - name: 📤 Upload Docker Image Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image
+          path: /tmp/antystyki-image.tar
+          retention-days: 1
+
+  # ============================================================================
+  # JOB 3: MANUAL APPROVAL (GATE)
+  # ============================================================================
+  approve-deployment:
+    name: 🔐 Approve Production Deployment
+    runs-on: ubuntu-latest
+    needs: build-docker
+    environment:
+      name: production
+      # GitHub will require manual approval from designated reviewers
+      # Configure in: Settings → Environments → production → Required reviewers
+    
+    steps:
+      - name: ✅ Deployment Approved
+        run: |
+          echo "🎉 Deployment to production has been approved!"
+          echo "Deploying commit: ${{ github.sha }}"
+          echo "Deploying to: ${{ secrets.PROD_SERVER_IP }}"
+
+  # ============================================================================
+  # JOB 4: DEPLOY TO PRODUCTION
+  # ============================================================================
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: approve-deployment
+    environment: production
+    
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+        
+      - name: 📥 Download Docker Image
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+          path: /tmp
+          
+      - name: 🔧 Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.PROD_SERVER_IP }} >> ~/.ssh/known_hosts
+          
+      - name: 📤 Transfer Files to Server
+        run: |
+          # Transfer Docker image
+          scp /tmp/antystyki-image.tar ${{ secrets.SSH_USER }}@${{ secrets.PROD_SERVER_IP }}:/tmp/
+          
+          # Transfer docker-compose files
+          scp docker-compose.production.yml ${{ secrets.SSH_USER }}@${{ secrets.PROD_SERVER_IP }}:/var/www/antystyki/
+          scp nginx.production.conf ${{ secrets.SSH_USER }}@${{ secrets.PROD_SERVER_IP }}:/var/www/antystyki/ || true
+          
+      - name: 🔄 Deploy Application
+        run: |
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.PROD_SERVER_IP }} << 'ENDSSH'
+            set -e
+            
+            echo "🚀 Starting deployment..."
+            
+            cd /var/www/antystyki
+            
+            # Load Docker image
+            echo "📥 Loading new Docker image..."
+            docker load -i /tmp/antystyki-image.tar
+            rm /tmp/antystyki-image.tar
+            
+            # Tag current image as previous (for rollback)
+            echo "🏷️ Tagging previous version..."
+            docker tag ${{ env.DOCKER_IMAGE }}:latest ${{ env.DOCKER_IMAGE }}:previous || true
+            
+            # Save current version tag
+            echo "${{ env.DOCKER_TAG }}" > .current_version
+            docker images ${{ env.DOCKER_IMAGE }}:latest --format "{{.ID}}" > .current_image_id || true
+            
+            # Stop old containers (graceful shutdown)
+            echo "🛑 Stopping old containers..."
+            docker-compose -f docker-compose.production.yml down || true
+            
+            # Start new containers
+            echo "▶️ Starting new containers..."
+            docker-compose -f docker-compose.production.yml up -d
+            
+            # Wait for services to start
+            echo "⏳ Waiting for services to start..."
+            sleep 15
+            
+            echo "✅ Deployment complete!"
+          ENDSSH
+          
+      - name: 📝 Deployment Info
+        run: |
+          echo "📦 Deployed version: ${{ env.DOCKER_TAG }}"
+          echo "🌐 Server: ${{ secrets.PROD_SERVER_IP }}"
+          echo "⏰ Deployed at: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+
+  # ============================================================================
+  # JOB 5: HEALTH CHECK
+  # ============================================================================
+  healthcheck:
+    name: Health Check
+    runs-on: ubuntu-latest
+    needs: deploy
+    
+    steps:
+      - name: ⏳ Wait for Application Startup
+        run: sleep 20
+        
+      - name: 🏥 Check API Health
+        id: health
+        run: |
+          echo "🔍 Checking API health endpoint..."
+          
+          # Try up to 5 times with 10 second intervals
+          for i in {1..5}; do
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+              --max-time 10 \
+              https://${{ secrets.PROD_DOMAIN }}/api/health || echo "000")
+            
+            echo "Attempt $i/5: HTTP $HTTP_STATUS"
+            
+            if [ "$HTTP_STATUS" = "200" ]; then
+              echo "✅ Health check passed!"
+              echo "status=healthy" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+            
+            if [ $i -lt 5 ]; then
+              echo "⏳ Waiting 10 seconds before retry..."
+              sleep 10
+            fi
+          done
+          
+          echo "❌ Health check failed after 5 attempts!"
+          echo "status=unhealthy" >> $GITHUB_OUTPUT
+          exit 1
+          
+      - name: 🔍 Check Frontend
+        if: steps.health.outputs.status == 'healthy'
+        run: |
+          echo "🔍 Checking frontend..."
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            --max-time 10 \
+            https://${{ secrets.PROD_DOMAIN }} || echo "000")
+          
+          if [ "$HTTP_STATUS" = "200" ]; then
+            echo "✅ Frontend is accessible!"
+          else
+            echo "⚠️ Frontend returned HTTP $HTTP_STATUS"
+            exit 1
+          fi
+          
+      - name: 🔍 Check Database Connection
+        if: steps.health.outputs.status == 'healthy'
+        run: |
+          echo "🔍 Checking database connectivity..."
+          RESPONSE=$(curl -s --max-time 10 \
+            https://${{ secrets.PROD_DOMAIN }}/api/categories || echo "error")
+          
+          if echo "$RESPONSE" | grep -q "error"; then
+            echo "⚠️ Database connectivity issue detected"
+            exit 1
+          else
+            echo "✅ Database is connected and responding!"
+          fi
+
+  # ============================================================================
+  # JOB 6: ROLLBACK (if health check fails)
+  # ============================================================================
+  rollback:
+    name: 🔄 Rollback Deployment
+    runs-on: ubuntu-latest
+    needs: healthcheck
+    if: failure()
+    environment: production
+    
+    steps:
+      - name: 🔧 Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.PROD_SERVER_IP }} >> ~/.ssh/known_hosts
+          
+      - name: 🔄 Perform Rollback
+        run: |
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.PROD_SERVER_IP }} << 'ENDSSH'
+            set -e
+            
+            echo "🚨 HEALTH CHECK FAILED - INITIATING ROLLBACK"
+            
+            cd /var/www/antystyki
+            
+            # Check if previous version exists
+            if docker images ${{ env.DOCKER_IMAGE }}:previous --format "{{.ID}}" | grep -q .; then
+              echo "🔄 Rolling back to previous version..."
+              
+              # Tag previous version as latest
+              docker tag ${{ env.DOCKER_IMAGE }}:previous ${{ env.DOCKER_IMAGE }}:latest
+              
+              # Stop current containers
+              docker-compose -f docker-compose.production.yml down
+              
+              # Start with previous version
+              docker-compose -f docker-compose.production.yml up -d
+              
+              # Wait for startup
+              sleep 15
+              
+              echo "✅ Rollback complete - previous version restored"
+            else
+              echo "❌ No previous version found for rollback!"
+              echo "⚠️ Manual intervention required!"
+              exit 1
+            fi
+          ENDSSH
+          
+      - name: 📧 Send Rollback Notification
+        if: always()
+        run: |
+          echo "📧 Rollback notification would be sent here"
+          echo "Configure email/Slack notifications in production"
+          
+      - name: ❌ Deployment Failed
+        run: |
+          echo "❌ Deployment failed and was rolled back"
+          echo "🔍 Check logs: ssh ${{ secrets.SSH_USER }}@${{ secrets.PROD_SERVER_IP }} 'cd /var/www/antystyki && docker-compose logs'"
+          exit 1
+
+  # ============================================================================
+  # JOB 7: POST-DEPLOYMENT VERIFICATION
+  # ============================================================================
+  verify:
+    name: ✅ Post-Deployment Verification
+    runs-on: ubuntu-latest
+    needs: healthcheck
+    if: success()
+    
+    steps:
+      - name: 🎉 Deployment Successful
+        run: |
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "🎉 DEPLOYMENT SUCCESSFUL!"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+          echo "📦 Version: ${{ env.DOCKER_TAG }}"
+          echo "🌐 URL: https://${{ secrets.PROD_DOMAIN }}"
+          echo "🔗 API: https://${{ secrets.PROD_DOMAIN }}/api/health"
+          echo "⏰ Time: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+          echo ""
+          echo "✅ All health checks passed"
+          echo "✅ Application is live and responding"
+          echo ""
+          
+      - name: 📊 Create Deployment Summary
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          # 🚀 Deployment Summary
+          
+          ## ✅ Deployment Successful
+          
+          | Property | Value |
+          |----------|-------|
+          | **Version** | \`${{ env.DOCKER_TAG }}\` |
+          | **Environment** | Production |
+          | **Domain** | https://${{ secrets.PROD_DOMAIN }} |
+          | **Deployed At** | $(date -u +"%Y-%m-%d %H:%M:%S UTC") |
+          | **Triggered By** | ${{ github.actor }} |
+          | **Commit** | ${{ github.event.head_commit.message }} |
+          
+          ## 🏥 Health Checks
+          
+          - ✅ API Health Endpoint
+          - ✅ Frontend Accessibility
+          - ✅ Database Connectivity
+          
+          ## 📝 Next Steps
+          
+          1. Monitor application logs
+          2. Check user-facing features
+          3. Watch error rates in monitoring
+          4. Verify email notifications work
+          
+          EOF
+          
+      - name: 🔔 Success Notification
+        run: |
+          echo "🔔 Success notification placeholder"
+          echo "Configure Slack/Discord/Email notifications here"
+
+# ============================================================================
+# WORKFLOW CONFIGURATION NOTES
+# ============================================================================
+# 
+# Required GitHub Secrets:
+# - SSH_PRIVATE_KEY: SSH private key for server access
+# - SSH_USER: SSH username (e.g., "antystyki")
+# - PROD_SERVER_IP: Production server IP address
+# - PROD_DOMAIN: Production domain (e.g., "antystyki.pl")
+# - DOCKER_USERNAME: (Optional) Docker Hub username
+# - DOCKER_PASSWORD: (Optional) Docker Hub password
+#
+# Required GitHub Environment:
+# - Name: "production"
+# - Required reviewers: Set in Settings → Environments → production
+# - Protection rules: Can configure branch policies
+#
+# Server Prerequisites:
+# - Docker and Docker Compose installed
+# - Directory /var/www/antystyki exists
+# - SSH access configured
+# - .env file present on server
+# - docker-compose.production.yml configured
+#
+# ============================================================================
+

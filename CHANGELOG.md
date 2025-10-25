@@ -7,6 +7,168 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed (2025-10-25) - Email Verification, Registration, Role-Based Access & Contact Form
+
+#### Contact Form
+- **[FEATURE]** Added complete contact form page at `/contact`
+- **[API]** Added `/api/contact` endpoint to send contact form submissions
+- **[EMAIL]** Contact form emails sent to `antystyki@gmail.com`
+- **[UX]** Beautiful contact form with validation and success messages
+- **[UX]** Contact information sidebar with email, response time, and helpful tips
+- **[UX]** Updated Footer "Kontakt" link to navigate to contact page instead of mailto link
+- **[NAVIGATION]** Added `/contact` route to App.tsx
+
+### Fixed (2025-10-25) - Email Verification, Registration & Role-Based Access Control
+
+#### Role-Based Access Control
+- **[SECURITY]** Admin role assigned to `admin@antystyki.pl` during registration
+- **[SECURITY]** Moderator role assigned to `tmierzejowski@gmail.com` during registration
+- **[SECURITY]** All other users assigned User role by default
+- **[ACCESS CONTROL]** Admin Panel restricted to Admin and Moderator roles only
+- **[ACCESS CONTROL]** Hide/Delete buttons on main page visible to Admin and Moderator roles
+- **[ACCESS CONTROL]** Approve/Reject functionality in Admin Panel accessible to Admin and Moderator
+- **[UX]** "Moderacja" link in navbar visible only to Admin and Moderator roles
+- **[BUG FIX]** Fixed hide/delete card not refreshing automatically - cards now update immediately after admin action
+- **[UX]** Prevent multiple hide clicks on same card - list refreshes after each action
+
+#### Email Verification & Registration Flow Improvements
+
+#### Critical Fixes
+- **[CRITICAL BUG]** Fixed invisible submit buttons on Login and Register pages
+- **[THEME]** Added primary color scale to Tailwind v4 @theme configuration
+- **[UX]** Submit buttons now visible with orange accent color (#E55F00)
+- **[CRITICAL BUG]** Fixed "Invalid or expired verification token" error caused by unencoded special characters
+- **[API]** Email verification tokens now properly URL-encoded before being placed in links
+- **[SECURITY]** Tokens with `+`, `/`, `=` characters now handled correctly in URLs
+
+#### Email Verification & Registration
+- **[UX]** Email verification error message now persists on login page (previously disappeared after <1 second)
+- **[FEATURE]** Added "Resend Verification Email" button on login page when email is unverified
+- **[API]** Added `/api/auth/resend-verification-email` endpoint with token invalidation logic
+- **[SECURITY]** Resend endpoint properly invalidates old tokens before generating new ones
+- **[UX]** Success/error feedback for resend operation with visual distinction (green/red alerts)
+- **[BUG FIX]** Fixed verification email links - now point to frontend URL instead of backend API URL
+- **[FEATURE]** Added `/verify-email` route and `VerifyEmail.tsx` page for email verification flow
+- **[CONFIG]** Added `FrontendUrl` configuration setting in appsettings.json and environment variables
+- **[API]** Updated 401 interceptor to prevent redirect loops on login/register pages
+- **[DOCKER]** Added `FRONTEND_URL` environment variable to docker-compose files
+- **[UX]** Registration validation errors now display as detailed bullet-point list instead of generic "Błąd rejestracji"
+- **[FEATURE]** Users can now re-register with same email if previous registration was never verified (expired tokens)
+- **[API]** Backend automatically removes unverified users and their tokens when re-registering
+- **[UX]** Better error messages in Polish for duplicate email/username scenarios
+- **[BUG FIX]** Fixed re-registration logic to properly delete unverified users by both email AND username
+- **[API]** Re-registration now handles edge cases where email and username might belong to different unverified users
+- **[CRITICAL BUG]** Fixed DbUpdateConcurrencyException during email verification
+- **[API]** Email verification now properly handles deleted users and tracking conflicts
+- **[RESILIENCE]** Added graceful handling for race conditions during re-registration + verification
+- **[FEATURE]** Added complete forgot/reset password flow with ForgotPassword.tsx and ResetPassword.tsx pages
+- **[CRITICAL BUG]** Fixed reset-password endpoint that was resetting the first user's password instead of correct user
+- **[API]** Reset password now properly validates token and finds the correct user
+- **[CONFIG]** Password reset links now use frontend URL instead of backend API URL
+- **[UX]** Password reset pages include show/hide password toggles and proper error handling
+- **[UX]** Added show/hide password toggle with eye icons to Login and Register pages
+- **[MOBILE]** Password visibility toggle works on mobile with tap/click (3 password fields total: login, register password, confirm password)
+
+### Security (2025-10-15) - CRITICAL PRE-LAUNCH HARDENING
+- **[CRITICAL]** Removed hardcoded database password `Quake112` from appsettings.json
+- **[CRITICAL]** Generated cryptographically secure 64-character JWT secret
+- **[CRITICAL]** Implemented environment variable configuration system (PRODUCTION.env.example)
+- **[CRITICAL]** Enabled HTTPS enforcement in production (RequireHttpsMetadata)
+- **[CRITICAL]** Added comprehensive security headers middleware:
+  - X-Frame-Options: DENY (clickjacking protection)
+  - X-Content-Type-Options: nosniff (MIME sniffing protection)
+  - X-XSS-Protection: 1; mode=block (XSS protection)
+  - Content-Security-Policy (injection protection)
+  - Strict-Transport-Security (HTTPS enforcement)
+  - Referrer-Policy (privacy protection)
+  - Permissions-Policy (feature restrictions)
+- **[HIGH]** Updated CORS configuration to support production domains via environment variables
+- **[HIGH]** Replaced all hardcoded secrets with environment variable placeholders
+
+### Documentation (2025-10-15)
+- Added `GO_LIVE_PROGRESS_TRACKER.md` - Comprehensive launch tracking system
+- Added `SECURITY_IMPLEMENTATION.md` - Detailed security hardening documentation
+- Added `PRODUCTION.env.example` - Production environment variable template
+- Added `MONETIZATION_SETUP.md` - Complete AdSense and Buy Me a Coffee setup guide
+
+### Added (2025-10-15) - Legal & Monetization
+- **[GDPR]** Privacy Policy page - Bilingual (Polish/English), comprehensive GDPR compliance
+- **[GDPR]** Terms of Service page - Bilingual, includes content guidelines and moderation policy
+- **[MONETIZATION]** Buy Me a Coffee widget integrated in Footer
+- **[MONETIZATION]** AdSenseAd component - Ready for AdSense integration
+- **[ROUTES]** `/privacy` and `/terms` routes added to App.tsx
+- **[NAVIGATION]** Legal page links added to Footer
+
+### Added (2025-10-16) - CI/CD Pipeline & Automated Deployment
+- **[CI/CD]** `.github/workflows/deploy.yml` - Complete GitHub Actions deployment pipeline with:
+  - Automated build and test for backend (.NET 9) and frontend (React + Vite)
+  - Multi-stage Docker image build (frontend → backend → unified runtime)
+  - **Manual approval gate** requiring designated reviewers before production deployment
+  - Automated SSH deployment to Kamatera production server
+  - Comprehensive health checks (API, frontend, database, SSL)
+  - **Automatic rollback** if health checks fail (restores previous Docker image)
+  - Post-deployment verification and summary
+  - Docker image versioning and artifact management
+- **[DOCKER]** `Dockerfile.production` - Multi-stage production Dockerfile:
+  - Stage 1: Build React frontend with Vite
+  - Stage 2: Build .NET 9 backend
+  - Stage 3: Unified runtime image with both frontend (wwwroot) and backend
+  - Non-root user security
+  - Built-in health checks
+  - Optimized layer caching
+- **[DOCKER]** Updated `docker-compose.production.yml` - Unified container architecture:
+  - Single `app` service combining backend + frontend
+  - PostgreSQL with auto-initialization script
+  - Volume-backed persistence for uploads and database
+  - Resource limits and health checks
+  - Environment variable configuration
+- **[DATABASE]** `database/init-db.sh` - Automatic database initialization on first run
+- **[NGINX]** `nginx.production.conf` - Production-ready Nginx configuration:
+  - SSL termination with Let's Encrypt
+  - Rate limiting for API and uploads
+  - Proxy caching for static assets
+  - Security headers (HSTS, CSP, X-Frame-Options, etc.)
+  - WebSocket support
+  - Custom error pages
+- **[MONITORING]** `HEALTHCHECK.md` - Comprehensive health check documentation:
+  - All endpoints with expected responses
+  - Automated health check script (bash)
+  - UptimeRobot configuration guide
+  - Response time targets and SLAs
+  - Failure scenarios and troubleshooting
+  - Go-live validation checklist
+- **[DOCUMENTATION]** `CI_CD_DEPLOYMENT_GUIDE.md` - 500+ line complete deployment guide:
+  - Architecture diagrams and deployment flow
+  - GitHub configuration (secrets, environment protection)
+  - Server provisioning step-by-step
+  - SSH key generation and setup
+  - DNS and SSL configuration
+  - First deployment procedures
+  - Rollback procedures (automatic and manual)
+  - Troubleshooting guide
+  - Complete deployment checklist
+
+### Added (2025-10-15) - Week 2 Deployment Automation
+- **[DEPLOYMENT]** `deploy.ps1` - Automated Windows PowerShell deployment script
+- **[DEPLOYMENT]** `deploy.sh` - Automated Linux/Mac deployment script
+- **[MONITORING]** `health-check.ps1` - Comprehensive production health check script
+- **[CONTENT]** `CONTENT_CREATION_GUIDE.md` - 15+ page guide with templates, examples, and workflow
+- **[DOCUMENTATION]** `User_Actions_After_Vibe_Coding_On_MVP.md` - Complete user action checklist (30 actions, 1500+ lines)
+
+### Changed (2025-10-16)
+- Updated `DEPLOYMENT.md` to reference new CI/CD pipeline as recommended approach
+- Updated `PRODUCTION_SETUP.md` to reference CI/CD guide for automated deployments
+- Updated `User_Actions_After_Vibe_Coding_On_MVP.md` with CI/CD setup instructions
+- Updated `docker-compose.production.yml` from separate frontend/backend to unified architecture
+
+### Changed (2025-10-15)
+- Updated `Program.cs` with conditional HTTPS enforcement based on environment
+- Updated `Program.cs` with dynamic CORS configuration from environment variables
+- Updated `appsettings.json` to use safe development defaults
+- Updated `appsettings.Development.json` to remove hardcoded password
+- Updated `Footer.tsx` with Buy Me a Coffee button and updated copyright year to 2025
+- Updated `PRODUCTION.env.example` with AdSense and monetization configuration variables
+
 ## [1.0.0] - 2025-10-10
 
 ### Added

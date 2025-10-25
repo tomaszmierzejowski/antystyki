@@ -164,7 +164,10 @@ const Home: React.FC = () => {
                   style={{ animationDelay: `${index * 100}ms` }}
                   className="animate-fade-in-up"
                 >
-                  <AntisticCard antistic={antistic} />
+                  <AntisticCard 
+                    antistic={antistic} 
+                    onAdminAction={fetchAntistics}
+                  />
                 </div>
               ))}
             </div>

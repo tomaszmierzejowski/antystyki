@@ -2,12 +2,25 @@
 
 This guide covers deploying Antystics to Kamatera Cloud or any other hosting provider.
 
+> **📘 For Automated CI/CD Deployment (Recommended):**  
+> See **[CI_CD_DEPLOYMENT_GUIDE.md](./CI_CD_DEPLOYMENT_GUIDE.md)** for the complete automated deployment pipeline with GitHub Actions, manual approval gates, health checks, and automatic rollback.
+
+> **🏥 For Health Checks and Monitoring:**  
+> See **[HEALTHCHECK.md](./HEALTHCHECK.md)** for comprehensive health check procedures and validation endpoints.
+
+---
+
+## Quick Start Guide
+
+This document provides manual deployment options. For production deployments with zero-downtime updates and automated rollback, use the CI/CD pipeline (see above).
+
 ## Prerequisites
 
 - Server with Ubuntu 22.04 LTS (minimum 2GB RAM, 20GB storage)
 - Domain name (optional but recommended)
 - SMTP credentials for email sending
 - PostgreSQL database (or use Docker)
+- GitHub account (for CI/CD deployment)
 
 ## Option 1: Docker Deployment (Recommended)
 

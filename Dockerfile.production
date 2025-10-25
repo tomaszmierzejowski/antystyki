@@ -1,0 +1,89 @@
+# ============================================================================
+# STAGE 1: Build Frontend (React + Vite)
+# ============================================================================
+FROM node:20-alpine AS frontend-build
+
+WORKDIR /app/frontend
+
+# Copy package files
+COPY frontend/package*.json ./
+
+# Install dependencies
+RUN npm ci --only=production
+
+# Copy frontend source
+COPY frontend/ ./
+
+# Build production bundle
+RUN npm run build
+
+# ============================================================================
+# STAGE 2: Build Backend (.NET 9)
+# ============================================================================
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS backend-build
+
+WORKDIR /app
+
+# Copy solution and project files
+COPY backend/Antystics.sln ./backend/
+COPY backend/Antystics.Api/Antystics.Api.csproj ./backend/Antystics.Api/
+COPY backend/Antystics.Core/Antystics.Core.csproj ./backend/Antystics.Core/
+COPY backend/Antystics.Infrastructure/Antystics.Infrastructure.csproj ./backend/Antystics.Infrastructure/
+
+# Restore dependencies
+RUN dotnet restore ./backend/Antystics.sln
+
+# Copy all backend source code
+COPY backend/ ./backend/
+
+# Build backend
+RUN dotnet publish ./backend/Antystics.Api/Antystics.Api.csproj \
+    -c Release \
+    -o /app/publish \
+    --no-restore
+
+# ============================================================================
+# STAGE 3: Runtime - Unified Application (Backend + Frontend)
+# ============================================================================
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
+
+WORKDIR /app
+
+# Install necessary runtime dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy backend from build stage
+COPY --from=backend-build /app/publish .
+
+# Copy frontend build into backend's wwwroot
+COPY --from=frontend-build /app/frontend/dist ./wwwroot/
+
+# Create uploads directory
+RUN mkdir -p /app/wwwroot/uploads && \
+    chmod 755 /app/wwwroot/uploads
+
+# Create non-root user for security
+RUN useradd -m -u 1001 antystyki && \
+    chown -R antystyki:antystyki /app
+
+# Switch to non-root user
+USER antystyki
+
+# Expose port
+EXPOSE 5000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:5000/health || exit 1
+
+# Set environment variables
+ENV ASPNETCORE_URLS=http://+:5000 \
+    ASPNETCORE_ENVIRONMENT=Production \
+    DOTNET_RUNNING_IN_CONTAINER=true \
+    DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
+
+# Start the application
+ENTRYPOINT ["dotnet", "Antystics.Api.dll"]
+

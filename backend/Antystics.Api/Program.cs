@@ -46,6 +46,17 @@ builder.Services.AddSwaggerGen(c =>
 // Configure Database
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
     ?? "Host=localhost;Database=antystics;Username=postgres;Password=postgres";
+
+// 🔍 DEBUG: Show what connection string is being used (remove in production!)
+if (builder.Environment.IsDevelopment())
+{
+    var maskedPassword = connectionString.Contains("Password=") 
+        ? System.Text.RegularExpressions.Regex.Replace(connectionString, @"Password=([^;]+)", "Password=***MASKED***")
+        : connectionString;
+    Console.WriteLine($"🔍 DEBUG: Using connection string: {maskedPassword}");
+    Console.WriteLine($"🔍 DEBUG: Source - User Secrets: {builder.Configuration.GetConnectionString("DefaultConnection") != null}");
+}
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(connectionString));
 
@@ -74,7 +85,8 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
-    options.RequireHttpsMetadata = false; // Set to true in production
+    // ✅ SECURITY: Enforce HTTPS metadata in production
+    options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
     options.SaveToken = true;
     options.TokenValidationParameters = new TokenValidationParameters
     {
@@ -102,7 +114,22 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:5173", "http://localhost:3000") // Vite default port
+        // ✅ SECURITY: Allow both localhost (development) and production domains
+        var allowedOrigins = new List<string> 
+        { 
+            "http://localhost:5173",  // Vite dev server
+            "http://localhost:3000"   // Alternative dev port
+        };
+
+        // Add production origins from environment variable
+        var corsOrigins = builder.Configuration["CORS_ALLOWED_ORIGINS"];
+        if (!string.IsNullOrEmpty(corsOrigins))
+        {
+            allowedOrigins.AddRange(corsOrigins.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                                                .Select(o => o.Trim()));
+        }
+
+        policy.WithOrigins(allowedOrigins.ToArray())
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials();
@@ -118,7 +145,43 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// ✅ SECURITY: Enforce HTTPS redirection
 app.UseHttpsRedirection();
+
+// ✅ SECURITY: Add security headers middleware
+app.Use(async (context, next) =>
+{
+    // Prevent clickjacking attacks
+    context.Response.Headers.Append("X-Frame-Options", "DENY");
+    
+    // Prevent MIME type sniffing
+    context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+    
+    // Enable XSS protection
+    context.Response.Headers.Append("X-XSS-Protection", "1; mode=block");
+    
+    // Referrer policy for privacy
+    context.Response.Headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
+    
+    // Content Security Policy (adjust for your needs)
+    if (!context.Request.Path.StartsWithSegments("/swagger"))
+    {
+        context.Response.Headers.Append("Content-Security-Policy", 
+            "default-src 'self'; img-src 'self' data: https:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';");
+    }
+    
+    // Strict Transport Security (HSTS) - enforce HTTPS
+    if (!app.Environment.IsDevelopment())
+    {
+        context.Response.Headers.Append("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+    }
+    
+    // Permissions Policy (formerly Feature Policy)
+    context.Response.Headers.Append("Permissions-Policy", 
+        "geolocation=(), microphone=(), camera=()");
+
+    await next();
+});
 
 // Serve static files from uploads folder
 app.UseStaticFiles();
@@ -127,6 +190,37 @@ app.UseCors("AllowFrontend");
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// ✅ MONITORING: Health check endpoint for deployment validation
+app.MapGet("/api/health", async (ApplicationDbContext? dbContext) =>
+{
+    var health = new
+    {
+        status = "healthy",
+        timestamp = DateTime.UtcNow.ToString("o"),
+        version = "1.0.0",
+        environment = app.Environment.EnvironmentName,
+        database = "unknown"
+    };
+
+    try
+    {
+        if (dbContext != null)
+        {
+            // Check database connectivity (optional)
+            var canConnect = await dbContext.Database.CanConnectAsync();
+            health = health with { database = canConnect ? "connected" : "disconnected" };
+        }
+        
+        return Results.Ok(health);
+    }
+    catch (Exception)
+    {
+        // Database check failed, but API is still healthy
+        health = health with { database = "disconnected" };
+        return Results.Ok(health);
+    }
+});
 
 app.MapControllers();
 

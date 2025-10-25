@@ -54,6 +54,26 @@ public class EmailService : IEmailService
         await SendEmailAsync(email, subject, body);
     }
 
+    public async Task SendContactFormAsync(string name, string email, string subject, string message)
+    {
+        var contactEmail = "antystyki@gmail.com";
+        var emailSubject = $"[Antystyki Contact] {subject}";
+        var body = $@"
+            <h2>New Contact Form Submission</h2>
+            <p><strong>From:</strong> {name} ({email})</p>
+            <p><strong>Subject:</strong> {subject}</p>
+            <hr />
+            <p><strong>Message:</strong></p>
+            <p>{message.Replace("\n", "<br />")}</p>
+            <hr />
+            <p style='color: #666; font-size: 12px;'>
+                To reply, send an email to: {email}
+            </p>
+        ";
+
+        await SendEmailAsync(contactEmail, emailSubject, body);
+    }
+
     private async Task SendEmailAsync(string toEmail, string subject, string htmlBody)
     {
         var message = new MimeMessage();

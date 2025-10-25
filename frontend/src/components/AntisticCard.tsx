@@ -22,9 +22,10 @@ interface Props {
   antistic: Antistic;
   templateId?: string;
   customData?: Partial<AntisticData>;
+  onAdminAction?: () => void;
 }
 
-const AntisticCard: React.FC<Props> = ({ antistic, templateId = 'two-column-default', customData }) => {
+const AntisticCard: React.FC<Props> = ({ antistic, templateId = 'two-column-default', customData, onAdminAction }) => {
   const [commentsCount, setCommentsCount] = useState(antistic.commentsCount);
   const [showComments, setShowComments] = useState(false);
   const { likesCount, isLiked, isLoading: likeLoading, toggleLike } = useLike({
@@ -292,6 +293,7 @@ const AntisticCard: React.FC<Props> = ({ antistic, templateId = 'two-column-defa
               antisticId={antistic.id} 
               isHidden={!!antistic.hiddenAt}
               type="antistic"
+              onAction={onAdminAction}
             />
           </div>
         </div>
