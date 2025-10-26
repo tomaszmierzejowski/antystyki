@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { CARD_TEMPLATES, type AntisticTemplate } from '../types/templates';
+import { CARD_TEMPLATES } from '../types/templates';
 
 interface Props {
   selectedTemplate: string;

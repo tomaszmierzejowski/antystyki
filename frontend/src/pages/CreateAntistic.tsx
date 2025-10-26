@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { Category } from '../types';
+import type { Category, Antistic } from '../types';
 import type { AntisticData } from '../types/templates';
 import api from '../config/api';
 import { useAuth } from '../context/AuthContext';
@@ -41,10 +41,10 @@ const CreateAntistic: React.FC = () => {
       console.error('Error fetching categories:', error);
       // Set default categories if API fails (for anonymous users)
       setCategories([
-        { id: '1', namePl: 'Społeczeństwo', nameEn: 'Society' },
-        { id: '2', namePl: 'Technologia', nameEn: 'Technology' },
-        { id: '3', namePl: 'Zdrowie', nameEn: 'Health' },
-        { id: '4', namePl: 'Ekonomia', nameEn: 'Economics' },
+        { id: '1', namePl: 'Społeczeństwo', nameEn: 'Society', slug: 'spoleczenstwo' },
+        { id: '2', namePl: 'Technologia', nameEn: 'Technology', slug: 'technologia' },
+        { id: '3', namePl: 'Zdrowie', nameEn: 'Health', slug: 'zdrowie' },
+        { id: '4', namePl: 'Ekonomia', nameEn: 'Economics', slug: 'ekonomia' },
       ]);
     }
   };
@@ -108,15 +108,19 @@ const CreateAntistic: React.FC = () => {
   };
 
   // Create mock antistic for preview
-  const previewAntistic = {
+  const previewAntistic: Antistic = {
     id: 'preview',
     title: chartData.title || 'Twój tytuł...',
     reversedStatistic: chartData.description || 'Twoja odwrócona statystyka...',
-    originalStatistic: chartData.source || 'antystyki.pl',
+    sourceUrl: chartData.source || 'https://antystyki.pl',
+    imageUrl: '/placeholder.png',
+    status: 'Draft',
     likesCount: 0,
     viewsCount: 0,
+    commentsCount: 0,
+    isLikedByCurrentUser: false,
     createdAt: new Date().toISOString(),
-    user: user || { id: 'current', username: 'Ty', email: 'user@antystyki.pl' },
+    user: user || { id: 'current', username: 'Ty', email: 'user@antystyki.pl', role: 'User', createdAt: new Date().toISOString() },
     categories: categories.filter(cat => selectedCategories.includes(cat.id)),
     backgroundImageKey: 'default'
   };

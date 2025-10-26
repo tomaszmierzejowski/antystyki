@@ -5,7 +5,7 @@
  */
 
 import React, { useState } from 'react';
-import type { AntisticData, ChartSegment } from '../types/templates';
+import type { AntisticData } from '../types/templates';
 import { generateSegmentsFromData, createPerspectiveData } from './charts/ChartGenerator';
 
 interface Props {

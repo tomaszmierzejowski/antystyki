@@ -42,7 +42,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         id: `anon_${Date.now()}`,
         username: 'Anonimowy',
         email: 'anonymous@antystyki.pl',
-        role: 'User'
+        role: 'User',
+        createdAt: new Date().toISOString()
       };
       
       setUser(anonymousUser);
@@ -72,7 +73,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       id: `anon_${Date.now()}`,
       username: 'Anonimowy',
       email: 'anonymous@antystyki.pl',
-      role: 'User'
+      role: 'User',
+      createdAt: new Date().toISOString()
     };
     
     setUser(anonymousUser);

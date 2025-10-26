@@ -19,20 +19,26 @@ const EXAMPLE_ANTISTIC: Antistic = {
   id: 'example-1',
   title: 'Wypadki drogowe - kto naprawdę je powoduje?',
   reversedStatistic: 'Podczas gdy media skupiają się na pijanym kierowcy, większość wypadków drogowych powodują trzeźwi kierowcy.',
-  originalStatistic: 'WHO Global Status Report',
+  sourceUrl: 'https://www.who.int/publications/i/item/global-status-report-on-road-safety-2018',
+  imageUrl: '/example.jpg',
+  backgroundImageKey: 'default',
+  status: 'Approved',
   likesCount: 312,
   viewsCount: 1247,
+  commentsCount: 0,
+  isLikedByCurrentUser: false,
   createdAt: new Date().toISOString(),
   user: {
     id: 'user-1',
     username: 'antystyk_creator',
-    email: 'creator@antystyki.pl'
+    email: 'creator@antystyki.pl',
+    role: 'User',
+    createdAt: new Date().toISOString()
   },
   categories: [
-    { id: 'cat-1', namePl: 'Transport', nameEn: 'Transport' },
-    { id: 'cat-2', namePl: 'Bezpieczeństwo', nameEn: 'Safety' }
-  ],
-  backgroundImageKey: 'default'
+    { id: 'cat-1', namePl: 'Transport', nameEn: 'Transport', slug: 'transport' },
+    { id: 'cat-2', namePl: 'Bezpieczeństwo', nameEn: 'Safety', slug: 'bezpieczenstwo' }
+  ]
 };
 
 /**

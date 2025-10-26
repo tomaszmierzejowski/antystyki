@@ -46,17 +46,6 @@ builder.Services.AddSwaggerGen(c =>
 // Configure Database
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
     ?? "Host=localhost;Database=antystics;Username=postgres;Password=postgres";
-
-// 🔍 DEBUG: Show what connection string is being used (remove in production!)
-if (builder.Environment.IsDevelopment())
-{
-    var maskedPassword = connectionString.Contains("Password=") 
-        ? System.Text.RegularExpressions.Regex.Replace(connectionString, @"Password=([^;]+)", "Password=***MASKED***")
-        : connectionString;
-    Console.WriteLine($"🔍 DEBUG: Using connection string: {maskedPassword}");
-    Console.WriteLine($"🔍 DEBUG: Source - User Secrets: {builder.Configuration.GetConnectionString("DefaultConnection") != null}");
-}
-
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(connectionString));
 

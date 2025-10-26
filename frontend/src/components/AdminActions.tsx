@@ -19,7 +19,6 @@ const AdminActions: React.FC<AdminActionsProps> = ({
 }) => {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-  const [showConfirm, setShowConfirm] = useState<string | null>(null);
 
   // Check if user has admin privileges
   if (!user || (user.role !== 'Admin' && user.role !== 'Moderator')) {

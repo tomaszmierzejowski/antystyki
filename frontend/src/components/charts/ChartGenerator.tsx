@@ -42,10 +42,7 @@ export const DoughnutChart: React.FC<DoughnutChartProps> = ({
   
   // For simple charts, we expect 2 segments: main + secondary
   const mainSegment = segments[0];
-  const secondarySegment = segments[1] || { percentage: 100 - mainSegment.percentage, color: '#e5e7eb', label: 'Pozostałe' };
-  
   const mainOffset = circumference - (mainSegment.percentage / 100) * circumference;
-  const secondaryOffset = circumference - (secondarySegment.percentage / 100) * circumference;
 
   return (
     <div className={`flex flex-col items-center ${className}`}>
