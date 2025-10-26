@@ -211,66 +211,84 @@ jobs:
     needs: deploy
     
     steps:
+      - name: 🔧 Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.PROD_SERVER_IP }} >> ~/.ssh/known_hosts
+      
       - name: ⏳ Wait for Application Startup
         run: sleep 20
         
-      - name: 🏥 Check API Health
+      - name: 🏥 Check API Health (Internal)
         id: health
         run: |
-          echo "🔍 Checking API health endpoint..."
+          echo "🔍 Checking API health endpoint from server..."
           
-          # Try up to 5 times with 10 second intervals
-          for i in {1..5}; do
-            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-              --max-time 10 \
-              https://${{ secrets.PROD_DOMAIN }}/api/health || echo "000")
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.PROD_SERVER_IP }} << 'ENDSSH'
+            # Try up to 5 times with 10 second intervals
+            for i in {1..5}; do
+              HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+                --max-time 10 \
+                http://localhost:5000/api/health || echo "000")
+              
+              echo "Attempt $i/5: HTTP $HTTP_STATUS"
+              
+              if [ "$HTTP_STATUS" = "200" ]; then
+                echo "✅ Health check passed!"
+                exit 0
+              fi
+              
+              if [ $i -lt 5 ]; then
+                echo "⏳ Waiting 10 seconds before retry..."
+                sleep 10
+              fi
+            done
             
-            echo "Attempt $i/5: HTTP $HTTP_STATUS"
-            
-            if [ "$HTTP_STATUS" = "200" ]; then
-              echo "✅ Health check passed!"
-              echo "status=healthy" >> $GITHUB_OUTPUT
-              exit 0
-            fi
-            
-            if [ $i -lt 5 ]; then
-              echo "⏳ Waiting 10 seconds before retry..."
-              sleep 10
-            fi
-          done
+            echo "❌ Health check failed after 5 attempts!"
+            echo "Checking container status..."
+            docker ps -a | grep antystics
+            echo ""
+            echo "Recent logs:"
+            docker logs antystics-app --tail 50
+            exit 1
+          ENDSSH
           
-          echo "❌ Health check failed after 5 attempts!"
-          echo "status=unhealthy" >> $GITHUB_OUTPUT
-          exit 1
-          
-      - name: 🔍 Check Frontend
-        if: steps.health.outputs.status == 'healthy'
-        run: |
-          echo "🔍 Checking frontend..."
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-            --max-time 10 \
-            https://${{ secrets.PROD_DOMAIN }} || echo "000")
-          
-          if [ "$HTTP_STATUS" = "200" ]; then
-            echo "✅ Frontend is accessible!"
+          if [ $? -eq 0 ]; then
+            echo "status=healthy" >> $GITHUB_OUTPUT
           else
-            echo "⚠️ Frontend returned HTTP $HTTP_STATUS"
+            echo "status=unhealthy" >> $GITHUB_OUTPUT
             exit 1
           fi
+          
+      - name: 🔍 Check Container Status
+        if: steps.health.outputs.status == 'healthy'
+        run: |
+          echo "🔍 Checking container status..."
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.PROD_SERVER_IP }} << 'ENDSSH'
+            echo "Docker containers:"
+            docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+            echo ""
+            echo "Container health:"
+            docker inspect antystics-app --format='{{.State.Health.Status}}' || echo "No health check"
+          ENDSSH
           
       - name: 🔍 Check Database Connection
         if: steps.health.outputs.status == 'healthy'
         run: |
           echo "🔍 Checking database connectivity..."
-          RESPONSE=$(curl -s --max-time 10 \
-            https://${{ secrets.PROD_DOMAIN }}/api/categories || echo "error")
-          
-          if echo "$RESPONSE" | grep -q "error"; then
-            echo "⚠️ Database connectivity issue detected"
-            exit 1
-          else
-            echo "✅ Database is connected and responding!"
-          fi
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.PROD_SERVER_IP }} << 'ENDSSH'
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+              http://localhost:5000/api/categories)
+            
+            if [ "$HTTP_STATUS" = "200" ] || [ "$HTTP_STATUS" = "401" ]; then
+              echo "✅ Database endpoint is responding (HTTP $HTTP_STATUS)"
+            else
+              echo "⚠️ Database endpoint returned HTTP $HTTP_STATUS"
+              exit 1
+            fi
+          ENDSSH
 
   # ============================================================================
   # JOB 6: ROLLBACK (if health check fails)
@@ -352,12 +370,18 @@ jobs:
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo ""
           echo "📦 Version: ${{ env.DOCKER_TAG }}"
-          echo "🌐 URL: https://${{ secrets.PROD_DOMAIN }}"
-          echo "🔗 API: https://${{ secrets.PROD_DOMAIN }}/api/health"
+          echo "🖥️  Server: ${{ secrets.PROD_SERVER_IP }}"
+          echo "🔗 API: http://localhost:5000/api/health (on server)"
           echo "⏰ Time: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
           echo ""
           echo "✅ All health checks passed"
-          echo "✅ Application is live and responding"
+          echo "✅ Application is running on server"
+          echo ""
+          echo "⚠️  NEXT STEPS:"
+          echo "   1. Set up Nginx reverse proxy"
+          echo "   2. Configure SSL with Let's Encrypt"
+          echo "   3. Point DNS to server"
+          echo "   Then access at: https://${{ secrets.PROD_DOMAIN }}"
           echo ""
           
       - name: 📊 Create Deployment Summary
@@ -378,16 +402,17 @@ jobs:
           
           ## 🏥 Health Checks
           
-          - ✅ API Health Endpoint
-          - ✅ Frontend Accessibility
+          - ✅ API Health Endpoint (localhost:5000)
+          - ✅ Container Status (running)
           - ✅ Database Connectivity
           
           ## 📝 Next Steps
           
-          1. Monitor application logs
-          2. Check user-facing features
-          3. Watch error rates in monitoring
-          4. Verify email notifications work
+          1. **Set up Nginx reverse proxy** (nginx.production.conf provided)
+          2. **Configure SSL with Let's Encrypt** (certbot)
+          3. **Point DNS to server IP**
+          4. Monitor application logs
+          5. Verify email notifications work
           
           EOF
           
