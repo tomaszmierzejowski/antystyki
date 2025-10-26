@@ -152,11 +152,16 @@ app.Use(async (context, next) =>
     // Referrer policy for privacy
     context.Response.Headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
     
-    // Content Security Policy (adjust for your needs)
+    // Content Security Policy (adjusted for Google Fonts and API calls)
     if (!context.Request.Path.StartsWithSegments("/swagger"))
     {
         context.Response.Headers.Append("Content-Security-Policy", 
-            "default-src 'self'; img-src 'self' data: https:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';");
+            "default-src 'self'; " +
+            "img-src 'self' data: https:; " +
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+            "font-src 'self' https://fonts.gstatic.com data:; " +
+            "connect-src 'self';");
     }
     
     // Strict Transport Security (HSTS) - enforce HTTPS
