@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed (2025-10-26) - Production CSP & Email Configuration
+
+#### Content Security Policy (CSP) Fixes
+- **[SECURITY]** Updated CSP to allow Google Fonts (fonts.googleapis.com stylesheet)
+- **[SECURITY]** Added `font-src` directive to allow Google Fonts files (fonts.gstatic.com)
+- **[SECURITY]** Added explicit `connect-src 'self'` to allow same-origin API calls
+- **[BUG FIX]** Fixed "Refused to load stylesheet" errors for Google Fonts in production
+- **[BUG FIX]** Fixed "Refused to connect" errors for API calls in production
+- **[UX]** Inter font family now loads correctly on production site
+
+#### API Configuration Fixes
+- **[BUG FIX]** Fixed frontend API calls to use relative URLs (`/api`) in production
+- **[ARCHITECTURE]** Production build automatically uses relative paths (nginx proxy)
+- **[DEVELOPMENT]** Development mode still uses `VITE_API_URL` environment variable
+- **[BUG FIX]** Fixed "Error fetching categories" and "Error fetching antistics" in production
+
+#### Email Verification Link Configuration
+- **[BUG FIX]** Diagnosed malformed email verification links (`http:///verify-email`)
+- **[DOCUMENTATION]** Created comprehensive guide for FRONTEND_URL configuration
+- **[TOOLING]** Added `verify-env.ps1` and `verify-env.sh` scripts to check environment variables
+- **[DOCUMENTATION]** Created EMAIL_VERIFICATION_FIX.md with troubleshooting steps
+- **[SECURITY]** Documented importance of HTTPS for production FRONTEND_URL
+
+#### Documentation
+- **[DOCS]** Created CSP_FIX_DEPLOYMENT.md with deployment guide
+- **[DOCS]** Updated PRODUCTION.env.example with better API URL documentation
+- **[DOCS]** Added environment variable verification scripts
+
 ### Fixed (2025-10-25) - Email Verification, Registration, Role-Based Access & Contact Form
 
 #### Contact Form
