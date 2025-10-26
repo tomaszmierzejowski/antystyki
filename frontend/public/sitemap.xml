@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  
+  <!-- Homepage -->
+  <url>
+    <loc>https://antystyki.pl/</loc>
+    <lastmod>2025-10-26</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="pl" href="https://antystyki.pl/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://antystyki.pl/en" />
+  </url>
+  
+  <!-- About / Mission -->
+  <url>
+    <loc>https://antystyki.pl/about</loc>
+    <lastmod>2025-10-26</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="pl" href="https://antystyki.pl/about" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://antystyki.pl/en/about" />
+  </url>
+  
+  <!-- Create (if public) -->
+  <url>
+    <loc>https://antystyki.pl/create</loc>
+    <lastmod>2025-10-26</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <!-- Categories (main categories page) -->
+  <url>
+    <loc>https://antystyki.pl/categories</loc>
+    <lastmod>2025-10-26</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <!-- Individual Categories (add actual categories) -->
+  <url>
+    <loc>https://antystyki.pl/category/politics</loc>
+    <lastmod>2025-10-26</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://antystyki.pl/category/economy</loc>
+    <lastmod>2025-10-26</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://antystyki.pl/category/society</loc>
+    <lastmod>2025-10-26</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://antystyki.pl/category/health</loc>
+    <lastmod>2025-10-26</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://antystyki.pl/category/technology</loc>
+    <lastmod>2025-10-26</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://antystyki.pl/category/environment</loc>
+    <lastmod>2025-10-26</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <!-- Legal Pages -->
+  <url>
+    <loc>https://antystyki.pl/privacy</loc>
+    <lastmod>2025-10-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+    <xhtml:link rel="alternate" hreflang="pl" href="https://antystyki.pl/privacy" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://antystyki.pl/en/privacy" />
+  </url>
+  
+  <url>
+    <loc>https://antystyki.pl/terms</loc>
+    <lastmod>2025-10-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+    <xhtml:link rel="alternate" hreflang="pl" href="https://antystyki.pl/terms" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://antystyki.pl/en/terms" />
+  </url>
+  
+  <!-- 
+    NOTE: Individual antistic pages should be dynamically generated.
+    For now, this is a static sitemap. 
+    
+    TODO for Phase 2: Create dynamic sitemap generation endpoint at /api/sitemap
+    that includes all published antistics with their actual URLs and lastmod dates.
+    
+    Example dynamic entries:
+    <url>
+      <loc>https://antystyki.pl/antistic/123</loc>
+      <lastmod>2025-10-20</lastmod>
+      <changefreq>monthly</changefreq>
+      <priority>0.5</priority>
+      <image:image>
+        <image:loc>https://antystyki.pl/uploads/antistic-123.png</image:loc>
+        <image:title>Example Antystyk Title</image:title>
+      </image:image>
+    </url>
+  -->
+  
+</urlset>
+
