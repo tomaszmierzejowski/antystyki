@@ -43,7 +43,6 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-
 // Configure Database
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
     ?? "Host=localhost;Database=antystics;Username=postgres;Password=postgres";
