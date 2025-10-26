@@ -416,7 +416,45 @@ https://www.linkedin.com/post-inspector/
 
 ---
 
-## 8. User Actions Required
+## 8. Deployment Architecture Note
+
+### 📦 Where SEO Files Are Located
+
+**Important**: The Antystyki project uses a **unified Docker container** architecture where the frontend is built and served by the ASP.NET backend.
+
+```
+Source Code (Git):
+frontend/public/
+├── robots.txt       ✅ Created
+├── sitemap.xml      ✅ Created
+├── .htaccess        ✅ Created (for Apache, if needed)
+├── og-image.png     ⏳ User needs to create
+├── twitter-card.png ⏳ User needs to create
+└── logo.png         ⏳ User needs to create
+
+Production (Docker Container):
+/app/wwwroot/
+├── robots.txt       ✅ Copied during build
+├── sitemap.xml      ✅ Copied during build
+├── index.html
+└── assets/
+
+Accessible at:
+https://antystyki.pl/robots.txt     ✅
+https://antystyki.pl/sitemap.xml    ✅
+```
+
+**Deployment Process**:
+1. Vite builds frontend: `frontend/public/*` → `frontend/dist/*`
+2. Docker copies dist to container: `dist/*` → `/app/wwwroot/*`
+3. ASP.NET serves static files from `wwwroot/`
+4. Nginx proxies requests to ASP.NET
+
+**See**: `FRONTEND_FIX_DEPLOYMENT.md` for detailed deployment guide
+
+---
+
+## 9. User Actions Required
 
 ### 🔴 CRITICAL (Before Launch)
 
@@ -641,7 +679,7 @@ See: `User_Actions_After_Vibe_Coding_On_MVP.md` Action #27
 
 ---
 
-## 9. Phase 2 SEO Enhancements
+## 10. Phase 2 SEO Enhancements
 
 ### 🚀 Future Improvements (Month 2-3)
 
@@ -741,7 +779,7 @@ public async Task<IActionResult> GetSitemap()
 
 ---
 
-## 10. Testing & Validation
+## 11. Testing & Validation
 
 ### ✅ SEO Checklist
 
@@ -843,7 +881,7 @@ Enter: https://antystyki.pl
 
 ---
 
-## 11. SEO Monitoring
+## 12. SEO Monitoring
 
 ### 📊 Key Metrics to Track
 

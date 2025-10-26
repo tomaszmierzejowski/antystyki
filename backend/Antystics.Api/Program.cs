@@ -213,6 +213,9 @@ app.MapGet("/api/health", async (ApplicationDbContext? dbContext) =>
 
 app.MapControllers();
 
+// ✅ SPA Fallback: Serve React app for all non-API routes
+app.MapFallbackToFile("index.html");
+
 // Initialize database
 using (var scope = app.Services.CreateScope())
 {
