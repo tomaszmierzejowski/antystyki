@@ -7,7 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed (2025-10-26) - Production CSP & Email Configuration
+### Fixed (2025-10-26) - Production CSP, Email Configuration & Deliverability
+
+#### Email Deliverability & Spam Prevention
+- **[CRITICAL BUG]** Fixed emails rejected as spam by external providers (WP.pl, O2.pl, etc.)
+- **[SECURITY]** Identified sender authentication mismatch (FROM vs SMTP mismatch)
+- **[DOCUMENTATION]** Created EMAIL_DELIVERABILITY_FIX.md with 3 solution options
+- **[CONFIGURATION]** Updated PRODUCTION.env.example with proper email configuration
+- **[BEST PRACTICE]** Documented SPF/DKIM/DMARC DNS records for domain authentication
+- **[RECOMMENDATION]** Quick fix: Match EMAIL_FROM_ADDRESS to SMTP_USER (Gmail)
+- **[RECOMMENDATION]** Production fix: Add SPF record to DNS
+- **[RECOMMENDATION]** Long-term fix: Switch to SendGrid for best deliverability
+- **[DOCUMENTATION]** Added Gmail sending limits documentation (500/day)
 
 #### Content Security Policy (CSP) Fixes
 - **[SECURITY]** Updated CSP to allow Google Fonts (fonts.googleapis.com stylesheet)
