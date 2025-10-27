@@ -7,7 +7,7 @@ interface LogoProps {
 
 /**
  * Antystyki Logo Component
- * Split circle (left bright, right dark) with large orange "A"
+ * Split circle (left bright, right dark) with Inter font "A"
  * Represents "shades of gray" - not black and white
  */
 const Logo: React.FC<LogoProps> = ({ size = 32, className = '' }) => {
@@ -31,13 +31,18 @@ const Logo: React.FC<LogoProps> = ({ size = 32, className = '' }) => {
         fill="#6B7280"
       />
       
-      {/* Large orange "A" letter */}
-      <path
-        d="M 30 80 L 42 25 L 58 25 L 70 80 L 60 80 L 57.5 67 L 42.5 67 L 40 80 Z M 45 57 L 55 57 L 50 35 Z"
+      {/* Orange "A" letter using Inter font (same as site logo) */}
+      <text
+        x="50"
+        y="72"
+        textAnchor="middle"
+        fontSize="60"
+        fontFamily="Inter, sans-serif"
+        fontWeight="600"
         fill="#FF6A00"
-        stroke="#FF6A00"
-        strokeWidth="1.5"
-      />
+      >
+        A
+      </text>
     </svg>
   );
 };

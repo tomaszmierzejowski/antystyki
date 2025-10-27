@@ -11,12 +11,17 @@
     fill="#6B7280"
   />
   
-  <!-- Large orange "A" letter -->
-  <path
-    d="M 30 80 L 42 25 L 58 25 L 70 80 L 60 80 L 57.5 67 L 42.5 67 L 40 80 Z M 45 57 L 55 57 L 50 35 Z"
+  <!-- Orange "A" letter using Inter font (same as site logo) -->
+  <text
+    x="50"
+    y="72"
+    text-anchor="middle"
+    font-size="60"
+    font-family="Inter, sans-serif"
+    font-weight="600"
     fill="#FF6A00"
-    stroke="#FF6A00"
-    stroke-width="1.5"
-  />
+  >
+    A
+  </text>
 </svg>
 
