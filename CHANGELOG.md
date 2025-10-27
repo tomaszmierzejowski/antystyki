@@ -28,9 +28,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Brand Identity Update
 - **[DESIGN]** Updated logo to new brand design (orange "A" on split circle)
 - **[COMPONENT]** Created reusable `Logo` component with SVG implementation
-- **[BRANDING]** Split circle design: left half bright gray, right half dark gray
+- **[BRANDING]** Split circle design: left half bright gray (#D1D5DB), right half dark gray (#6B7280)
 - **[BRANDING]** Represents "shades of gray" philosophy - not black and white
-- **[BRANDING]** Large orange (#FF6A00) "A" letter for better visibility
+- **[BRANDING]** Large orange (#FF6A00) "A" using Inter font (matches site typography)
+- **[TYPOGRAPHY]** Logo "A" uses same Inter font (weight 600) as "Antystyki" text
+- **[CONSISTENCY]** Ensures visual consistency across all brand elements
 - **[NAVBAR]** Updated Navbar to use new Logo component
 - **[FAVICON]** Created and added favicon.svg matching new logo design
 - **[FAVICON]** Added multiple favicon sizes for cross-device compatibility
