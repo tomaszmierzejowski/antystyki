@@ -34,9 +34,9 @@ const Logo: React.FC<LogoProps> = ({ size = 32, className = '' }) => {
       {/* Orange "A" letter using Inter font (same as site logo) */}
       <text
         x="50"
-        y="72"
+        y="75"
         textAnchor="middle"
-        fontSize="60"
+        fontSize="75"
         fontFamily="Inter, sans-serif"
         fontWeight="600"
         fill="#FF6A00"
