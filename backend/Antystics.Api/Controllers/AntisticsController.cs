@@ -149,22 +149,16 @@ public class AntisticsController : ControllerBase
         return CreatedAtAction(nameof(GetAntistic), new { id = antistic.Id }, new { id = antistic.Id });
     }
 
-    [Authorize]
     [HttpPost("{id}/like")]
     public async Task<IActionResult> LikeAntistic(Guid id)
     {
         var userId = GetCurrentUserId();
-        if (!userId.HasValue)
-        {
-            return Unauthorized();
-        }
+        var anonymousUserId = Request.Headers["X-Anonymous-User-Id"].FirstOrDefault();
 
-        var existingLike = await _context.AntisticLikes
-            .FirstOrDefaultAsync(l => l.AntisticId == id && l.UserId == userId.Value);
-
-        if (existingLike != null)
+        // Check if user is authenticated or anonymous
+        if (!userId.HasValue && string.IsNullOrEmpty(anonymousUserId))
         {
-            return BadRequest(new { message = "Already liked" });
+            return Unauthorized(new { message = "User identification required" });
         }
 
         var antistic = await _context.Antistics.FindAsync(id);
@@ -173,13 +167,28 @@ public class AntisticsController : ControllerBase
             return NotFound();
         }
 
-        var like = new AntisticLike
+        if (userId.HasValue)
         {
-            AntisticId = id,
-            UserId = userId.Value
-        };
+            // Authenticated user - store like in database
+            var existingLike = await _context.AntisticLikes
+                .FirstOrDefaultAsync(l => l.AntisticId == id && l.UserId == userId.Value);
 
-        _context.AntisticLikes.Add(like);
+            if (existingLike != null)
+            {
+                return BadRequest(new { message = "Already liked" });
+            }
+
+            var like = new AntisticLike
+            {
+                AntisticId = id,
+                UserId = userId.Value
+            };
+
+            _context.AntisticLikes.Add(like);
+        }
+        
+        // For both authenticated and anonymous: increment counter
+        // Anonymous likes are tracked client-side to prevent duplicates
         antistic.LikesCount++;
         await _context.SaveChangesAsync();
 
@@ -388,22 +397,16 @@ public class AntisticsController : ControllerBase
         return Ok(new { message = "Comment deleted by admin successfully" });
     }
 
-    [Authorize]
     [HttpDelete("{id}/like")]
     public async Task<IActionResult> UnlikeAntistic(Guid id)
     {
         var userId = GetCurrentUserId();
-        if (!userId.HasValue)
-        {
-            return Unauthorized();
-        }
+        var anonymousUserId = Request.Headers["X-Anonymous-User-Id"].FirstOrDefault();
 
-        var like = await _context.AntisticLikes
-            .FirstOrDefaultAsync(l => l.AntisticId == id && l.UserId == userId.Value);
-
-        if (like == null)
+        // Check if user is authenticated or anonymous
+        if (!userId.HasValue && string.IsNullOrEmpty(anonymousUserId))
         {
-            return BadRequest(new { message = "Not liked" });
+            return Unauthorized(new { message = "User identification required" });
         }
 
         var antistic = await _context.Antistics.FindAsync(id);
@@ -412,8 +415,27 @@ public class AntisticsController : ControllerBase
             return NotFound();
         }
 
-        _context.AntisticLikes.Remove(like);
-        antistic.LikesCount--;
+        if (userId.HasValue)
+        {
+            // Authenticated user - remove like from database
+            var like = await _context.AntisticLikes
+                .FirstOrDefaultAsync(l => l.AntisticId == id && l.UserId == userId.Value);
+
+            if (like == null)
+            {
+                return BadRequest(new { message = "Not liked" });
+            }
+
+            _context.AntisticLikes.Remove(like);
+        }
+        
+        // For both authenticated and anonymous: decrement counter
+        // Anonymous unlikes are tracked client-side
+        if (antistic.LikesCount > 0)
+        {
+            antistic.LikesCount--;
+        }
+        
         await _context.SaveChangesAsync();
 
         return Ok(new { likesCount = antistic.LikesCount });

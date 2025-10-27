@@ -51,7 +51,13 @@ const PrivacyPolicy = () => {
         </div>
 
         {/* Content */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 prose dark:prose-invert max-w-none">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 prose dark:prose-invert max-w-none
+                        prose-headings:text-gray-900 dark:prose-headings:text-gray-100
+                        prose-p:text-gray-700 dark:prose-p:text-gray-300
+                        prose-li:text-gray-700 dark:prose-li:text-gray-300
+                        prose-strong:text-gray-900 dark:prose-strong:text-gray-100
+                        prose-a:text-blue-600 dark:prose-a:text-blue-400 
+                        prose-a:no-underline hover:prose-a:underline">
           {language === 'pl' ? <PolishPrivacyPolicy /> : <EnglishPrivacyPolicy />}
         </div>
       </div>

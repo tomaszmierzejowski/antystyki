@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed (2025-10-27) - UI Improvements & Anonymous User Features
+
+#### Privacy Policy Dark Mode Fix
+- **[BUG FIX]** Fixed low contrast text on Privacy Policy page in mobile dark mode
+- **[UX]** Added explicit text color classes for headings, paragraphs, and links in dark mode
+- **[ACCESSIBILITY]** Improved readability with proper contrast ratios (blue on blue → blue on gray)
+- **[STYLING]** Enhanced prose styling with proper dark mode link colors (blue-400 in dark mode)
+
+#### Anonymous User Like Functionality
+- **[FEATURE]** Enabled liking for anonymous (non-logged-in) users
+- **[TRACKING]** Implemented localStorage-based duplicate prevention for anonymous likes
+- **[SECURITY]** Generate unique anonymous user ID per browser/device
+- **[API]** Updated backend to accept anonymous likes via `X-Anonymous-User-Id` header
+- **[BACKEND]** Removed `[Authorize]` attribute from like/unlike endpoints
+- **[UX]** Anonymous likes tracked client-side to prevent UI duplicates
+- **[UX]** Silent failure for anonymous users (no error alerts)
+- **[ENGAGEMENT]** Significantly improved user engagement by removing login barrier
+
+#### Brand Identity Update
+- **[DESIGN]** Updated logo to new brand design (orange "A" on gray circular background)
+- **[COMPONENT]** Created reusable `Logo` component with SVG implementation
+- **[BRANDING]** Implemented gradient gray background (light to dark)
+- **[BRANDING]** Orange (#FF6A00) "A" letter matching brand color
+- **[NAVBAR]** Updated Navbar to use new Logo component
+- **[FAVICON]** Created and added favicon.svg matching new logo design
+- **[FAVICON]** Added multiple favicon sizes for cross-device compatibility
+- **[FAVICON]** Added Apple touch icon support
+
+#### Technical Improvements
+- **[CODE QUALITY]** Refactored useLike hook with better anonymous user support
+- **[CODE QUALITY]** Added useEffect to check localStorage for anonymous likes on mount
+- **[BACKEND]** Enhanced like/unlike endpoints to handle both authenticated and anonymous users
+- **[BACKEND]** Maintained database integrity - only authenticated likes stored in DB
+- **[API]** Anonymous likes increment/decrement counter without DB records (prevents bloat)
+
 ### Fixed (2025-10-26) - Production CSP, Email Configuration & Deliverability
 
 #### Email Deliverability & Spam Prevention

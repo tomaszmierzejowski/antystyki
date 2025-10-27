@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import Logo from './Logo';
 
 /**
  * Navbar Component - Refactored to match mockup design
@@ -8,7 +9,7 @@ import { useAuth } from '../context/AuthContext';
  * Design characteristics:
  * - Fixed top bar with minimal shadow
  * - White background with subtle shadow
- * - Left: logo with gray circle icon
+ * - Left: logo with orange A on gray circle
  * - Right: navigation links with subtle hover underline
  * - Far right: small faded site link
  */
@@ -31,10 +32,9 @@ const Navbar: React.FC = () => {
     <nav className="bg-white border-b border-gray-100 sticky top-0 z-50" style={{ boxShadow: '0 1px 6px rgba(0,0,0,0.05)' }}>
       <div className="mx-auto px-6" style={{ maxWidth: '1000px' }}>
         <div className="flex justify-between items-center h-16">
-          {/* Logo - Left side with gray circle icon */}
+          {/* Logo - Left side with orange A on gray circle */}
           <Link to="/" className="flex items-center gap-2 group">
-            {/* Gray circle icon representing shades of gray */}
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-400 to-gray-600 group-hover:scale-105 transition-transform"></div>
+            <Logo size={32} className="group-hover:scale-105 transition-transform" />
             <span className="text-xl font-semibold text-gray-900 group-hover:text-gray-700 transition-colors">
               Antystyki
             </span>
