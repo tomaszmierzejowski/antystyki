@@ -7,8 +7,8 @@ interface LogoProps {
 
 /**
  * Antystyki Logo Component
- * Orange "A" on gray circular background
- * Based on the brand design
+ * Split circle (left bright, right dark) with large orange "A"
+ * Represents "shades of gray" - not black and white
  */
 const Logo: React.FC<LogoProps> = ({ size = 32, className = '' }) => {
   return (
@@ -19,23 +19,24 @@ const Logo: React.FC<LogoProps> = ({ size = 32, className = '' }) => {
       className={className}
       xmlns="http://www.w3.org/2000/svg"
     >
-      {/* Gray circular background with gradient (light to dark) */}
-      <defs>
-        <linearGradient id="grayGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#D1D5DB" />
-          <stop offset="100%" stopColor="#6B7280" />
-        </linearGradient>
-      </defs>
-      
-      {/* Circle background */}
-      <circle cx="50" cy="50" r="50" fill="url(#grayGradient)" />
-      
-      {/* Orange "A" letter */}
+      {/* Left half - Bright gray */}
       <path
-        d="M 35 75 L 45 35 L 55 35 L 65 75 L 58 75 L 56 65 L 44 65 L 42 75 Z M 45.5 58 L 54.5 58 L 50 40 Z"
+        d="M 50 0 A 50 50 0 0 1 50 100 L 50 50 Z"
+        fill="#D1D5DB"
+      />
+      
+      {/* Right half - Dark gray */}
+      <path
+        d="M 50 0 A 50 50 0 0 0 50 100 L 50 50 Z"
+        fill="#6B7280"
+      />
+      
+      {/* Large orange "A" letter */}
+      <path
+        d="M 30 80 L 42 25 L 58 25 L 70 80 L 60 80 L 57.5 67 L 42.5 67 L 40 80 Z M 45 57 L 55 57 L 50 35 Z"
         fill="#FF6A00"
         stroke="#FF6A00"
-        strokeWidth="1"
+        strokeWidth="1.5"
       />
     </svg>
   );

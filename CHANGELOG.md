@@ -26,10 +26,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **[ENGAGEMENT]** Significantly improved user engagement by removing login barrier
 
 #### Brand Identity Update
-- **[DESIGN]** Updated logo to new brand design (orange "A" on gray circular background)
+- **[DESIGN]** Updated logo to new brand design (orange "A" on split circle)
 - **[COMPONENT]** Created reusable `Logo` component with SVG implementation
-- **[BRANDING]** Implemented gradient gray background (light to dark)
-- **[BRANDING]** Orange (#FF6A00) "A" letter matching brand color
+- **[BRANDING]** Split circle design: left half bright gray, right half dark gray
+- **[BRANDING]** Represents "shades of gray" philosophy - not black and white
+- **[BRANDING]** Large orange (#FF6A00) "A" letter for better visibility
 - **[NAVBAR]** Updated Navbar to use new Logo component
 - **[FAVICON]** Created and added favicon.svg matching new logo design
 - **[FAVICON]** Added multiple favicon sizes for cross-device compatibility
