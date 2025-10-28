@@ -32,9 +32,9 @@ const Navbar: React.FC = () => {
     <nav className="bg-white border-b border-gray-100 sticky top-0 z-50" style={{ boxShadow: '0 1px 6px rgba(0,0,0,0.05)' }}>
       <div className="mx-auto px-6" style={{ maxWidth: '1000px' }}>
         <div className="flex justify-between items-center h-16">
-          {/* Logo - Left side with orange A on gray circle */}
-          <Link to="/" className="flex items-center gap-2 group">
-            <Logo size={32} className="group-hover:scale-105 transition-transform" />
+          {/* Logo - Left side with stylized A on split circle */}
+          <Link to="/" className="flex items-center gap-3 group">
+            <Logo size={48} className="group-hover:scale-105 transition-transform" />
             <span className="text-xl font-semibold text-gray-900 group-hover:text-gray-700 transition-colors">
               Antystyki
             </span>
