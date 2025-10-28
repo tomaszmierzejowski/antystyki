@@ -28,11 +28,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Brand Identity Update
 - **[DESIGN]** Updated logo to professional stylized "A" design with depth and shading
 - **[COMPONENT]** Created reusable `Logo` component with SVG implementation
-- **[BRANDING]** Multi-tone design with gray shading (#383C3F, #3A3B3D, #F4F1F0)
-- **[BRANDING]** Orange (#F68237) prominent "A" letter
-- **[BRANDING]** Represents "shades of gray" philosophy with visual depth
-- **[DESIGN]** Professional 3D-style appearance with multiple shading layers
-- **[NAVBAR]** Updated Navbar to use new Logo component
+- **[BRANDING]** Split circle background: left half light grey (#D1D5DB), right half dark grey (#6B7280)
+- **[BRANDING]** Represents "shades of gray" philosophy - not black and white
+- **[BRANDING]** Multi-tone design with shadow layers (#383C3F, #3A3B3D, #F4F1F0)
+- **[BRANDING]** Orange (#F68237) prominent "A" letter with 3D depth effect
+- **[DESIGN]** Professional appearance with multiple shading layers for dimension
+- **[UX]** Increased logo size from 32px to 48px in navbar for better visibility
+- **[NAVBAR]** Updated Navbar to use new Logo component with larger size
 - **[FAVICON]** Created and added favicon.svg matching new logo design
 - **[FAVICON]** Added multiple favicon sizes for cross-device compatibility
 - **[FAVICON]** Added Apple touch icon support
