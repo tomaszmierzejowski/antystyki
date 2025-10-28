@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import Logo from './Logo';
 
 /**
  * Footer Component - Matches mockup design
@@ -22,7 +23,7 @@ const Footer: React.FC = () => {
           {/* Column 1: Logo and Mission */}
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-400 to-gray-600"></div>
+              <Logo size={32} />
               <span className="text-lg font-semibold text-gray-900">Antystyki</span>
             </div>
             <p className="text-sm text-gray-600 leading-relaxed">

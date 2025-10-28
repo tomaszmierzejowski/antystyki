@@ -30,7 +30,7 @@ const Logo: React.FC<LogoProps> = ({ size = 32, className = '' }) => {
       {/* Circle background with gradient */}
       <circle cx="50" cy="50" r="50" fill="url(#grayGradient)" />
       
-      {/* Orange "A" letter - large and centered */}
+      {/* White "A" letter - large and centered */}
       <text
         x="50"
         y="72"
@@ -38,7 +38,7 @@ const Logo: React.FC<LogoProps> = ({ size = 32, className = '' }) => {
         fontSize="65"
         fontFamily="Inter, sans-serif"
         fontWeight="700"
-        fill="#FF6A00"
+        fill="#FFFFFF"
       >
         A
       </text>
