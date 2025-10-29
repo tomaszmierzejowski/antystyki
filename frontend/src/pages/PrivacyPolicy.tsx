@@ -45,8 +45,8 @@ const PrivacyPolicy = () => {
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
             {language === 'pl' 
-              ? 'Ostatnia aktualizacja: 15 października 2025' 
-              : 'Last updated: October 15, 2025'}
+              ? 'Ostatnia aktualizacja: 29 października 2025' 
+              : 'Last updated: October 29, 2025'}
           </p>
         </div>
 
@@ -99,8 +99,9 @@ const PolishPrivacyPolicy = () => (
 
     <h3>3.2 Dane Zbierane Automatycznie</h3>
     <ul>
-      <li><strong>Dane techniczne:</strong> adres IP, typ przeglądarki, system operacyjny</li>
+      <li><strong>Dane techniczne:</strong> adres IP (zanonimizowany), typ przeglądarki, system operacyjny</li>
       <li><strong>Dane użytkowania:</strong> czas wizyty, odwiedzone strony, akcje w Serwisie</li>
+      <li><strong>Dane analityczne:</strong> Google Analytics 4 - szczegóły w sekcji 7.2</li>
       <li><strong>Pliki cookies:</strong> szczegóły w sekcji 7</li>
     </ul>
 
@@ -210,7 +211,43 @@ const PolishPrivacyPolicy = () => (
       </tbody>
     </table>
 
-    <h3>7.3 Zarządzanie Cookies</h3>
+    <h3>7.3 Google Analytics 4</h3>
+    <p>
+      Używamy Google Analytics 4 do analizy ruchu na stronie i zrozumienia zachowań użytkowników. 
+      To pomaga nam ulepszyć Serwis i dostosować go do Twoich potrzeb.
+    </p>
+    
+    <h4>Jakie dane zbiera Google Analytics:</h4>
+    <ul>
+      <li>Informacje o odwiedzonych stronach i czasie wizyty</li>
+      <li>Typ urządzenia, przeglądarki i systemu operacyjnego</li>
+      <li>Zanonimizowany adres IP (ostatnie oktety są usuwane)</li>
+      <li>Źródło ruchu (np. wyszukiwarka, link bezpośredni)</li>
+      <li>Interakcje z elementami strony (kliknięcia, polubienia, komentarze)</li>
+    </ul>
+    
+    <h4>Dane NIE zbierane przez Google Analytics:</h4>
+    <ul>
+      <li>Pełny adres IP (jest anonimizowany)</li>
+      <li>Hasła lub dane uwierzytelniające</li>
+      <li>Treść komentarzy lub utworzonych antystyków</li>
+      <li>Dane osobowe umożliwiające Twoją identyfikację</li>
+    </ul>
+    
+    <h4>Twoja kontrola:</h4>
+    <ul>
+      <li><strong>Zgoda:</strong> Przed rozpoczęciem śledzenia pytamy o zgodę przez banner cookies</li>
+      <li><strong>Opt-out:</strong> Możesz wycofać zgodę w każdej chwili przez ustawienia przeglądarki</li>
+      <li><strong>Google Opt-out:</strong> Zainstaluj wtyczkę: <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener">Google Analytics Opt-out Browser Add-on</a></li>
+    </ul>
+    
+    <p>
+      <strong>Podstawa prawna:</strong> Zgoda (Art. 6(1)(a) GDPR)<br />
+      <strong>Okres przechowywania:</strong> 26 miesięcy (ustawienie Google Analytics)<br />
+      <strong>Polityka prywatności Google:</strong> <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">policies.google.com/privacy</a>
+    </p>
+
+    <h3>7.4 Zarządzanie Cookies</h3>
     <p>
       Możesz zarządzać cookies w ustawieniach przeglądarki. Blokada wszystkich cookies może 
       wpłynąć na funkcjonalność Serwisu.
@@ -312,8 +349,8 @@ const PolishPrivacyPolicy = () => (
     </p>
 
     <p className="text-sm text-gray-600 dark:text-gray-400 mt-8 pt-4 border-t border-gray-200 dark:border-gray-700">
-      <strong>Data ostatniej aktualizacji:</strong> 15 października 2025<br />
-      <strong>Wersja:</strong> 1.0<br />
+      <strong>Data ostatniej aktualizacji:</strong> 29 października 2025<br />
+      <strong>Wersja:</strong> 1.1<br />
       <strong>Status:</strong> Obowiązująca
     </p>
   </>
@@ -352,8 +389,9 @@ const EnglishPrivacyPolicy = () => (
 
     <h3>3.2 Data Collected Automatically</h3>
     <ul>
-      <li><strong>Technical data:</strong> IP address, browser type, operating system</li>
+      <li><strong>Technical data:</strong> IP address (anonymized), browser type, operating system</li>
       <li><strong>Usage data:</strong> visit time, pages viewed, actions in the Service</li>
+      <li><strong>Analytics data:</strong> Google Analytics 4 - details in section 7.2</li>
       <li><strong>Cookies:</strong> details in section 7</li>
     </ul>
 
@@ -463,7 +501,43 @@ const EnglishPrivacyPolicy = () => (
       </tbody>
     </table>
 
-    <h3>7.3 Managing Cookies</h3>
+    <h3>7.3 Google Analytics 4</h3>
+    <p>
+      We use Google Analytics 4 to analyze website traffic and understand user behavior. 
+      This helps us improve the Service and tailor it to your needs.
+    </p>
+    
+    <h4>What data Google Analytics collects:</h4>
+    <ul>
+      <li>Information about visited pages and visit duration</li>
+      <li>Device type, browser, and operating system</li>
+      <li>Anonymized IP address (last octets are removed)</li>
+      <li>Traffic source (e.g., search engine, direct link)</li>
+      <li>Interactions with page elements (clicks, likes, comments)</li>
+    </ul>
+    
+    <h4>Data NOT collected by Google Analytics:</h4>
+    <ul>
+      <li>Full IP address (it is anonymized)</li>
+      <li>Passwords or authentication credentials</li>
+      <li>Content of comments or created antistics</li>
+      <li>Personal data enabling your identification</li>
+    </ul>
+    
+    <h4>Your control:</h4>
+    <ul>
+      <li><strong>Consent:</strong> We ask for consent through a cookie banner before tracking begins</li>
+      <li><strong>Opt-out:</strong> You can withdraw consent anytime through browser settings</li>
+      <li><strong>Google Opt-out:</strong> Install plugin: <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener">Google Analytics Opt-out Browser Add-on</a></li>
+    </ul>
+    
+    <p>
+      <strong>Legal basis:</strong> Consent (Art. 6(1)(a) GDPR)<br />
+      <strong>Retention period:</strong> 26 months (Google Analytics setting)<br />
+      <strong>Google Privacy Policy:</strong> <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">policies.google.com/privacy</a>
+    </p>
+
+    <h3>7.4 Managing Cookies</h3>
     <p>
       You can manage cookies in your browser settings. Blocking all cookies may affect 
       Service functionality.
@@ -564,8 +638,8 @@ const EnglishPrivacyPolicy = () => (
     </p>
 
     <p className="text-sm text-gray-600 dark:text-gray-400 mt-8 pt-4 border-t border-gray-200 dark:border-gray-700">
-      <strong>Last updated:</strong> October 15, 2025<br />
-      <strong>Version:</strong> 1.0<br />
+      <strong>Last updated:</strong> October 29, 2025<br />
+      <strong>Version:</strong> 1.1<br />
       <strong>Status:</strong> Active
     </p>
   </>

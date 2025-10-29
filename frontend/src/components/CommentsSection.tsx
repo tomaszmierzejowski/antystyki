@@ -3,6 +3,7 @@ import type { Comment, CommentListResponse, CreateCommentRequest } from '../type
 import { useAuth } from '../context/AuthContext';
 import commentsApi from '../api/comments';
 import AdminActions from './AdminActions';
+import { trackAntisticComment } from '../utils/analytics';
 
 interface Props {
   antisticId: string;
@@ -63,6 +64,9 @@ const CommentsSection: React.FC<Props> = ({
       setComments(prev => [comment, ...prev]);
       setNewComment('');
       setTotalCount(prev => prev + 1);
+      
+      // Track comment creation
+      trackAntisticComment(antisticId, newComment.trim().length);
       
       if (onCommentsCountChange) {
         onCommentsCountChange(totalCount + 1);

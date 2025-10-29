@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../config/api';
+import { trackUserLogin } from '../utils/analytics';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -25,6 +26,10 @@ const Login: React.FC = () => {
 
     try {
       await login({ email, password });
+      
+      // Track successful login
+      trackUserLogin('email');
+      
       navigate('/');
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || 'Błąd logowania';

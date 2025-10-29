@@ -8,6 +8,10 @@ import TemplateSelector from '../components/TemplateSelector';
 import ChartDataInput from '../components/ChartDataInput';
 import AntisticCard from '../components/AntisticCard';
 import { CARD_TEMPLATES } from '../types/templates';
+import { 
+  trackAntisticCreate, 
+  trackCreateFormOpen
+} from '../utils/analytics';
 
 const CreateAntistic: React.FC = () => {
   // Template system state
@@ -26,6 +30,9 @@ const CreateAntistic: React.FC = () => {
 
   useEffect(() => {
     fetchCategories();
+    
+    // Track that user opened the create form
+    trackCreateFormOpen();
     
     // Create anonymous user if not authenticated
     if (!isAuthenticated && !isAnonymous) {
@@ -81,6 +88,10 @@ const CreateAntistic: React.FC = () => {
       };
       
       await api.post('/antistics', payload);
+      
+      // Track successful creation
+      const categoryName = categories.find(c => selectedCategories.includes(c.id))?.namePl;
+      trackAntisticCreate(categoryName, selectedTemplate !== 'two-column-default');
       
       if (isDraft) {
         // Show success message for draft

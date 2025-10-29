@@ -1,6 +1,8 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import Navbar from './components/Navbar';
+import CookieConsent from './components/CookieConsent';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -16,6 +18,19 @@ import AnonymousTest from './components/AnonymousTest';
 import ChartDataTest from './components/ChartDataTest';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
+import { trackPageView } from './utils/analytics';
+
+// Component to track route changes
+function AnalyticsTracker() {
+  const location = useLocation();
+
+  useEffect(() => {
+    // Track pageview on route change
+    trackPageView(location.pathname + location.search, document.title);
+  }, [location]);
+
+  return null;
+}
 
 function App() {
   return (
@@ -23,6 +38,7 @@ function App() {
       <AuthProvider>
         <div className="min-h-screen" style={{ backgroundColor: '#f8f9fb' }}>
           <Navbar />
+          <AnalyticsTracker />
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
@@ -40,6 +56,7 @@ function App() {
             <Route path="/test-anonymous" element={<AnonymousTest />} />
             <Route path="/test-charts" element={<ChartDataTest />} />
           </Routes>
+          <CookieConsent />
         </div>
       </AuthProvider>
     </Router>

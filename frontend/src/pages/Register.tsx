@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { trackUserRegistration } from '../utils/analytics';
 
 const Register: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -34,6 +35,10 @@ const Register: React.FC = () => {
         password,
         captchaToken: 'dummy' // TODO: Implement real CAPTCHA
       });
+      
+      // Track successful registration
+      trackUserRegistration('email');
+      
       setSuccess(true);
       setTimeout(() => navigate('/login'), 3000);
     } catch (err: any) {

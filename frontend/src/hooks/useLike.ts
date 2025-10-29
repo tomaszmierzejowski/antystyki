@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../config/api';
 import { useAuth } from '../context/AuthContext';
+import { trackAntisticLike, trackAntisticUnlike } from '../utils/analytics';
 
 interface UseLikeProps {
   antisticId: string;
@@ -72,8 +73,10 @@ export const useLike = ({ antisticId, initialLikesCount, initialIsLiked }: UseLi
         // Authenticated user - use API
         if (isLiked) {
           await api.delete(`/antistics/${antisticId}/like`);
+          trackAntisticUnlike(antisticId);
         } else {
           await api.post(`/antistics/${antisticId}/like`);
+          trackAntisticLike(antisticId);
         }
       } else {
         // Anonymous user - track locally and send to API with anonymous ID
@@ -86,12 +89,14 @@ export const useLike = ({ antisticId, initialLikesCount, initialIsLiked }: UseLi
           await api.delete(`/antistics/${antisticId}/like`, {
             headers: { 'X-Anonymous-User-Id': anonymousUserId }
           });
+          trackAntisticUnlike(antisticId);
         } else {
           // Like
           anonymousLikes.add(antisticId);
           await api.post(`/antistics/${antisticId}/like`, {}, {
             headers: { 'X-Anonymous-User-Id': anonymousUserId }
           });
+          trackAntisticLike(antisticId);
         }
         
         saveAnonymousLikes(anonymousLikes);
