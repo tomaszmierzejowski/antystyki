@@ -7,7 +7,7 @@ const analyticsMock = vi.hoisted(() => ({
 }));
 
 const clipboardMock = vi.hoisted(() => ({
-  copyToClipboard: vi.fn(() => Promise.resolve()),
+  copyToClipboard: vi.fn(async (_value: string) => Promise.resolve()),
 }));
 
 vi.mock('../../utils/analytics', () => analyticsMock);
@@ -15,7 +15,6 @@ vi.mock('../../utils/clipboard', () => clipboardMock);
 
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import ShareMenu from '../ShareMenu';
 
 const { trackShareInitiated, trackSharePlatform, trackShareCompleted } = analyticsMock;
@@ -53,7 +52,9 @@ describe('ShareMenu', () => {
       expect(copyToClipboard).toHaveBeenCalled();
     });
 
-    const payload = vi.mocked(copyToClipboard).mock.calls[0][0] as string;
+    const copyCalls = vi.mocked(copyToClipboard).mock.calls;
+    expect(copyCalls.length).toBeGreaterThan(0);
+    const payload = copyCalls[0]?.[0] ?? '';
     expect(payload).toContain('utm_source=copy-link');
     expect(payload).toContain('share_button_v1');
 
@@ -104,7 +105,9 @@ describe('ShareMenu', () => {
       expect(copyToClipboard).toHaveBeenCalled();
     });
 
-    const payload = vi.mocked(copyToClipboard).mock.calls[0][0] as string;
+    const copyCalls = vi.mocked(copyToClipboard).mock.calls;
+    expect(copyCalls.length).toBeGreaterThan(0);
+    const payload = copyCalls[0]?.[0] ?? '';
     expect(payload.split('\n')[0]).toBe('Statystyka z szerszym kontekstem');
     expect(payload).toContain('utm_source=copy-stat');
     expect(trackShareCompleted).toHaveBeenCalledWith('statistic', 'test-entity-id', 'copy-stat');

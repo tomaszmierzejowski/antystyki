@@ -16,6 +16,8 @@ const ChartDataTest: React.FC = () => {
     reversedStatistic: '85% of the universe\'s mass is invisible to us',
     sourceUrl: 'https://example.com/source',
     imageUrl: '/placeholder.png',
+    slug: 'test-chart-data',
+    canonicalUrl: 'https://antystyki.pl/antistics/test-1',
     templateId: 'two-column-default',
     chartData: {
       perspectiveData: {
@@ -59,6 +61,8 @@ const ChartDataTest: React.FC = () => {
     reversedStatistic: '75% of statistics are made up',
     sourceUrl: 'https://example.com/source2',
     imageUrl: '/placeholder.png',
+    slug: 'test-without-chart-data',
+    canonicalUrl: 'https://antystyki.pl/antistics/test-2',
     status: 'Approved',
     likesCount: 15,
     viewsCount: 567,
@@ -120,6 +124,8 @@ const ChartDataTest: React.FC = () => {
                 ...testAntisticNoData,
                 id: 'test-3',
                 title: 'Test Without Percentage',
+                slug: 'test-without-percentage',
+                canonicalUrl: 'https://antystyki.pl/antistics/test-3',
                 reversedStatistic: 'This statistic has no percentage in it'
               }} />
             </div>

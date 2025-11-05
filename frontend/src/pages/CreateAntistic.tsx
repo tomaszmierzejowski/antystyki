@@ -181,6 +181,8 @@ const CreateAntistic: React.FC = () => {
     reversedStatistic: chartData.description || 'Twoja odwrócona statystyka...',
     sourceUrl: chartData.source || 'https://antystyki.pl',
     imageUrl: '/placeholder.png',
+    slug: 'podglad-antystyk',
+    canonicalUrl: 'https://antystyki.pl/antistics/preview',
     status: 'Draft',
     likesCount: 0,
     viewsCount: 0,

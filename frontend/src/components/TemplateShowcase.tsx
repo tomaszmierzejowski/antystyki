@@ -22,6 +22,8 @@ const EXAMPLE_ANTISTIC: Antistic = {
   sourceUrl: 'https://www.who.int/publications/i/item/global-status-report-on-road-safety-2018',
   imageUrl: '/example.jpg',
   backgroundImageKey: 'default',
+  slug: 'wypadki-drogowe-test',
+  canonicalUrl: 'https://antystyki.pl/antistics/example-1',
   status: 'Approved',
   likesCount: 312,
   viewsCount: 1247,
