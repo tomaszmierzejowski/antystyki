@@ -206,6 +206,7 @@
 - [ ] Final security audit
 - [ ] Performance testing
 - [ ] QA Statistics hub ranking, analytics, and antystyk conversion CTA
+- [ ] Validate Antystyki/Statystyki home toggle with desktop control and mobile swipe gestures (`STAT-HOME-TOGGLE`) plus compact filter UX (`STAT-FILTER-REFINE`)
 
 #### Day 11-14: Launch & Promotion (4 hours)
 - [ ] Soft launch to beta users
@@ -413,3 +414,4 @@
 - `CONTENT_CREATION_GUIDE.md` - Content creation templates
 - `CI_CD_IMPLEMENTATION_SUMMARY.md` - Executive summary
 - `User_Actions_After_Vibe_Coding_On_MVP.md` - Updated with 30 actions (1500+ lines)
+- `STAT_HOME_TOGGLE_VALIDATION.md` (planned) - Capture QA scripts for the Antystyki/Statystyki toggle and compact filtering experience

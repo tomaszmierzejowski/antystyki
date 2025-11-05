@@ -25,9 +25,10 @@ interface Props {
   templateId?: string;
   customData?: Partial<AntisticData>;
   onAdminAction?: () => void;
+  onCategoryClick?: (categoryId: string) => void;
 }
 
-const AntisticCard: React.FC<Props> = ({ antistic, templateId = 'two-column-default', customData, onAdminAction }) => {
+const AntisticCard: React.FC<Props> = ({ antistic, templateId = 'two-column-default', customData, onAdminAction, onCategoryClick }) => {
   const [commentsCount, setCommentsCount] = useState(antistic.commentsCount);
   const [showComments, setShowComments] = useState(false);
   const { likesCount, isLiked, isLoading: likeLoading, toggleLike } = useLike({
@@ -472,14 +473,32 @@ const AntisticCard: React.FC<Props> = ({ antistic, templateId = 'two-column-defa
       {/* Categories - if needed */}
       {antistic.categories && antistic.categories.length > 0 && (
         <div className="px-6 pb-4 flex flex-wrap gap-2">
-          {antistic.categories.map((cat) => (
-            <span
-              key={cat.id}
-              className="px-3 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full"
-            >
-              {cat.namePl}
-            </span>
-          ))}
+          {antistic.categories.map((cat) => {
+            const label = `#${cat.namePl.replace(/\s+/g, '')}`;
+
+            if (onCategoryClick) {
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => onCategoryClick(cat.id)}
+                  className="px-3 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full transition-colors hover:bg-gray-200 hover:text-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300"
+                  title={`Pokaż więcej z kategorii ${cat.namePl}`}
+                >
+                  {label}
+                </button>
+              );
+            }
+
+            return (
+              <span
+                key={cat.id}
+                className="px-3 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full"
+              >
+                {label}
+              </span>
+            );
+          })}
         </div>
       )}
 

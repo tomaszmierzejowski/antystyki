@@ -1,26 +1,34 @@
-import React, { useEffect, useState } from 'react';
-import type { Antistic, AntisticListResponse, Category } from '../types';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useSwipeable } from 'react-swipeable';
+import type { Antistic, AntisticListResponse, Category, Statistic } from '../types';
 import api from '../config/api';
 import AntisticCard from '../components/AntisticCard';
 import HeroSection from '../components/HeroSection';
-import TagFilterBar from '../components/TagFilterBar';
 import LoadMoreButton from '../components/LoadMoreButton';
 import Footer from '../components/Footer';
 import CardSkeleton from '../components/CardSkeleton';
+import FilterControls from '../components/FilterControls';
+import StatisticsHub from '../components/StatisticsHub';
+import { trackCategoryFilter, trackEvent, trackLoadMore, trackSearch } from '../utils/analytics';
 
 /**
  * Home Page - Completely refactored to match mockup design
  * 
  * Layout structure:
- * 1. HeroSection (large heading, buttons)
- * 2. TagFilterBar (pill-style filters with optional search)
- * 3. Feed of AntisticCards (center column, ~900-1000px wide)
- * 4. LoadMoreButton
+ * 1. HeroSection (heading, CTA, view toggle)
+ * 2. FilterControls (compact filters + search)
+ * 3. Antystyki feed or Statystyki hub depending on active view
+ * 4. LoadMoreButton (Antystyki view only)
  * 5. Footer
  * 
  * Design: Clean, minimal, light-gray aesthetic with generous whitespace
  */
+type HomeView = 'antistics' | 'statistics';
+type HomeViewChangeMethod = 'toggle' | 'swipe' | 'filter' | 'hashtag';
+
 const Home: React.FC = () => {
+  const navigate = useNavigate();
   const [antistics, setAntistics] = useState<Antistic[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,162 +37,267 @@ const Home: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [sortBy, setSortBy] = useState<'latest' | 'top' | 'trending'>('latest');
+  const [activeView, setActiveView] = useState<HomeView>('antistics');
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const [filtersVersion, setFiltersVersion] = useState(0);
 
-  useEffect(() => {
-    fetchCategories();
-  }, []);
+  const isFiltering = useMemo(() => Boolean(selectedCategory || searchQuery), [searchQuery, selectedCategory]);
 
-  useEffect(() => {
-    fetchAntistics();
-  }, [page, searchQuery, selectedCategory, sortBy]);
+  const changeView = useCallback(
+    (nextView: HomeView, method: HomeViewChangeMethod, metadata: Record<string, unknown> = {}) => {
+      setActiveView((previous) => {
+        if (previous === nextView) {
+          return previous;
+        }
 
-  const fetchCategories = async () => {
+        trackEvent('home_view_change', {
+          from_view: previous,
+          to_view: nextView,
+          method,
+          ...metadata,
+        });
+
+        return nextView;
+      });
+    },
+    [],
+  );
+
+  const swipeHandlers = useSwipeable({
+    onSwipedLeft: () => changeView('statistics', 'swipe', { direction: 'left' }),
+    onSwipedRight: () => changeView('antistics', 'swipe', { direction: 'right' }),
+    delta: 40,
+    preventScrollOnSwipe: true,
+    trackTouch: true,
+  });
+
+  const fetchCategories = useCallback(async () => {
     try {
       const response = await api.get<Category[]>('/categories');
       setCategories(response.data);
     } catch (error) {
       console.error('Error fetching categories:', error);
     }
-  };
+  }, []);
 
-  const fetchAntistics = async () => {
+  const fetchAntistics = useCallback(async () => {
+    const requestPage = page;
+    const isFirstPage = requestPage === 1;
+
     try {
-      setLoading(true);
-      const params: any = { page, pageSize: 20, sortBy };
+      if (isFirstPage) {
+        setLoading(true);
+      } else {
+        setIsFetchingMore(true);
+      }
+
+      const params: Record<string, unknown> = { page: requestPage, pageSize: 20, sortBy };
       if (searchQuery) params.search = searchQuery;
       if (selectedCategory) params.categoryId = selectedCategory;
-      
+
       const response = await api.get<AntisticListResponse>('/antistics', { params });
-      
-      setAntistics(response.data.items);
+
+      setAntistics((previous) => {
+        if (isFirstPage) {
+          return response.data.items;
+        }
+
+        const existingIds = new Set(previous.map((item) => item.id));
+        const merged = response.data.items.filter((item) => !existingIds.has(item.id));
+        return [...previous, ...merged];
+      });
+
       setTotalPages(Math.ceil(response.data.totalCount / response.data.pageSize));
     } catch (error) {
       console.error('Error fetching antistics:', error);
     } finally {
       setLoading(false);
+      setIsFetchingMore(false);
     }
-  };
+  }, [page, searchQuery, selectedCategory, sortBy]);
+
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
+
+  useEffect(() => {
+    if (activeView !== 'antistics') {
+      return;
+    }
+    fetchAntistics();
+  }, [activeView, fetchAntistics, filtersVersion]);
 
   const handleSearch = (value: string) => {
     setSearchQuery(value);
     setPage(1);
+    setAntistics([]);
+    setFiltersVersion((previous) => previous + 1);
+    setLoading(true);
+
+    const trimmed = value.trim();
+    if (trimmed.length > 0) {
+      trackSearch(trimmed);
+    }
   };
 
-  const handleCategoryFilter = (categoryId: string) => {
-    setSelectedCategory(categoryId === selectedCategory ? '' : categoryId);
-    setPage(1);
-  };
+  const applyCategoryFilter = useCallback(
+    (categoryId: string, source: 'filters' | 'card', { allowToggle } = { allowToggle: true }) => {
+      const isSameCategory = selectedCategory === categoryId;
+      const nextCategory = allowToggle && isSameCategory ? '' : categoryId;
+
+      if (activeView !== 'antistics') {
+        changeView('antistics', source === 'card' ? 'hashtag' : 'filter');
+      }
+
+      if (nextCategory !== selectedCategory) {
+        setSelectedCategory(nextCategory);
+        setAntistics([]);
+        setPage(1);
+        setFiltersVersion((previous) => previous + 1);
+        setLoading(true);
+
+        trackCategoryFilter(nextCategory || 'all');
+      } else if (!allowToggle && isSameCategory) {
+        // Force refresh when clicking same hashtag repeatedly without toggling
+        setPage(1);
+        setAntistics((previous) => [...previous]);
+        setFiltersVersion((previous) => previous + 1);
+        setLoading(true);
+      }
+    },
+    [activeView, changeView, selectedCategory],
+  );
 
   const handleSortChange = (newSortBy: 'latest' | 'top' | 'trending') => {
     setSortBy(newSortBy);
     setPage(1);
+    setAntistics([]);
+    setFiltersVersion((previous) => previous + 1);
+    setLoading(true);
   };
 
   const handleLoadMore = () => {
     if (page < totalPages) {
-      setPage((p) => p + 1);
+      trackLoadMore(page + 1);
+      setPage((previous) => previous + 1);
     }
   };
 
-  if (loading && page === 1) {
+  const handleViewChange = (view: HomeView) => {
+    changeView(view, 'toggle');
+  };
+
+  const handleStatisticsConvertNavigation = (statistic: Statistic) => {
+    navigate('/create', { state: { fromStatisticId: statistic.id } });
+  };
+
+  const renderAntisticsContent = () => {
+    if (loading && page === 1) {
+      return (
+        <div className="space-y-8">
+          {[1, 2, 3, 4].map((i) => (
+            <CardSkeleton key={i} />
+          ))}
+        </div>
+      );
+    }
+
+    if (antistics.length === 0) {
+      return (
+        <div className="text-center py-20">
+          <div className="text-6xl mb-6 opacity-50">🤔</div>
+          <h3 className="text-2xl font-semibold text-gray-900 mb-3">
+            {searchQuery || selectedCategory
+              ? 'Nie znaleziono wyników'
+              : 'Jeszcze tu pusto'}
+          </h3>
+          <p className="text-gray-600 text-base mb-6 max-w-md mx-auto leading-relaxed">
+            {searchQuery || selectedCategory
+              ? 'Spróbuj zmienić filtry lub wyszukiwane hasło.'
+              : 'Bądź pierwszym, który doda antystyk.'}
+          </p>
+        </div>
+      );
+    }
+
     return (
-      <div className="min-h-screen" style={{ backgroundColor: '#f8f9fb' }}>
-        <HeroSection />
-        <main className="mx-auto px-6 py-8" style={{ maxWidth: '1000px' }}>
-          <div className="space-y-8">
-            {[1, 2, 3, 4].map((i) => (
-              <CardSkeleton key={i} />
-            ))}
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen" style={{ backgroundColor: '#f8f9fb' }}>
-      {/* Hero Section - Large centered heading with buttons */}
-      <HeroSection />
-      
-      {/* Main Content Container - Center column feed (~900-1000px wide max) */}
-      <main className="mx-auto px-6 py-8" style={{ maxWidth: '1000px' }}>
-        {/* Tag Filter Bar - Pill-style buttons */}
-        <TagFilterBar
-          categories={categories}
-          selectedCategory={selectedCategory}
-          onCategorySelect={handleCategoryFilter}
-          searchQuery={searchQuery}
-          onSearch={handleSearch}
-        />
-
-        {/* Sort Tabs */}
-        <div className="flex gap-1 mb-6 bg-gray-100 p-1 rounded-lg">
-          {[
-            { key: 'latest', label: 'Latest' },
-            { key: 'top', label: 'Top' },
-            { key: 'trending', label: 'Trending' }
-          ].map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => handleSortChange(key as 'latest' | 'top' | 'trending')}
-              className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
-                sortBy === key
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-              }`}
+      <>
+        <div className="space-y-8">
+          {antistics.map((antistic, index) => (
+            <div
+              key={antistic.id}
+              style={{ animationDelay: `${index * 100}ms` }}
+              className="animate-fade-in-up"
             >
-              {label}
-            </button>
+              <AntisticCard
+                antistic={antistic}
+                onAdminAction={fetchAntistics}
+                onCategoryClick={(categoryId) => applyCategoryFilter(categoryId, 'card', { allowToggle: false })}
+              />
+            </div>
           ))}
         </div>
 
-        {/* Results */}
-        {antistics.length === 0 ? (
-          <div className="text-center py-20">
-            <div className="text-6xl mb-6 opacity-50">🤔</div>
-            <h3 className="text-2xl font-semibold text-gray-900 mb-3">
-              {searchQuery || selectedCategory 
-                ? 'Nie znaleziono wyników' 
-                : 'Jeszcze tu pusto'}
-            </h3>
-            <p className="text-gray-600 text-base mb-6 max-w-md mx-auto leading-relaxed">
-              {searchQuery || selectedCategory 
-                ? 'Spróbuj zmienić filtry lub wyszukiwane hasło.' 
-                : 'Bądź pierwszym, który doda antystyk.'}
-            </p>
-          </div>
-        ) : (
+        {totalPages > page && (
+          <LoadMoreButton
+            onClick={handleLoadMore}
+            loading={loading || isFetchingMore}
+            disabled={page >= totalPages}
+          />
+        )}
+      </>
+    );
+  };
+
+  return (
+    <div className="min-h-screen" style={{ backgroundColor: '#f8f9fb' }} {...swipeHandlers}>
+      <HeroSection activeView={activeView} onViewChange={handleViewChange} />
+
+      <main className="mx-auto px-6 py-8" style={{ maxWidth: '1000px' }}>
+        {activeView === 'antistics' ? (
           <>
-            {/* Feed of Cards - Single column for clean layout */}
-            <div className="space-y-8">
-              {antistics.map((antistic, index) => (
-                <div
-                  key={antistic.id}
-                  style={{ animationDelay: `${index * 100}ms` }}
-                  className="animate-fade-in-up"
+            <FilterControls
+              categories={categories}
+              selectedCategory={selectedCategory}
+              onCategorySelect={(categoryId) => applyCategoryFilter(categoryId, 'filters')}
+              searchQuery={searchQuery}
+              onSearch={handleSearch}
+              isFiltering={isFiltering}
+            />
+
+            <div className="flex gap-1 mb-6 bg-gray-100 p-1 rounded-lg">
+              {[
+                { key: 'latest', label: 'Najnowsze' },
+                { key: 'top', label: 'Najwyżej oceniane' },
+                { key: 'trending', label: 'Na fali' },
+              ].map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => handleSortChange(key as 'latest' | 'top' | 'trending')}
+                  className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
+                    sortBy === key
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  }`}
+                  type="button"
                 >
-                  <AntisticCard 
-                    antistic={antistic} 
-                    onAdminAction={fetchAntistics}
-                  />
-                </div>
+                  {label}
+                </button>
               ))}
             </div>
 
-            {/* Load More Button */}
-            {totalPages > page && (
-              <LoadMoreButton
-                onClick={handleLoadMore}
-                loading={loading}
-                disabled={page >= totalPages}
-              />
-            )}
+            {renderAntisticsContent()}
           </>
+        ) : (
+          <div className="pt-2">
+            <StatisticsHub
+              variant="embedded"
+              onNavigateToCreator={handleStatisticsConvertNavigation}
+            />
+          </div>
         )}
       </main>
 
-      {/* Footer - Three-column layout */}
       <Footer />
     </div>
   );

@@ -110,6 +110,8 @@ To become the leading platform for thought-provoking, statistically-based humor 
    - Launch read-only `Statystyki` hub curated by moderators
    - Enable like/dislike ranking and analytics tracking for conversion funnels
    - Provide moderator queue and tooling for approving/importing statistics
+   - **[Feature ID: STAT-HOME-TOGGLE]** Surface the `Statystyki` hub as a co-primary home experience alongside `Antystyki`, with a desktop toggle adjacent to the `Dodaj Antytyk` CTA and mobile swipe gestures to switch views
+   - **[Feature ID: STAT-FILTER-REFINE]** Replace the horizontal category filter list with a compact filter control (modal, sheet, or similar) and emphasize contextual hashtags or chips within cards to preserve rapid discovery without consuming hero space
    - [x] Cross-platform share actions with canonical slugs, nuanced mission copy, and GA4 telemetry (`share_button_v1`) aligned with §§1.1, 5.1
 
 #### Success Metrics
@@ -299,6 +301,8 @@ To become the leading platform for thought-provoking, statistically-based humor 
 - **Fast Loading**: Optimized performance
 - **Error Handling**: User-friendly error messages
 - **Feedback Systems**: Clear success/error states
+- **Home View Toggle**: Mobile-friendly Antystyki/Statystyki switching via swipe gesture and desktop toggle control (`STAT-HOME-TOGGLE`)
+- **Compact Filtering**: Context-aware filters surfaced through lightweight controls and in-card hashtags to maintain a minimalist hero area (`STAT-FILTER-REFINE`)
 
 ---
 
@@ -574,3 +578,4 @@ The roadmap provides a clear path from MVP to a profitable, scalable platform th
 ## Changelog
 - 2025-11-02: Updated mission statement in §1.1 to emphasize witty, community-driven storytelling grounded in real statistics.
 - 2025-11-05: Documented cross-platform sharing milestone in §3.1 and reinforced mission-aligned share guidelines per §§1.1, 5.1.
+- 2025-11-05: Added home toggle and compact filtering requirements for Statystyki visibility enhancements (§3.1, §5.2).
