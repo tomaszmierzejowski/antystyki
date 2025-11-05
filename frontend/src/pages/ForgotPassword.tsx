@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../config/api';
+import { getPrimaryErrorMessage } from '../utils/apiError';
 
 const ForgotPassword: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -16,8 +17,9 @@ const ForgotPassword: React.FC = () => {
     try {
       await api.post('/auth/forgot-password', { email });
       setSuccess(true);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Błąd podczas wysyłania linku resetującego');
+    } catch (error: unknown) {
+      const errorMessage = getPrimaryErrorMessage(error, 'Błąd podczas wysyłania linku resetującego');
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

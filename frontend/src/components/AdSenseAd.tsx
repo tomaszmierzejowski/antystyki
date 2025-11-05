@@ -1,5 +1,13 @@
 import { useEffect } from 'react';
 
+type AdsByGoogle = Array<Record<string, unknown>> & { push: (params?: Record<string, unknown>) => void };
+
+declare global {
+  interface Window {
+    adsbygoogle?: AdsByGoogle;
+  }
+}
+
 interface AdSenseAdProps {
   adSlot: string;
   adFormat?: 'auto' | 'fluid' | 'rectangle' | 'vertical' | 'horizontal';
@@ -32,8 +40,8 @@ const AdSenseAd: React.FC<AdSenseAdProps> = ({
     // Only load ads if publisher ID is configured
     if (publisherId && publisherId !== 'PLACEHOLDER') {
       try {
-        // @ts-ignore - AdSense global object
-        (window.adsbygoogle = window.adsbygoogle || []).push({});
+        window.adsbygoogle = window.adsbygoogle ?? [];
+        window.adsbygoogle.push({});
       } catch (error) {
         console.error('AdSense error:', error);
       }

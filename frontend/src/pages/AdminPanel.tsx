@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import type { Antistic, AntisticListResponse, Statistic } from '../types';
 import type { AntisticData } from '../types/templates';
 import api from '../config/api';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import { Link, Navigate } from 'react-router-dom';
 import AntisticCard from '../components/AntisticCard';
 import { fetchPendingStatistics as fetchPendingStatisticsApi, moderateStatistic as moderateStatisticApi } from '../api/statistics';
@@ -121,13 +121,17 @@ const AdminPanel: React.FC = () => {
         </div>
 
         {pendingAntistics.map((antistic) => {
+          const antisticChartData = antistic.chartData ?? {};
           const chartData: Partial<AntisticData> = {
             title: antistic.title,
             description: antistic.reversedStatistic,
             source: antistic.sourceUrl || 'antystyki.pl',
-            templateId: (antistic as any).templateId || 'two-column-default',
-            perspectiveData: (antistic as any).perspectiveData,
-            sourceData: (antistic as any).sourceData,
+            templateId: antisticChartData.templateId ?? antistic.templateId ?? 'two-column-default',
+            perspectiveData: antisticChartData.perspectiveData,
+            sourceData: antisticChartData.sourceData,
+            singleChartData: antisticChartData.singleChartData,
+            textData: antisticChartData.textData,
+            comparisonData: antisticChartData.comparisonData,
           };
 
           return (

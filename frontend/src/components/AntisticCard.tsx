@@ -1,14 +1,30 @@
 import React, { useMemo, useState } from 'react';
 import type { Antistic } from '../types';
-import type { AntisticData } from '../types/templates';
+import type { AntisticData, ChartPoint, ChartSegment } from '../types/templates';
 import { CARD_TEMPLATES, CHART_COLORS } from '../types/templates';
-import { DoughnutChart, ColorfulDataChart, LineChart, BarChart, createPerspectiveData } from './charts/ChartGenerator';
+import { DoughnutChart, ColorfulDataChart, LineChart, BarChart } from './charts/ChartGenerator';
+import { createPerspectiveData } from './charts/chartUtils';
 import CommentsSection from './CommentsSection';
 import { useLike } from '../hooks/useLike';
 import AdminActions from './AdminActions';
 import ShareMenu from './ShareMenu';
 
 type ChartMode = 'pie' | 'bar' | 'line';
+
+type ComparisonData = NonNullable<AntisticData['comparisonData']>;
+
+type ChartDefinition =
+  | NonNullable<AntisticData['singleChartData']>
+  | NonNullable<AntisticData['sourceData']>
+  | ComparisonData['leftChart']
+  | ComparisonData['rightChart'];
+
+interface NormalizedChart {
+  type?: ChartMode;
+  segments?: ChartSegment[];
+  points?: ChartPoint[];
+  unit?: string;
+}
 
 /**
  * AntisticCard Component - Template-based card generation
@@ -185,58 +201,79 @@ const AntisticCard: React.FC<Props> = ({ antistic, templateId = 'two-column-defa
     return `${antistic.reversedStatistic}${sourceLine}`;
   }, [antistic.reversedStatistic, antistic.sourceUrl]);
   
-  const resolveChartType = (chart: any): ChartMode => {
-    const raw = chart?.type as ChartMode | undefined;
-    if (raw === 'bar' || raw === 'line') {
-      return raw;
+  const normalizeChart = (chart: ChartDefinition | undefined): NormalizedChart => {
+    if (!chart) {
+      return {};
+    }
+
+    const { type, segments, points, unit } = chart;
+
+    return {
+      type,
+      segments,
+      points,
+      unit,
+    };
+  };
+
+  const resolveChartType = (chart: ChartDefinition | undefined): ChartMode => {
+    const { type } = normalizeChart(chart);
+    if (type === 'bar' || type === 'line') {
+      return type;
     }
     return 'pie';
   };
 
-  const getChartPoints = (chart: any) => {
-    if (Array.isArray(chart?.points) && chart.points.length > 0) {
-      return chart.points.map((point: any, index: number) => ({
-        label: typeof point.label === 'string' && point.label.length > 0 ? point.label : `Punkt ${index + 1}`,
-        value: Number.isFinite(point.value) ? point.value : 0,
-      }));
+  const getChartPoints = (chart: ChartDefinition | undefined) => {
+    const normalized = normalizeChart(chart);
+    if (normalized.points && normalized.points.length > 0) {
+      return normalized.points.map((point, index) => {
+        const label = point.label.trim().length > 0 ? point.label : `Punkt ${index + 1}`;
+        const value = Number.isFinite(point.value) ? point.value : 0;
+        return { label, value };
+      });
     }
 
-    if (Array.isArray(chart?.segments) && chart.segments.length > 0) {
-      return chart.segments.map((segment: any, index: number) => ({
-        label: typeof segment.label === 'string' && segment.label.length > 0 ? segment.label : `Punkt ${index + 1}`,
-        value: Number.isFinite(segment.percentage) ? segment.percentage : 0,
-      }));
+    if (normalized.segments && normalized.segments.length > 0) {
+      return normalized.segments.map((segment, index) => {
+        const label = segment.label.trim().length > 0 ? segment.label : `Punkt ${index + 1}`;
+        const value = Number.isFinite(segment.percentage) ? segment.percentage : 0;
+        return { label, value };
+      });
     }
 
     return [];
   };
 
-  const buildBarItems = (chart: any) => {
+  const buildBarItems = (chart: ChartDefinition | undefined) => {
+    const normalized = normalizeChart(chart);
     const points: Array<{ label: string; value: number }> = getChartPoints(chart);
     if (!points.length) {
       return [];
     }
 
     const maxValue = Math.max(...points.map((point) => Math.abs(point.value)), 0) || 1;
+    const unit = normalized.unit?.trim();
 
     return points.map((point, index) => ({
       label: point.label,
-      displayValue: chart?.unit
-        ? `${point.value.toLocaleString('pl-PL', { maximumFractionDigits: 2 })} ${chart.unit.trim()}`
+      displayValue: unit
+        ? `${point.value.toLocaleString('pl-PL', { maximumFractionDigits: 2 })} ${unit}`
         : point.value.toLocaleString('pl-PL', { maximumFractionDigits: 2 }),
       percentageWidth: Math.max(5, (Math.abs(point.value) / maxValue) * 100),
-      color: chart?.segments?.[index]?.color ?? CHART_COLORS[index % CHART_COLORS.length],
+      color: normalized.segments?.[index]?.color ?? CHART_COLORS[index % CHART_COLORS.length],
     }));
   };
 
-  const renderChartVisualization = (chart: any) => {
+  const renderChartVisualization = (chart: ChartDefinition | undefined) => {
+    const normalized = normalizeChart(chart);
     const type = resolveChartType(chart);
     if (type === 'line') {
-      const points = getChartPoints(chart);
-      if (!points.length) {
+      const points = normalized.points;
+      if (!points || points.length === 0) {
         return <p className="text-sm text-gray-500">Brak danych do wyświetlenia.</p>;
       }
-      return <LineChart points={points} unit={chart?.unit} />;
+      return <LineChart points={points} unit={normalized.unit} />;
     }
 
     if (type === 'bar') {
@@ -247,8 +284,8 @@ const AntisticCard: React.FC<Props> = ({ antistic, templateId = 'two-column-defa
       return <BarChart items={items} />;
     }
 
-    const segments = chart?.segments ?? [];
-    if (!segments.length) {
+    const segments = normalized.segments ?? [];
+    if (segments.length === 0) {
       return <p className="text-sm text-gray-500">Brak danych do wizualizacji.</p>;
     }
     return <ColorfulDataChart segments={segments} showLegend />;

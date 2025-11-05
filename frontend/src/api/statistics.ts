@@ -1,5 +1,5 @@
 import api from '../config/api';
-import type { StatisticListResponse, Statistic } from '../types';
+import type { StatisticListResponse, Statistic, StatisticChartData } from '../types';
 
 export type StatisticsSortOption = 'top' | 'new' | 'views';
 
@@ -20,7 +20,7 @@ export interface CreateStatisticPayload {
   description?: string;
   sourceUrl: string;
   sourceCitation?: string;
-  chartData?: any;
+  chartData?: StatisticChartData;
 }
 
 export const fetchStatistics = async (params: StatisticsQueryParams = {}): Promise<StatisticListResponse> => {

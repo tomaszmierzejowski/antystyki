@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import { api } from '../config/api';
 import { trackUserLogin } from '../utils/analytics';
+import { getPrimaryErrorMessage } from '../utils/apiError';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -31,11 +32,10 @@ const Login: React.FC = () => {
       trackUserLogin('email');
       
       navigate('/');
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || 'Błąd logowania';
+    } catch (error: unknown) {
+      const errorMessage = getPrimaryErrorMessage(error, 'Błąd logowania');
       setError(errorMessage);
-      
-      // Check if the error is about email verification
+
       if (errorMessage.toLowerCase().includes('verify your email')) {
         setIsEmailUnverified(true);
       }
@@ -53,8 +53,9 @@ const Login: React.FC = () => {
       await api.post('/auth/resend-verification-email', { email });
       setResendSuccess(true);
       setError('Email weryfikacyjny został wysłany ponownie. Sprawdź swoją skrzynkę pocztową.');
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Błąd podczas wysyłania emaila weryfikacyjnego');
+    } catch (error: unknown) {
+      const errorMessage = getPrimaryErrorMessage(error, 'Błąd podczas wysyłania emaila weryfikacyjnego');
+      setError(errorMessage);
     } finally {
       setResendLoading(false);
     }

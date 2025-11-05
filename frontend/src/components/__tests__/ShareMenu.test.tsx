@@ -7,7 +7,7 @@ const analyticsMock = vi.hoisted(() => ({
 }));
 
 const clipboardMock = vi.hoisted(() => ({
-  copyToClipboard: vi.fn(async (_value: string) => Promise.resolve()),
+  copyToClipboard: vi.fn(async () => Promise.resolve()),
 }));
 
 vi.mock('../../utils/analytics', () => analyticsMock);

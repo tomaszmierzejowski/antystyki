@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { api } from '../config/api';
+import { getPrimaryErrorMessage } from '../utils/apiError';
 
 const VerifyEmail: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -22,14 +23,15 @@ const VerifyEmail: React.FC = () => {
         const response = await api.post('/auth/verify-email', { token });
         setStatus('success');
         setMessage(response.data.message || 'Email zweryfikowany pomyślnie!');
-        
+
         // Redirect to login after 3 seconds
         setTimeout(() => {
           navigate('/login');
         }, 3000);
-      } catch (err: any) {
+      } catch (error: unknown) {
         setStatus('error');
-        setMessage(err.response?.data?.message || 'Błąd podczas weryfikacji emaila');
+        const errorMessage = getPrimaryErrorMessage(error, 'Błąd podczas weryfikacji emaila');
+        setMessage(errorMessage);
       }
     };
 

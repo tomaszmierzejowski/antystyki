@@ -122,9 +122,16 @@ const StatisticsHub: React.FC<StatisticsHubProps> = ({
         vote_type: voteType.toLowerCase(),
         action: remove ? 'remove' : 'add',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to update statistic vote', error);
-      const message = error?.response?.status === 401
+
+      const unauthorized = typeof error === 'object'
+        && error !== null
+        && 'response' in error
+        && typeof (error as { response?: { status?: number } }).response?.status === 'number'
+        && (error as { response?: { status?: number } }).response?.status === 401;
+
+      const message = unauthorized
         ? 'Zaloguj się, aby głosować na statystyki.'
         : 'Nie udało się zapisać głosu. Spróbuj ponownie.';
       setErrorMessage(message);

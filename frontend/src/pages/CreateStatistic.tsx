@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { createStatistic, type CreateStatisticPayload } from '../api/statistics';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
+import { parseApiError } from '../utils/apiError';
 
 type ChartMode = 'pie' | 'bar' | 'line';
 
@@ -34,10 +35,6 @@ const CreateStatisticPage: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-
-  if (!user || (user.role !== 'Admin' && user.role !== 'Moderator')) {
-    return <Navigate to="/" replace />;
-  }
 
   const filteredPoints = useMemo(
     () =>
@@ -160,13 +157,19 @@ const CreateStatisticPage: React.FC = () => {
       setTimeout(() => {
         navigate('/admin', { replace: true, state: { tab: 'statistics' } });
       }, 800);
-    } catch (submitError: any) {
-      const apiMessage = submitError?.response?.data?.message;
-      setError(apiMessage ?? 'Nie udało się zapisać statystyki. Spróbuj ponownie.');
+    } catch (submitError: unknown) {
+      const { messages } = parseApiError(submitError);
+      setError(messages[0] ?? 'Nie udało się zapisać statystyki. Spróbuj ponownie.');
     } finally {
       setSubmitting(false);
     }
   };
+
+  const isAuthorized = Boolean(user && (user.role === 'Admin' || user.role === 'Moderator'));
+
+  if (!isAuthorized) {
+    return <Navigate to="/" replace />;
+  }
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#f8f9fb' }}>

@@ -73,6 +73,17 @@
 
 ---
 
+### Week 1 Addendum: Lint Remediation (Quality Gate)
+
+| ID | Task | Status | Priority | Owner | Due Date | PRD Ref | Effort | Notes |
+|----|------|--------|----------|-------|----------|---------|--------|-------|
+| GL-Q01 | Capture current ESLint baseline (`lint-baseline.log`) | ✅ Done | 🟡 High | Frontend Dev | Nov 5 | §3.1.4 | 30m | Baseline stored at repo root for comparison |
+| GL-Q02 | Execute LINT-01 Type Hygiene batch (`src/types`, API models) | ⏳ Pending | 🟡 High | Frontend Dev | Nov 8 | §3.1.4 | 4h | See `LINT_REDUCTION_PLAN.md` |
+| GL-Q03 | Execute LINT-02 & LINT-03 hook/fast refresh fixes | ⏳ Pending | 🟡 High | Frontend Dev | Nov 10 | §3.1.4 | 4h | Coordinate with QA for regression coverage |
+| GL-Q04 | Re-run lint/tests and enforce CI gate (LINT-04) | ⏳ Pending | 🔴 Critical | DevOps | Nov 12 | §3.1.4 | 2h | Update GitHub Actions to fail on lint errors |
+
+---
+
 ## 🚀 Week 2: Launch & Marketing (Days 8-14)
 
 ### Day 8-10: Content Seeding & Final Testing (4 hours estimated)

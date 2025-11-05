@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { api } from '../config/api';
+import { getPrimaryErrorMessage } from '../utils/apiError';
 
 const Contact: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -28,8 +29,9 @@ const Contact: React.FC = () => {
       await api.post('/contact', formData);
       setSuccess(true);
       setFormData({ name: '', email: '', subject: '', message: '' });
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Błąd podczas wysyłania wiadomości. Spróbuj ponownie.');
+    } catch (error: unknown) {
+      const errorMessage = getPrimaryErrorMessage(error, 'Błąd podczas wysyłania wiadomości. Spróbuj ponownie.');
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

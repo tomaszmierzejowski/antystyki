@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../config/api';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import { trackAntisticLike, trackAntisticUnlike } from '../utils/analytics';
 
 interface UseLikeProps {

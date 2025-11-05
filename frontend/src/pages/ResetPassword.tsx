@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { api } from '../config/api';
+import { parseApiError } from '../utils/apiError';
 
 const ResetPassword: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -32,22 +33,19 @@ const ResetPassword: React.FC = () => {
     setLoading(true);
 
     try {
-      await api.post('/auth/reset-password', { 
+      await api.post('/auth/reset-password', {
         token,
-        newPassword: password 
+        newPassword: password,
       });
       setSuccess(true);
       setTimeout(() => navigate('/login'), 3000);
-    } catch (err: any) {
-      if (err.response?.data?.errors) {
-        const errors = err.response.data.errors;
-        if (Array.isArray(errors)) {
-          setError(errors);
-        } else {
-          setError(errors);
-        }
+    } catch (error: unknown) {
+      const { messages } = parseApiError(error);
+
+      if (messages.length > 1) {
+        setError(messages);
       } else {
-        setError(err.response?.data?.message || 'Błąd podczas resetowania hasła');
+        setError(messages[0] ?? 'Błąd podczas resetowania hasła');
       }
     } finally {
       setLoading(false);

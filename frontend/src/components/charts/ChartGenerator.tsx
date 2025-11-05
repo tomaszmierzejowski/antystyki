@@ -152,42 +152,6 @@ export const ColorfulDataChart: React.FC<ColorfulChartProps> = ({
   );
 };
 
-/**
- * Utility function to generate segments from user data
- */
-export const generateSegmentsFromData = (
-  data: Array<{ label: string; percentage: number }>,
-  colorPalette: string[] = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899', '#6b7280']
-): ChartSegment[] => {
-  return data.map((item, index) => ({
-    ...item,
-    color: colorPalette[index % colorPalette.length]
-  }));
-};
-
-/**
- * Utility function to create perspective data
- */
-export const createPerspectiveData = (
-  mainPercentage: number,
-  mainLabel: string,
-  secondaryLabel: string = 'Pozostałe',
-  color: string = '#6b7280'
-) => {
-  return [
-    {
-      label: mainLabel,
-      percentage: mainPercentage,
-      color: color
-    },
-    {
-      label: secondaryLabel,
-      percentage: 100 - mainPercentage,
-      color: '#e5e7eb'
-    }
-  ];
-};
-
 export const BarChart: React.FC<{
   items: Array<{
     label: string;
@@ -349,4 +313,4 @@ export const LineChart: React.FC<{
   );
 };
 
-export default { DoughnutChart, ColorfulDataChart, generateSegmentsFromData, createPerspectiveData, BarChart, LineChart };
+export default { DoughnutChart, ColorfulDataChart, BarChart, LineChart };

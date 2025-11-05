@@ -6,6 +6,12 @@ export interface User {
   createdAt: string;
 }
 
+import type { AntisticData } from './templates';
+
+export type AntisticChartData = Partial<AntisticData>;
+
+export type StatisticChartData = Record<string, unknown>;
+
 export interface Antistic {
   id: string;
   title: string;
@@ -16,7 +22,7 @@ export interface Antistic {
   canonicalUrl: string;
   backgroundImageKey?: string;
   templateId?: string;
-  chartData?: any; // Chart data object from backend
+  chartData?: AntisticChartData;
   status: string;
   likesCount: number;
   viewsCount: number;
@@ -45,7 +51,7 @@ export interface Statistic {
   sourceCitation?: string;
   slug: string;
   canonicalUrl: string;
-  chartData?: any;
+  chartData?: StatisticChartData;
   status: string;
   likeCount: number;
   dislikeCount: number;
@@ -100,7 +106,7 @@ export interface CreateAntisticRequest {
   sourceUrl: string;
   backgroundImageKey?: string;
   templateId?: string;
-  chartData?: any; // Chart data object
+  chartData?: AntisticChartData; // Chart data object
   categoryIds: string[];
 }
 

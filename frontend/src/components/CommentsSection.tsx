@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import type { Comment, CommentListResponse, CreateCommentRequest } from '../types';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import commentsApi from '../api/comments';
 import AdminActions from './AdminActions';
 import { trackAntisticComment } from '../utils/analytics';
@@ -27,7 +27,7 @@ const CommentsSection: React.FC<Props> = ({
   const [totalCount, setTotalCount] = useState(commentsCount);
   const [hasMore, setHasMore] = useState(true);
 
-  const loadComments = async (pageNum: number = 1, append: boolean = false) => {
+  const loadComments = useCallback(async (pageNum: number = 1, append: boolean = false) => {
     try {
       setLoading(true);
       const response: CommentListResponse = await commentsApi.getComments(antisticId, pageNum, 10);
@@ -50,7 +50,7 @@ const CommentsSection: React.FC<Props> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [antisticId, onCommentsCountChange]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,7 +101,7 @@ const CommentsSection: React.FC<Props> = ({
     if (autoLoad && comments.length === 0) {
       loadComments(1, false);
     }
-  }, [autoLoad]);
+  }, [autoLoad, comments.length, loadComments]);
 
   const handleLoadMore = () => {
     loadComments(page + 1, true);

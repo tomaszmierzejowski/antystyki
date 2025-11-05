@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import type { Category, Antistic } from '../types';
 import type { AntisticData } from '../types/templates';
 import api from '../config/api';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import TemplateSelector from '../components/TemplateSelector';
 import ChartDataInput from '../components/ChartDataInput';
 import AntisticCard from '../components/AntisticCard';
@@ -13,6 +13,7 @@ import {
   trackCreateFormOpen
 } from '../utils/analytics';
 import { buildAntisticPrefillFromSnapshot } from '../utils/statisticPrefill';
+import { getPrimaryErrorMessage } from '../utils/apiError';
 
 const CreateAntistic: React.FC = () => {
   // Template system state
@@ -159,8 +160,9 @@ const CreateAntistic: React.FC = () => {
         }
         navigate('/');
       }
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Błąd podczas zapisywania antystyku');
+    } catch (error: unknown) {
+      const errorMessage = getPrimaryErrorMessage(error, 'Błąd podczas zapisywania antystyku');
+      setError(errorMessage);
     } finally {
       submitLoading(false);
     }

@@ -2,8 +2,11 @@ import React, { useMemo } from 'react';
 import type { Statistic } from '../types';
 import type { AntisticData, AntisticTemplate } from '../types/templates';
 import { CARD_TEMPLATES, CHART_COLORS } from '../types/templates';
-import { BarChart, DoughnutChart, ColorfulDataChart, LineChart, createPerspectiveData, generateSegmentsFromData } from './charts/ChartGenerator';
+import { BarChart, DoughnutChart, ColorfulDataChart, LineChart } from './charts/ChartGenerator';
+import { createPerspectiveData, generateSegmentsFromData } from './charts/chartUtils';
 import ShareMenu from './ShareMenu';
+
+type ChartMode = 'pie' | 'bar' | 'line';
 
 type SuggestionType = 'bar' | 'pie' | 'line' | 'area' | 'other';
 
@@ -12,6 +15,48 @@ type SuggestionInfo = {
   unit?: string;
   points: Array<{ label: string; value: number }>;
 };
+
+interface RawPerspectiveData {
+  secondaryLabel?: string;
+  chartColor?: string;
+}
+
+interface RawSourceData {
+  segments?: Array<{ label: string; percentage: number }>;
+}
+
+interface RawSingleChartData {
+  title?: string;
+  type?: string;
+  segments?: Array<{ label: string; percentage: number }>;
+  points?: Array<{ label?: string; value?: number } | Record<string, unknown>>;
+  unit?: string;
+}
+
+interface RawComparisonChartData {
+  title?: string;
+  segments?: Array<{ label: string; percentage: number }>;
+}
+
+interface RawComparisonData {
+  leftChart?: RawComparisonChartData;
+  rightChart?: RawComparisonChartData;
+}
+
+interface RawStatisticChartMetadata {
+  templateId?: string;
+  title?: string;
+  description?: string;
+  source?: string;
+  metricValue?: unknown;
+  metricUnit?: string;
+  metricLabel?: string;
+  chartSuggestion?: Record<string, unknown>;
+  perspectiveData?: RawPerspectiveData;
+  sourceData?: RawSourceData;
+  singleChartData?: RawSingleChartData;
+  comparisonData?: RawComparisonData;
+}
 
 interface StatisticCardProps {
   statistic: Statistic;
@@ -108,6 +153,88 @@ const stripPercentagePrefix = (label?: string): string => {
   return cleaned.length > 0 ? cleaned : label.trim();
 };
 
+const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
+
+const getTrimmedString = (value: unknown): string | undefined => {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+};
+
+const normalizeSimpleSegments = (value: unknown): Array<{ label: string; percentage: number }> | undefined => {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const segments: Array<{ label: string; percentage: number }> = [];
+
+  value.forEach((segment) => {
+    if (!isRecord(segment)) {
+      return;
+    }
+
+    const label = getTrimmedString(segment['label']);
+    const rawPercentage = segment['percentage'];
+    const percentage = parseNumeric(rawPercentage);
+
+    if (!label || percentage === undefined) {
+      return;
+    }
+
+    segments.push({ label, percentage });
+  });
+
+  return segments.length ? segments : undefined;
+};
+
+const normalizeChartPoints = (value: unknown): Array<{ label: string; value: number }> | undefined => {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const points: Array<{ label: string; value: number }> = [];
+
+  value.forEach((point, index) => {
+    if (!isRecord(point)) {
+      return;
+    }
+
+    const labelCandidate = getTrimmedString(point['label']) ?? getTrimmedString(point['x']);
+    const label = labelCandidate ?? `Punkt ${index + 1}`;
+    const rawValue = point['value'] ?? point['y'] ?? point['percentage'];
+    const numericValue = parseNumeric(rawValue);
+
+    if (numericValue === undefined) {
+      return;
+    }
+
+    points.push({ label, value: numericValue });
+  });
+
+  return points.length ? points : undefined;
+};
+
+const normalizeChartModeValue = (value: unknown, fallback: ChartMode): ChartMode => {
+  if (typeof value !== 'string') {
+    return fallback;
+  }
+
+  const normalized = value.toLowerCase();
+  if (normalized === 'line') {
+    return 'line';
+  }
+  if (normalized === 'bar') {
+    return 'bar';
+  }
+  if (normalized === 'pie') {
+    return 'pie';
+  }
+
+  return fallback;
+};
+
 const buildSegmentsFromSuggestion = (suggestion: Record<string, unknown> | undefined, unit?: string) => {
   const rawPoints = (suggestion?.dataPoints as unknown[]) ?? [];
 
@@ -131,7 +258,7 @@ const buildSegmentsFromSuggestion = (suggestion: Record<string, unknown> | undef
 
   const segmentCandidates = total > 0
     ? entries.map((entry, index) => {
-        let percent = (Math.abs(entry.rawValue) / total) * 100;
+        const percent = (Math.abs(entry.rawValue) / total) * 100;
         let rounded = Math.round(percent * 10) / 10;
         if (index === entries.length - 1) {
           rounded = Math.max(0, 100 - accumulated);
@@ -154,11 +281,10 @@ const buildSegmentsFromSuggestion = (suggestion: Record<string, unknown> | undef
 const buildVisualizationData = (
   statistic: Statistic
 ): { template: AntisticTemplate; chartData: AntisticData; suggestionInfo: SuggestionInfo } => {
-  const raw = (statistic.chartData ?? {}) as Record<string, unknown>;
-  const metadata = raw as Record<string, unknown>;
-  const suggestion = metadata['chartSuggestion'] as Record<string, unknown> | undefined;
+  const metadata = (statistic.chartData ?? {}) as RawStatisticChartMetadata;
+  const suggestion = metadata.chartSuggestion;
 
-  const suggestionTypeRaw = typeof suggestion?.type === 'string' ? (suggestion.type as string).toLowerCase() : undefined;
+  const suggestionTypeRaw = typeof suggestion?.type === 'string' ? suggestion.type.toLowerCase() : undefined;
   const suggestionType: SuggestionType = suggestionTypeRaw === 'bar'
     ? 'bar'
     : suggestionTypeRaw === 'line' || suggestionTypeRaw === 'area'
@@ -167,29 +293,15 @@ const buildVisualizationData = (
         ? 'pie'
         : 'other';
 
-  const metricUnit = typeof metadata['metricUnit'] === 'string' ? (metadata['metricUnit'] as string) : undefined;
+  const metricUnit = metadata.metricUnit?.trim();
 
-  const suggestionPoints = Array.isArray(suggestion?.dataPoints)
-    ? (suggestion!.dataPoints as unknown[])
-        .map((point, index) => {
-          if (typeof point !== 'object' || point === null) return undefined;
-          const pointRecord = point as Record<string, unknown>;
-          const rawValue = parseNumeric(pointRecord.value ?? pointRecord.y ?? pointRecord.percentage);
-          if (rawValue === undefined) return undefined;
-          const label = (pointRecord.label ?? pointRecord.x ?? `Punkt ${index + 1}`).toString();
-          return { label, value: rawValue };
-        })
-        .filter((entry): entry is { label: string; value: number } => entry !== undefined && Number.isFinite(entry.value))
-    : [];
+  const suggestionPoints = normalizeChartPoints(suggestion?.dataPoints) ?? [];
 
   const suggestionSegments = suggestionType === 'bar' || suggestionType === 'line'
     ? undefined
     : buildSegmentsFromSuggestion(suggestion, metricUnit);
 
-  const metadataMetricValue = toPercentageValue(
-    parseNumeric(metadata['metricValue']),
-    metricUnit
-  );
+  const metadataMetricValue = toPercentageValue(parseNumeric(metadata.metricValue), metricUnit);
 
   const metricValueFromSuggestion = suggestionType === 'bar'
     ? suggestionPoints.at(-1)?.value
@@ -203,8 +315,9 @@ const buildVisualizationData = (
     ?? inferPercentageFromText(statistic.description, metricUnit)
     ?? 50;
 
-  const templateId = (typeof raw.templateId === 'string' && raw.templateId.length > 0)
-    ? raw.templateId
+  const templateIdCandidate = metadata.templateId;
+  const templateId = (typeof templateIdCandidate === 'string' && templateIdCandidate.length > 0)
+    ? templateIdCandidate
     : suggestionType === 'bar' || suggestionType === 'line'
       ? 'single-chart'
       : suggestionSegments?.length
@@ -214,8 +327,8 @@ const buildVisualizationData = (
   const template = CARD_TEMPLATES.find((t) => t.id === templateId) ?? CARD_TEMPLATES[0];
 
   const fallbackMainLabel = stripPercentagePrefix(
-    typeof metadata['metricLabel'] === 'string'
-      ? (metadata['metricLabel'] as string)
+    typeof metadata.metricLabel === 'string'
+      ? metadata.metricLabel
       : suggestionSegments?.length
         ? suggestionSegments[suggestionSegments.length - 1]?.label
         : statistic.summary
@@ -223,12 +336,12 @@ const buildVisualizationData = (
 
   const normalized: AntisticData = {
     templateId,
-    title: typeof raw.title === 'string' && raw.title.length > 0 ? raw.title : statistic.title,
+    title: typeof metadata.title === 'string' && metadata.title.length > 0 ? metadata.title : statistic.title,
     description:
-      typeof raw.description === 'string' && raw.description.length > 0
-        ? raw.description
+      typeof metadata.description === 'string' && metadata.description.length > 0
+        ? metadata.description
         : statistic.summary ?? statistic.description ?? statistic.title,
-    source: typeof raw.source === 'string' && raw.source.length > 0 ? raw.source : statistic.sourceUrl,
+    source: typeof metadata.source === 'string' && metadata.source.length > 0 ? metadata.source : statistic.sourceUrl,
     perspectiveData: undefined,
     sourceData: undefined,
     singleChartData: undefined,
@@ -245,34 +358,33 @@ const buildVisualizationData = (
     && (template.layout === 'two-column' || template.layout === 'text-focused' || template.layout === 'comparison');
 
   if (shouldGeneratePerspective) {
+    const perspectiveRaw = metadata.perspectiveData;
+    const perspectiveSecondaryLabel = perspectiveRaw?.secondaryLabel && perspectiveRaw.secondaryLabel.trim().length > 0
+      ? perspectiveRaw.secondaryLabel
+      : 'Pozostałe';
+    const perspectiveChartColor = perspectiveRaw?.chartColor && perspectiveRaw.chartColor.trim().length > 0
+      ? perspectiveRaw.chartColor
+      : '#6b7280';
+
     normalized.perspectiveData = {
       mainPercentage: Math.max(0, Math.min(100, metricValue)),
       mainLabel: perspectiveMainLabel,
       secondaryPercentage: Math.max(0, 100 - Math.max(0, Math.min(100, metricValue))),
-      secondaryLabel:
-        (typeof raw === 'object' && raw && (raw as Record<string, unknown>).perspectiveData
-          && typeof (raw as any).perspectiveData?.secondaryLabel === 'string'
-          && (raw as any).perspectiveData.secondaryLabel.length > 0
-          ? (raw as any).perspectiveData.secondaryLabel
-          : 'Pozostałe'),
-      chartColor:
-        (typeof raw === 'object' && raw && (raw as Record<string, unknown>).perspectiveData
-          && typeof (raw as any).perspectiveData?.chartColor === 'string'
-          ? (raw as any).perspectiveData.chartColor
-          : '#6b7280'),
+      secondaryLabel: perspectiveSecondaryLabel,
+      chartColor: perspectiveChartColor,
     };
   }
 
   if (template.layout === 'two-column' && suggestionType !== 'bar') {
     if (suggestionSegments?.length) {
       normalized.sourceData = { segments: suggestionSegments };
-    } else if ((raw as any).sourceData?.segments) {
-      normalized.sourceData = {
-        segments: generateSegmentsFromData(
-          ((raw as any).sourceData.segments as Array<{ label: string; percentage: number }>) ?? [],
-          CHART_COLORS
-        ),
-      };
+    } else if (metadata.sourceData?.segments) {
+      const segments = normalizeSimpleSegments(metadata.sourceData.segments);
+      if (segments?.length) {
+        normalized.sourceData = {
+          segments: generateSegmentsFromData(segments, CHART_COLORS),
+        };
+      }
     } else {
       normalized.sourceData = {
         segments: generateSegmentsFromData(
@@ -310,24 +422,20 @@ const buildVisualizationData = (
         type: 'pie',
         segments: suggestionSegments,
       };
-    } else if ((raw as any).singleChartData?.segments || (raw as any).singleChartData?.points) {
-      const rawSingle = (raw as any).singleChartData;
+    } else if (metadata.singleChartData) {
+      const singleSegments = normalizeSimpleSegments(metadata.singleChartData.segments);
+      const singlePoints = normalizeChartPoints(metadata.singleChartData.points);
+      const singleUnit = getTrimmedString(metadata.singleChartData.unit);
+      const singleTitle = getTrimmedString(metadata.singleChartData.title) ?? normalized.title;
+      const inferredFallback: ChartMode = singlePoints ? 'line' : 'pie';
+      const mode = normalizeChartModeValue(metadata.singleChartData.type, inferredFallback);
+
       normalized.singleChartData = {
-        title: rawSingle?.title ?? normalized.title,
-        type: rawSingle?.type ?? (rawSingle?.points ? 'line' : 'pie'),
-        segments: rawSingle?.segments
-          ? generateSegmentsFromData(
-              (rawSingle.segments as Array<{ label: string; percentage: number }>) ?? [],
-              CHART_COLORS
-            )
-          : undefined,
-        points: Array.isArray(rawSingle?.points)
-          ? (rawSingle.points as Array<{ label: string; value: number }>).map((point, index) => ({
-              label: typeof point.label === 'string' && point.label.length > 0 ? point.label : `Punkt ${index + 1}`,
-              value: typeof point.value === 'number' ? point.value : Number.parseFloat(String(point.value)) || 0,
-            }))
-          : undefined,
-        unit: rawSingle?.unit,
+        title: singleTitle,
+        type: mode,
+        segments: singleSegments ? generateSegmentsFromData(singleSegments, CHART_COLORS) : undefined,
+        points: singlePoints,
+        unit: singleUnit,
       };
     }
   }
@@ -341,21 +449,18 @@ const buildVisualizationData = (
   }
 
   if (template.layout === 'comparison' && suggestionType !== 'bar') {
-    if ((raw as any).comparisonData?.leftChart?.segments && (raw as any).comparisonData?.rightChart?.segments) {
+    if (metadata.comparisonData?.leftChart?.segments && metadata.comparisonData?.rightChart?.segments) {
+      const leftSegments = normalizeSimpleSegments(metadata.comparisonData.leftChart.segments);
+      const rightSegments = normalizeSimpleSegments(metadata.comparisonData.rightChart.segments);
+
       normalized.comparisonData = {
         leftChart: {
-          title: (raw as any).comparisonData.leftChart.title ?? 'Przed',
-          segments: generateSegmentsFromData(
-            ((raw as any).comparisonData.leftChart.segments as Array<{ label: string; percentage: number }>) ?? [],
-            CHART_COLORS
-          ),
+          title: getTrimmedString(metadata.comparisonData.leftChart.title) ?? 'Przed',
+          segments: generateSegmentsFromData(leftSegments ?? [], CHART_COLORS),
         },
         rightChart: {
-          title: (raw as any).comparisonData.rightChart.title ?? 'Po',
-          segments: generateSegmentsFromData(
-            ((raw as any).comparisonData.rightChart.segments as Array<{ label: string; percentage: number }>) ?? [],
-            CHART_COLORS
-          ),
+          title: getTrimmedString(metadata.comparisonData.rightChart.title) ?? 'Po',
+          segments: generateSegmentsFromData(rightSegments ?? [], CHART_COLORS),
         },
       };
     } else if (suggestionSegments?.length) {

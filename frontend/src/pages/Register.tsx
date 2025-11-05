@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import { trackUserRegistration } from '../utils/analytics';
+import { parseApiError } from '../utils/apiError';
 
 const Register: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -41,17 +42,13 @@ const Register: React.FC = () => {
       
       setSuccess(true);
       setTimeout(() => navigate('/login'), 3000);
-    } catch (err: any) {
-      // Handle both single message and array of errors
-      if (err.response?.data?.errors) {
-        const errors = err.response.data.errors;
-        if (Array.isArray(errors)) {
-          setError(errors);
-        } else {
-          setError(errors);
-        }
+    } catch (error: unknown) {
+      const { messages } = parseApiError(error);
+
+      if (messages.length > 1) {
+        setError(messages);
       } else {
-        setError(err.response?.data?.message || 'Błąd rejestracji');
+        setError(messages[0] ?? 'Błąd rejestracji');
       }
     } finally {
       setLoading(false);

@@ -6,7 +6,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { AntisticData } from '../types/templates';
-import { generateSegmentsFromData, createPerspectiveData } from './charts/ChartGenerator';
+import { generateSegmentsFromData, createPerspectiveData } from './charts/chartUtils';
 
 interface Props {
   templateId: string;

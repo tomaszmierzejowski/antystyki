@@ -14,6 +14,10 @@
 
 import ReactGA from 'react-ga4';
 
+type InitializeOptions = Parameters<typeof ReactGA.initialize>[1];
+type EventParameters = Parameters<typeof ReactGA.event>[1];
+type UserProperties = Parameters<typeof ReactGA.set>[0];
+
 // Track whether GA4 has been initialized
 let isInitialized = false;
 
@@ -26,7 +30,7 @@ let hasConsent = false;
  * @param measurementId - GA4 Measurement ID (format: G-XXXXXXXXXX)
  * @param options - Optional GA4 configuration
  */
-export const initializeGA4 = (measurementId?: string, options?: any) => {
+export const initializeGA4 = (measurementId?: string, options?: InitializeOptions) => {
   // Don't initialize if already done
   if (isInitialized) {
     console.log('[Analytics] Already initialized');
@@ -125,7 +129,7 @@ export const trackPageView = (path: string, title?: string) => {
  * @param eventName - Name of the event
  * @param parameters - Additional event parameters
  */
-export const trackEvent = (eventName: string, parameters?: Record<string, any>) => {
+export const trackEvent = (eventName: string, parameters?: EventParameters) => {
   if (!isInitialized || !hasConsent) {
     return;
   }
@@ -446,7 +450,7 @@ export const setUserId = (userId: string | null) => {
  * 
  * @param properties - Custom properties to set
  */
-export const setUserProperties = (properties: Record<string, any>) => {
+export const setUserProperties = (properties: UserProperties) => {
   if (!isInitialized) return;
 
   try {
