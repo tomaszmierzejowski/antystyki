@@ -10,6 +10,8 @@ public class StatisticDto
     public string? SourceCitation { get; set; }
     public object? ChartData { get; set; }
     public string Status { get; set; } = string.Empty;
+    public string Slug { get; set; } = string.Empty;
+    public string CanonicalUrl { get; set; } = string.Empty;
     public int LikeCount { get; set; }
     public int DislikeCount { get; set; }
     public int TrustPoints { get; set; }

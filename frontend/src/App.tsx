@@ -20,6 +20,8 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import Statistics from './pages/Statistics';
 import CreateStatisticPage from './pages/CreateStatistic';
+import StatisticDetailPage from './pages/StatisticDetail';
+import AntisticDetailPage from './pages/AntisticDetail';
 import { trackPageView } from './utils/analytics';
 
 // Component to track route changes
@@ -43,12 +45,14 @@ function App() {
           <AnalyticsTracker />
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/antistics/:slug" element={<AntisticDetailPage />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/statistics/:slug" element={<StatisticDetailPage />} />
             <Route path="/statistics" element={<Statistics />} />
             <Route path="/admin/statistics/create" element={<CreateStatisticPage />} />
             <Route path="/create" element={<CreateAntistic />} />

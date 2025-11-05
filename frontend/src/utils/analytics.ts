@@ -141,6 +141,50 @@ export const trackEvent = (eventName: string, parameters?: Record<string, any>) 
   }
 };
 
+type ShareEntityType = 'statistic' | 'antistic';
+type SharePlatformName =
+  | 'facebook'
+  | 'twitter'
+  | 'linkedin'
+  | 'whatsapp'
+  | 'messenger'
+  | 'copy-link'
+  | 'copy-stat'
+  | 'native';
+
+const sanitizeSharePayload = (value: string) => value.trim().slice(0, 128);
+
+export const trackShareInitiated = (entityType: ShareEntityType, entityId: string) => {
+  trackEvent('share_initiated', {
+    entity_type: entityType,
+    entity_id: sanitizeSharePayload(entityId),
+  });
+};
+
+export const trackSharePlatform = (
+  entityType: ShareEntityType,
+  entityId: string,
+  platform: SharePlatformName,
+) => {
+  trackEvent('share_platform', {
+    entity_type: entityType,
+    entity_id: sanitizeSharePayload(entityId),
+    platform,
+  });
+};
+
+export const trackShareCompleted = (
+  entityType: ShareEntityType,
+  entityId: string,
+  platform: SharePlatformName,
+) => {
+  trackEvent('share_completed', {
+    entity_type: entityType,
+    entity_id: sanitizeSharePayload(entityId),
+    platform,
+  });
+};
+
 // ============================================================================
 // CUSTOM EVENT TRACKING FUNCTIONS
 // ============================================================================

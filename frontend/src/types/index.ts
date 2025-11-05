@@ -12,6 +12,8 @@ export interface Antistic {
   reversedStatistic: string;
   sourceUrl: string;
   imageUrl: string;
+  slug: string;
+  canonicalUrl: string;
   backgroundImageKey?: string;
   templateId?: string;
   chartData?: any; // Chart data object from backend
@@ -41,6 +43,8 @@ export interface Statistic {
   description?: string;
   sourceUrl: string;
   sourceCitation?: string;
+  slug: string;
+  canonicalUrl: string;
   chartData?: any;
   status: string;
   likeCount: number;

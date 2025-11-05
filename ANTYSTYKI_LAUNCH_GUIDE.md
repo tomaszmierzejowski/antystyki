@@ -138,6 +138,7 @@
 
 2. **Content seeding**: Create 20-30 high-quality antistics for launch
 3. **Influencer outreach**: Contact 5-10 Polish educators/communicators
+4. **Share CTA amplification**: Highlight new cross-platform share menu (`share_button_v1`) in launch posts and verify GA4 events (`share_initiated`, `share_completed`, `share_platform`) during day-one monitoring
 
 ### Viral Growth Mechanics
 
@@ -193,6 +194,7 @@
 - [ ] Add legal pages to frontend
 - [ ] Test complete user flow
 - [ ] Deploy Statistics API endpoints and analytics events
+- [x] Validate canonical share URLs, mission-aligned copy, and GA4 instrumentation across Statystyki & Antystyki hubs
 
 ### Week 2: Launch & Marketing
 
@@ -213,6 +215,7 @@
 - [ ] Monitor first 48 hours closely
 - [ ] Respond to user feedback
 - [ ] Feature Statistics hub in launch messaging with "convert to antystyk" CTA
+- [ ] Encourage moderators to run day-one share smoke test (desktop + mobile share sheets) and confirm analytics dashboards capture share_button_v1 traffic
 
 ### Post-Launch (Week 3-4)
 - [ ] Analyze user behavior and feedback
@@ -220,6 +223,7 @@
 - [ ] Plan first sponsored content partnerships
 - [ ] Iterate based on real user data
 - [ ] Review Statistics trust/fake backlog and prepare Phase 2 rollout plan
+- [ ] Review share telemetry for top statistics/antystics and adjust mission copy if engagement skews toward clickbait
 
 ---
 

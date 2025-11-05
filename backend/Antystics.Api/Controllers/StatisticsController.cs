@@ -3,11 +3,13 @@ using System.Linq;
 using System.Security.Claims;
 using System.Text.Json;
 using Antystics.Api.DTOs;
+using Antystics.Api.Utilities;
 using Antystics.Core.Entities;
 using Antystics.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace Antystics.Api.Controllers;
 
@@ -17,10 +19,12 @@ public class StatisticsController : ControllerBase
 {
     private const int MaxPageSize = 50;
     private readonly ApplicationDbContext _context;
+    private readonly IConfiguration _configuration;
 
-    public StatisticsController(ApplicationDbContext context)
+    public StatisticsController(ApplicationDbContext context, IConfiguration configuration)
     {
         _context = context;
+        _configuration = configuration;
     }
 
     [HttpGet]
@@ -67,6 +71,8 @@ public class StatisticsController : ControllerBase
                 .ToDictionary(g => g.Key, g => g.ToList());
         }
 
+        var frontendBaseUrl = GetFrontendBaseUrl();
+
         var result = new StatisticListDto
         {
             Items = items.Select(statistic =>
@@ -74,7 +80,7 @@ public class StatisticsController : ControllerBase
                 var votes = userVotesLookup.TryGetValue(statistic.Id, out var value) ? value : new List<StatisticVote>();
                 var hasLiked = votes.Any(v => v.VoteType == StatisticVoteType.Like);
                 var hasDisliked = votes.Any(v => v.VoteType == StatisticVoteType.Dislike);
-                return MapToDto(statistic, hasLiked, hasDisliked);
+                return MapToDto(statistic, hasLiked, hasDisliked, frontendBaseUrl);
             }).ToList(),
             TotalCount = totalCount,
             Page = page,
@@ -118,7 +124,7 @@ public class StatisticsController : ControllerBase
 
         await _context.Entry(statistic).Reference(s => s.CreatedBy).LoadAsync();
 
-        return CreatedAtAction(nameof(GetStatistic), new { id = statistic.Id }, MapToDto(statistic, false, false));
+        return CreatedAtAction(nameof(GetStatistic), new { id = statistic.Id }, MapToDto(statistic, false, false, GetFrontendBaseUrl()));
     }
 
     [HttpGet("{id}")]
@@ -150,7 +156,7 @@ public class StatisticsController : ControllerBase
             hasDisliked = votes.Any(v => v.VoteType == StatisticVoteType.Dislike);
         }
 
-        return Ok(MapToDto(statistic, hasLiked, hasDisliked));
+        return Ok(MapToDto(statistic, hasLiked, hasDisliked, GetFrontendBaseUrl()));
     }
 
     [Authorize]
@@ -245,7 +251,7 @@ public class StatisticsController : ControllerBase
         return Ok(new { likeCount = statistic.LikeCount, dislikeCount = statistic.DislikeCount });
     }
 
-    private StatisticDto MapToDto(Statistic statistic, bool hasLiked, bool hasDisliked)
+    private StatisticDto MapToDto(Statistic statistic, bool hasLiked, bool hasDisliked, string frontendBaseUrl)
     {
         return new StatisticDto
         {
@@ -257,6 +263,8 @@ public class StatisticsController : ControllerBase
             SourceCitation = statistic.SourceCitation,
             ChartData = !string.IsNullOrEmpty(statistic.ChartData) ? JsonSerializer.Deserialize<object>(statistic.ChartData) : null,
             Status = statistic.Status.ToString(),
+            Slug = UrlBuilder.GenerateSlug(statistic.Title, "statystyka"),
+            CanonicalUrl = UrlBuilder.BuildCanonicalUrl(frontendBaseUrl, "statistics", statistic.Id, statistic.Title),
             LikeCount = statistic.LikeCount,
             DislikeCount = statistic.DislikeCount,
             TrustPoints = statistic.TrustPoints,
@@ -278,6 +286,22 @@ public class StatisticsController : ControllerBase
                 CreatedAt = statistic.CreatedBy.CreatedAt
             }
         };
+    }
+
+    private string GetFrontendBaseUrl()
+    {
+        var configured = _configuration["FrontendUrl"];
+        if (!string.IsNullOrWhiteSpace(configured))
+        {
+            return configured!.TrimEnd('/');
+        }
+
+        if (Request?.Scheme is { Length: > 0 } scheme && Request.Host.HasValue)
+        {
+            return $"{scheme}://{Request.Host}".TrimEnd('/');
+        }
+
+        return "https://antystyki.pl";
     }
 
     private Guid? GetCurrentUserId()

@@ -1,11 +1,13 @@
 using System.Security.Claims;
 using Antystics.Api.DTOs;
+using Antystics.Api.Utilities;
 using Antystics.Core.Entities;
 using Antystics.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace Antystics.Api.Controllers;
 
@@ -16,11 +18,13 @@ public class AdminController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
     private readonly UserManager<User> _userManager;
+    private readonly IConfiguration _configuration;
 
-    public AdminController(ApplicationDbContext context, UserManager<User> userManager)
+    public AdminController(ApplicationDbContext context, UserManager<User> userManager, IConfiguration configuration)
     {
         _context = context;
         _userManager = userManager;
+        _configuration = configuration;
     }
 
     [HttpGet("antistics/pending")]
@@ -292,8 +296,26 @@ public class AdminController : ControllerBase
         return userIdClaim != null ? Guid.Parse(userIdClaim) : null;
     }
 
+    private string GetFrontendBaseUrl()
+    {
+        var configured = _configuration["FrontendUrl"];
+        if (!string.IsNullOrWhiteSpace(configured))
+        {
+            return configured!.TrimEnd('/');
+        }
+
+        if (Request?.Scheme is { Length: > 0 } scheme && Request.Host.HasValue)
+        {
+            return $"{scheme}://{Request.Host}".TrimEnd('/');
+        }
+
+        return "https://antystyki.pl";
+    }
+
     private AntisticDto MapToDto(Antistic antistic)
     {
+        var frontendBaseUrl = GetFrontendBaseUrl();
+
         return new AntisticDto
         {
             Id = antistic.Id,
@@ -301,6 +323,8 @@ public class AdminController : ControllerBase
             ReversedStatistic = antistic.ReversedStatistic,
             SourceUrl = antistic.SourceUrl,
             ImageUrl = antistic.ImageUrl,
+            Slug = UrlBuilder.GenerateSlug(antistic.Title, "antystyk"),
+            CanonicalUrl = UrlBuilder.BuildCanonicalUrl(frontendBaseUrl, "antistics", antistic.Id, antistic.Title),
             TemplateId = antistic.TemplateId,
             ChartData = !string.IsNullOrEmpty(antistic.ChartData) ? System.Text.Json.JsonSerializer.Deserialize<object>(antistic.ChartData) : null,
             Status = antistic.Status.ToString(),
@@ -328,6 +352,8 @@ public class AdminController : ControllerBase
 
     private StatisticDto MapStatisticToDto(Statistic statistic)
     {
+        var frontendBaseUrl = GetFrontendBaseUrl();
+
         return new StatisticDto
         {
             Id = statistic.Id,
@@ -338,6 +364,8 @@ public class AdminController : ControllerBase
             SourceCitation = statistic.SourceCitation,
             ChartData = !string.IsNullOrEmpty(statistic.ChartData) ? System.Text.Json.JsonSerializer.Deserialize<object>(statistic.ChartData) : null,
             Status = statistic.Status.ToString(),
+            Slug = UrlBuilder.GenerateSlug(statistic.Title, "statystyka"),
+            CanonicalUrl = UrlBuilder.BuildCanonicalUrl(frontendBaseUrl, "statistics", statistic.Id, statistic.Title),
             LikeCount = statistic.LikeCount,
             DislikeCount = statistic.DislikeCount,
             TrustPoints = statistic.TrustPoints,

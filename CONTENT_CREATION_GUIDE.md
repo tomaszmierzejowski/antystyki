@@ -368,6 +368,17 @@ Checklist:
 4. Test like/share functionality
 ```
 
+#### How the share menu represents your work externally
+- Approved, published antystics automatically expose a canonical link (e.g., `antystyki.pl/antistics/<slug>-<id>`) used by the share menu in list and detail views.
+- Each share action attaches bilingual copy (`PL + EN`) plus our mission reminder: *„Misja Antystyki: mniej clickbaitu, więcej rozmów w odcieniach szarości.”*
+- Quick targets: Facebook, X/Twitter, LinkedIn, WhatsApp, Messenger, copy link, copy stat, and device-native share sheets. Future platforms can be added via the `SHARE_ACTIONS` config.
+- All outbound links include UTM parameters (`utm_source`, `utm_medium`, `utm_campaign=share_button_v1`) to preserve GDPR-compliant analytics (§4.3) without storing personal data.
+- Moderators should run a smoke test (desktop + mobile) to confirm:
+  - Status is **Approved** (pending items hide the share button).
+  - The copied stat text retains nuance—edit descriptions if the share preview feels clickbaity (§5.1).
+  - GA4 shows `share_initiated`, `share_completed`, and `share_platform` events for the piece within a few minutes (§3.1).
+- When publishing statistic hubs, mirror this checklist so upstream stats remain mission-aligned before creators reuse them.
+
 ---
 
 ## 📝 Example Antistics (Ready to Use)

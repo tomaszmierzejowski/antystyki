@@ -26,6 +26,8 @@ public class AntisticDto
     public string ReversedStatistic { get; set; } = string.Empty;
     public string SourceUrl { get; set; } = string.Empty;
     public string ImageUrl { get; set; } = string.Empty;
+    public string Slug { get; set; } = string.Empty;
+    public string CanonicalUrl { get; set; } = string.Empty;
     public string? TemplateId { get; set; }
     public object? ChartData { get; set; } // Chart data object
     public string Status { get; set; } = string.Empty;

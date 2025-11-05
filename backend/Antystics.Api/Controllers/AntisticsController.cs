@@ -1,11 +1,13 @@
 using System.Security.Claims;
 using Antystics.Api.DTOs;
+using Antystics.Api.Utilities;
 using Antystics.Core.Entities;
 using Antystics.Core.Interfaces;
 using Antystics.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace Antystics.Api.Controllers;
 
@@ -15,11 +17,13 @@ public class AntisticsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
     private readonly IImageService _imageService;
+    private readonly IConfiguration _configuration;
 
-    public AntisticsController(ApplicationDbContext context, IImageService imageService)
+    public AntisticsController(ApplicationDbContext context, IImageService imageService, IConfiguration configuration)
     {
         _context = context;
         _imageService = imageService;
+        _configuration = configuration;
     }
 
     [HttpGet]
@@ -70,9 +74,11 @@ public class AntisticsController : ControllerBase
                 .ToListAsync()
             : new List<Guid>();
 
+        var frontendBaseUrl = GetFrontendBaseUrl();
+
         var result = new AntisticListDto
         {
-            Items = items.Select(a => MapToDto(a, likedAntisticIds.Contains(a.Id))).ToList(),
+            Items = items.Select(a => MapToDto(a, likedAntisticIds.Contains(a.Id), frontendBaseUrl)).ToList(),
             TotalCount = totalCount,
             Page = page,
             PageSize = pageSize
@@ -103,7 +109,7 @@ public class AntisticsController : ControllerBase
         var isLiked = currentUserId.HasValue &&
             await _context.AntisticLikes.AnyAsync(l => l.AntisticId == id && l.UserId == currentUserId.Value);
 
-        return Ok(MapToDto(antistic, isLiked));
+        return Ok(MapToDto(antistic, isLiked, GetFrontendBaseUrl()));
     }
 
     [Authorize]
@@ -478,7 +484,7 @@ public class AntisticsController : ControllerBase
         return userIdClaim != null ? Guid.Parse(userIdClaim) : null;
     }
 
-    private AntisticDto MapToDto(Antistic antistic, bool isLiked)
+    private AntisticDto MapToDto(Antistic antistic, bool isLiked, string frontendBaseUrl)
     {
         return new AntisticDto
         {
@@ -487,6 +493,8 @@ public class AntisticsController : ControllerBase
             ReversedStatistic = antistic.ReversedStatistic,
             SourceUrl = antistic.SourceUrl,
             ImageUrl = antistic.ImageUrl,
+            Slug = UrlBuilder.GenerateSlug(antistic.Title, "antystyk"),
+            CanonicalUrl = UrlBuilder.BuildCanonicalUrl(frontendBaseUrl, "antistics", antistic.Id, antistic.Title),
             TemplateId = antistic.TemplateId,
             ChartData = !string.IsNullOrEmpty(antistic.ChartData) ? System.Text.Json.JsonSerializer.Deserialize<object>(antistic.ChartData) : null,
             Status = antistic.Status.ToString(),
@@ -513,6 +521,22 @@ public class AntisticsController : ControllerBase
                 Slug = ac.Category.Slug
             }).ToList()
         };
+    }
+
+    private string GetFrontendBaseUrl()
+    {
+        var configured = _configuration["FrontendUrl"];
+        if (!string.IsNullOrWhiteSpace(configured))
+        {
+            return configured!.TrimEnd('/');
+        }
+
+        if (Request?.Scheme is { Length: > 0 } scheme && Request.Host.HasValue)
+        {
+            return $"{scheme}://{Request.Host}".TrimEnd('/');
+        }
+
+        return "https://antystyki.pl";
     }
 
     private CommentDto MapCommentToDto(AntisticComment comment)

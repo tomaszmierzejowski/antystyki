@@ -3,6 +3,7 @@ import type { Statistic } from '../types';
 import type { AntisticData, AntisticTemplate } from '../types/templates';
 import { CARD_TEMPLATES, CHART_COLORS } from '../types/templates';
 import { BarChart, DoughnutChart, ColorfulDataChart, LineChart, createPerspectiveData, generateSegmentsFromData } from './charts/ChartGenerator';
+import ShareMenu from './ShareMenu';
 
 type SuggestionType = 'bar' | 'pie' | 'line' | 'area' | 'other';
 
@@ -522,6 +523,13 @@ const StatisticCard: React.FC<StatisticCardProps> = ({ statistic, onVote, onConv
     }
   };
 
+  const canShare = statistic.status === 'Approved' && Boolean(statistic.publishedAt) && Boolean(statistic.canonicalUrl);
+  const shareStatCopy = useMemo(() => {
+    const sourceLine = statistic.sourceCitation || statistic.sourceUrl;
+    const extraDescription = statistic.description ? `\n${statistic.description}` : '';
+    return `${statistic.summary}${extraDescription}\nŹródło: ${sourceLine}`;
+  }, [statistic.description, statistic.sourceCitation, statistic.sourceUrl, statistic.summary]);
+
   return (
     <article className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
       <div className="p-6 space-y-5">
@@ -618,6 +626,16 @@ const StatisticCard: React.FC<StatisticCardProps> = ({ statistic, onVote, onConv
           </div>
 
           <div className="flex items-center gap-3">
+            {canShare && (
+              <ShareMenu
+                canonicalUrl={statistic.canonicalUrl}
+                entityId={statistic.id}
+                entityType="statistic"
+                title={statistic.title}
+                summary={statistic.summary}
+                statCopyText={shareStatCopy}
+              />
+            )}
             <button
               onClick={() => onConvert?.(statistic)}
               disabled={!onConvert}

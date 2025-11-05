@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import type { Antistic } from '../types';
 import type { AntisticData } from '../types/templates';
 import { CARD_TEMPLATES, CHART_COLORS } from '../types/templates';
@@ -6,6 +6,7 @@ import { DoughnutChart, ColorfulDataChart, LineChart, BarChart, createPerspectiv
 import CommentsSection from './CommentsSection';
 import { useLike } from '../hooks/useLike';
 import AdminActions from './AdminActions';
+import ShareMenu from './ShareMenu';
 
 type ChartMode = 'pie' | 'bar' | 'line';
 
@@ -176,6 +177,12 @@ const AntisticCard: React.FC<Props> = ({ antistic, templateId = 'two-column-defa
   };
   
   const chartData = getChartData();
+
+  const canShare = antistic.status === 'Approved' && !antistic.hiddenAt && Boolean(antistic.publishedAt) && Boolean(antistic.canonicalUrl);
+  const shareStatCopy = useMemo(() => {
+    const sourceLine = antistic.sourceUrl ? `\nŹródło: ${antistic.sourceUrl}` : '';
+    return `${antistic.reversedStatistic}${sourceLine}`;
+  }, [antistic.reversedStatistic, antistic.sourceUrl]);
   
   const resolveChartType = (chart: any): ChartMode => {
     const raw = chart?.type as ChartMode | undefined;
@@ -444,9 +451,20 @@ const AntisticCard: React.FC<Props> = ({ antistic, templateId = 'two-column-defa
             </button>
           </div>
 
-          {/* Watermark - bottom right, semi-transparent */}
-          <div className="text-xs text-gray-300 font-medium">
-            antystyki.pl
+          <div className="flex items-center gap-3">
+            {canShare && (
+              <ShareMenu
+                canonicalUrl={antistic.canonicalUrl}
+                entityId={antistic.id}
+                entityType="antistic"
+                title={antistic.title}
+                summary={antistic.reversedStatistic}
+                statCopyText={shareStatCopy}
+              />
+            )}
+            <div className="text-xs text-gray-300 font-medium">
+              antystyki.pl
+            </div>
           </div>
         </div>
       </div>
