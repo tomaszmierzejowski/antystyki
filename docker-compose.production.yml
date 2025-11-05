@@ -12,7 +12,7 @@ services:
       POSTGRES_INITDB_ARGS: "-E UTF8 --locale=C"
     ports:
       # SECURE DEFAULT: Only bind to localhost (prevents remote access)
-      - "127.0.0.1:5432:5432"
+      - "5432:5432"
       # TO ENABLE REMOTE ACCESS: Change line above to:
       # - "5432:5432"  # Allows connections from any IP
     volumes:
@@ -20,8 +20,8 @@ services:
       - ./database/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro  # Auto-init script
       - ./backups:/backups  # Mount backups directory
       # TO ENABLE REMOTE ACCESS: Uncomment the lines below to use custom PostgreSQL config
-      # - ./database/postgres-config/postgresql.conf:/etc/postgresql/postgresql.conf:ro
-      # - ./database/postgres-config/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+      - ./database/postgres-config/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./database/postgres-config/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
     # TO ENABLE REMOTE ACCESS: Uncomment the command below to use custom config files
     # command: >
     #   postgres
