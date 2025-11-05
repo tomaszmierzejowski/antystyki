@@ -10,6 +10,11 @@ export interface ChartSegment {
   color: string;
 }
 
+export interface ChartPoint {
+  label: string;
+  value: number;
+}
+
 export interface AntisticTemplate {
   id: string;
   name: string;
@@ -37,13 +42,19 @@ export interface AntisticData {
   };
   
   sourceData?: {
-    segments: ChartSegment[];
+    type?: 'pie' | 'bar' | 'line';
+    segments?: ChartSegment[];
+    points?: ChartPoint[];
+    unit?: string;
   };
   
   // Single chart template data
   singleChartData?: {
-    segments: ChartSegment[];
     title: string;
+    type?: 'pie' | 'line' | 'bar';
+    segments?: ChartSegment[];
+    points?: ChartPoint[];
+    unit?: string;
   };
   
   // Text-focused template data
@@ -57,11 +68,17 @@ export interface AntisticData {
   comparisonData?: {
     leftChart: {
       title: string;
-      segments: ChartSegment[];
+      type?: 'pie' | 'bar' | 'line';
+      segments?: ChartSegment[];
+      points?: ChartPoint[];
+      unit?: string;
     };
     rightChart: {
       title: string;
-      segments: ChartSegment[];
+      type?: 'pie' | 'bar' | 'line';
+      segments?: ChartSegment[];
+      points?: ChartPoint[];
+      unit?: string;
     };
   };
 }

@@ -18,6 +18,8 @@ import AnonymousTest from './components/AnonymousTest';
 import ChartDataTest from './components/ChartDataTest';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
+import Statistics from './pages/Statistics';
+import CreateStatisticPage from './pages/CreateStatistic';
 import { trackPageView } from './utils/analytics';
 
 // Component to track route changes
@@ -47,6 +49,8 @@ function App() {
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/statistics" element={<Statistics />} />
+            <Route path="/admin/statistics/create" element={<CreateStatisticPage />} />
             <Route path="/create" element={<CreateAntistic />} />
             <Route path="/admin" element={<AdminPanel />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />

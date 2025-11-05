@@ -9,7 +9,7 @@
 
 ## 📋 Overview
 
-This guide provides templates, examples, and best practices for creating launch content that embodies Antystyki's mission: **"Show people that things are not just black and white. The world is all shades of gray."**
+This guide provides templates, examples, and best practices for creating launch content that embodies Antystyki's mission: **"Antystyki turns real stats into witty gray-area stories that help our community think deeper before they share."**
 
 **Goal**: Create 20-30 antistics before public launch  
 **Time**: 3-4 hours  
@@ -581,4 +581,58 @@ Start with Example 1-6 above, then build your own. You've got this! 💪
 **Document Status**: Ready for use  
 **Last Updated**: October 15, 2025  
 **Next Review**: After first 10 antistics created
+
+## Charting Quick Reference
+
+### Antystyk Templates (Creator Form)
+- `Dwa wykresy (domyślny)` – Donut + źródłowy wykres; wypełnij sekcję „Perspektywa antystyki” i segmenty źródłowe.
+- `Pojedynczy wykres` – Wybierz tryb: **Wykres kołowy** (segmenty procentowe) lub **Wykres liniowy** (lista punktów + jednostka). W trybie liniowym kolejność punktów = kolejność na osi X.
+- `Tekst z statystyką` – Najlepszy do memicznej pointy; procent trafia do pola głównej statystyki.
+- `Porównanie` – Dwa wykresy zestawiające warianty; wypełnij oba zestawy segmentów.
+
+### Statistics Companion Visualisations
+- **Donut / udział** – Dodaj w `Statistics.ChartData` `metricValue` + `metricUnit='%` lub `chartSuggestion.type='pie'` (opcjonalne segmenty).
+- **Bar chart (recommended for rok vs rok)** – Ustaw:
+  ```json
+  {
+    "chartSuggestion": {
+      "type": "bar",
+      "unit": "%",
+      "dataPoints": [
+        { "label": "2023", "value": 6.6 },
+        { "label": "2024", "value": 5.2 }
+      ]
+    }
+  }
+  ```
+  - Wartości pokazujemy w legendzie (nie normalizujemy ich do 100%).
+  - Podaj `metricValue`/`metricUnit` tylko gdy chcesz dodatkowo wypełnić CTA.
+- **Line chart (trend / sekwencja)** – Ustaw `"type": "line"` i listę punktów:
+  ```json
+  {
+    "chartSuggestion": {
+      "type": "line",
+      "unit": " mln",
+      "dataPoints": [
+        { "label": "2022", "value": 4.2 },
+        { "label": "2023", "value": 5.1 },
+        { "label": "2024", "value": 5.9 }
+      ]
+    }
+  }
+  ```
+  - Punkty są łączone w kolejności podanej w tablicy.
+  - CTA „Stwórz antystyk” przeniesie dane do kreatora w trybie liniowym.
+- **Inne typy (`area`, `pie`, brak typu)** – domyślnie traktowane jak donut; zostawione na przyszłe rozszerzenia.
+
+Dodając statystykę przez SQL seed:
+```sql
+UPDATE "Statistics"
+SET "ChartData" = jsonb_set("ChartData"::jsonb, '{chartSuggestion}',
+  '{"type":"bar","unit":"%","dataPoints":[{"label":"2023","value":6.6},{"label":"2024","value":5.2}]}'::jsonb,
+  true
+)::text
+WHERE "Id" = '...';
+```
+Po zapisaniu odśwież `/statistics` – wykres słupkowy powinien pokazać porównanie lat.
 

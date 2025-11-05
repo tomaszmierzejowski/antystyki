@@ -1,0 +1,250 @@
+import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import StatisticCard from '../components/StatisticCard';
+import {
+  fetchStatistics,
+  voteOnStatistic,
+  type StatisticsSortOption,
+} from '../api/statistics';
+import { buildAntisticPrefillFromStatistic } from '../utils/statisticPrefill';
+import type { Statistic } from '../types';
+import { trackEvent } from '../utils/analytics';
+
+const PAGE_SIZE = 8;
+
+const sortLabels: Record<StatisticsSortOption, string> = {
+  top: 'Najwyżej oceniane',
+  new: 'Najnowsze',
+  views: 'Najczęściej oglądane',
+};
+
+const StatisticsPage: React.FC = () => {
+  const navigate = useNavigate();
+  const [statistics, setStatistics] = useState<Statistic[]>([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [sort, setSort] = useState<StatisticsSortOption>('top');
+  const [voteBusyId, setVoteBusyId] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadStatistics(true);
+    trackEvent('statistics_page_view', { sort });
+  }, [sort]);
+
+  const loadStatistics = async (reset: boolean = false) => {
+    try {
+      setErrorMessage(null);
+      if (reset) {
+        setLoading(true);
+        setPage(1);
+      } else {
+        setLoadingMore(true);
+      }
+
+      const targetPage = reset ? 1 : page;
+      const response = await fetchStatistics({ page: targetPage, pageSize: PAGE_SIZE, sort });
+
+      setStatistics((prev) => {
+        if (reset) {
+          return response.items;
+        }
+
+        const merged = [...prev];
+        response.items.forEach((item) => {
+          if (!merged.some((existing) => existing.id === item.id)) {
+            merged.push(item);
+          }
+        });
+        return merged;
+      });
+
+      const hasNext = targetPage * response.pageSize < response.totalCount;
+      setHasMore(hasNext);
+      setPage(targetPage + 1);
+    } catch (error) {
+      console.error('Failed to load statistics', error);
+      setErrorMessage('Nie udało się załadować statystyk. Spróbuj ponownie później.');
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  const handleVote = async (statisticId: string, voteType: 'Like' | 'Dislike', remove: boolean) => {
+    try {
+      setVoteBusyId(statisticId);
+      const response = await voteOnStatistic(statisticId, voteType, remove);
+
+      setStatistics((prev) =>
+        prev.map((stat) => {
+          if (stat.id !== statisticId) {
+            return stat;
+          }
+
+          const updated: Statistic = {
+            ...stat,
+            likeCount: response.likeCount,
+            dislikeCount: response.dislikeCount,
+          };
+
+          if (voteType === 'Like') {
+            updated.hasLiked = !remove;
+            if (!remove) {
+              updated.hasDisliked = false;
+            }
+          } else {
+            updated.hasDisliked = !remove;
+            if (!remove) {
+              updated.hasLiked = false;
+            }
+          }
+
+          return updated;
+        })
+      );
+
+      trackEvent('statistic_vote', {
+        statistic_id: statisticId,
+        vote_type: voteType.toLowerCase(),
+        action: remove ? 'remove' : 'add',
+      });
+    } catch (error: any) {
+      console.error('Failed to update statistic vote', error);
+      const message = error?.response?.status === 401
+        ? 'Zaloguj się, aby głosować na statystyki.'
+        : 'Nie udało się zapisać głosu. Spróbuj ponownie.';
+      setErrorMessage(message);
+    } finally {
+      setVoteBusyId(null);
+    }
+  };
+
+  const handleConvert = (statistic: Statistic) => {
+    trackEvent('statistic_convert_cta', {
+      statistic_id: statistic.id,
+    });
+
+    try {
+      const antisticPrefill = buildAntisticPrefillFromStatistic(statistic);
+
+      localStorage.setItem(
+        'statistics:prefill',
+        JSON.stringify({
+          statisticId: statistic.id,
+          antisticData: antisticPrefill,
+          statisticSnapshot: {
+            title: statistic.title,
+            summary: statistic.summary,
+            description: statistic.description ?? null,
+            sourceUrl: statistic.sourceUrl,
+            sourceCitation: statistic.sourceCitation ?? null,
+            chartData: statistic.chartData ?? null,
+          },
+        })
+      );
+    } catch (error) {
+      console.warn('Unable to persist statistic prefill data', error);
+    }
+
+    navigate('/create', { state: { fromStatisticId: statistic.id } });
+  };
+
+  const activeSortOptions = useMemo<StatisticsSortOption[]>(() => ['top', 'new', 'views'], []);
+
+  return (
+    <div className="min-h-screen" style={{ backgroundColor: '#f8f9fb' }}>
+      <div className="max-w-6xl mx-auto px-6 py-10 space-y-8">
+        <header className="space-y-3">
+          <span className="text-xs uppercase tracking-[0.3em] text-gray-400">Wspólna baza danych</span>
+          <h1 className="text-4xl font-bold text-gray-900">
+            Statystyki do przerobienia na antystyki
+          </h1>
+          <p className="text-gray-600 text-lg max-w-3xl">
+            Przeglądaj wiarygodne dane, które nasi twórcy i moderatorzy wyselekcjonowali do dalszej obróbki.
+            Głosuj, dziel się zaufaniem i przekształcaj je w ironiczne historie, które zmieniają czarno-białe myślenie.
+          </p>
+        </header>
+
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex gap-2 bg-white border border-gray-200 rounded-full p-1 shadow-sm">
+            {activeSortOptions.map((option) => (
+              <button
+                key={option}
+                onClick={() => setSort(option)}
+                className={`px-4 py-2 text-sm font-medium rounded-full transition-colors ${
+                  sort === option
+                    ? 'bg-gray-900 text-white shadow'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+                type="button"
+              >
+                {sortLabels[option]}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={() => loadStatistics(true)}
+            className="text-sm text-gray-500 hover:text-gray-800 underline-offset-4 hover:underline"
+            type="button"
+          >
+            Odśwież
+          </button>
+        </div>
+
+        {errorMessage && (
+          <div className="bg-rose-50 text-rose-700 border border-rose-200 rounded-xl px-4 py-3 text-sm">
+            {errorMessage}
+          </div>
+        )}
+
+        {loading ? (
+          <div className="flex justify-center items-center py-20">
+            <div className="animate-pulse text-gray-500">Ładuję statystyki...</div>
+          </div>
+        ) : statistics.length === 0 ? (
+          <div className="bg-white border border-dashed border-gray-300 rounded-2xl py-20 text-center space-y-3">
+            <div className="text-6xl">📊</div>
+            <h2 className="text-xl font-semibold text-gray-900">Jeszcze nie ma żadnych statystyk</h2>
+            <p className="text-gray-600 max-w-lg mx-auto">
+              Moderatorzy właśnie zbierają pierwsze dane. Zajrzyj później lub zaproponuj własną statystykę wśród społeczności.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-6">
+            {statistics.map((statistic) => (
+              <StatisticCard
+                key={statistic.id}
+                statistic={statistic}
+                onVote={handleVote}
+                onConvert={handleConvert}
+                isBusy={voteBusyId === statistic.id}
+              />
+            ))}
+          </div>
+        )}
+
+        {hasMore && !loading && (
+          <div className="flex justify-center">
+            <button
+              onClick={() => loadStatistics(false)}
+              disabled={loadingMore}
+              className={`px-6 py-3 text-sm font-medium rounded-full border border-gray-300 bg-white hover:border-gray-500 transition-colors ${
+                loadingMore ? 'opacity-60 cursor-not-allowed' : ''
+              }`}
+              type="button"
+            >
+              {loadingMore ? 'Ładowanie...' : 'Pokaż więcej statystyk'}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default StatisticsPage;
+

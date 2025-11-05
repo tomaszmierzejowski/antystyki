@@ -13,6 +13,8 @@ public class ApplicationDbContext : IdentityDbContext<User, IdentityRole<Guid>, 
     }
 
     public DbSet<Antistic> Antistics { get; set; }
+    public DbSet<Statistic> Statistics { get; set; }
+    public DbSet<StatisticVote> StatisticVotes { get; set; }
     public DbSet<AntisticLike> AntisticLikes { get; set; }
     public DbSet<AntisticReport> AntisticReports { get; set; }
     public DbSet<AntisticComment> AntisticComments { get; set; }
@@ -61,6 +63,59 @@ public class ApplicationDbContext : IdentityDbContext<User, IdentityRole<Guid>, 
             entity.HasIndex(e => e.PublishedAt);
             entity.HasIndex(e => e.UserId);
             entity.HasIndex(e => e.HiddenAt);
+        });
+
+        // Statistic configuration
+        builder.Entity<Statistic>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Title).IsRequired().HasMaxLength(300);
+            entity.Property(e => e.Summary).IsRequired().HasMaxLength(2000);
+            entity.Property(e => e.Description).HasMaxLength(4000);
+            entity.Property(e => e.SourceUrl).IsRequired().HasMaxLength(2000);
+            entity.Property(e => e.SourceCitation).HasMaxLength(500);
+            entity.Property(e => e.ModeratorNotes).HasMaxLength(2000);
+            entity.Property(e => e.ChartData);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            entity.HasOne(e => e.CreatedBy)
+                .WithMany(u => u.Statistics)
+                .HasForeignKey(e => e.CreatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.ModeratedBy)
+                .WithMany()
+                .HasForeignKey(e => e.ModeratedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.ConvertedAntistic)
+                .WithMany()
+                .HasForeignKey(e => e.ConvertedAntisticId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.PublishedAt);
+            entity.HasIndex(e => e.CreatedAt);
+        });
+
+        // StatisticVote configuration
+        builder.Entity<StatisticVote>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.VoteType).HasConversion<int>();
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            entity.HasOne(e => e.Statistic)
+                .WithMany(s => s.Votes)
+                .HasForeignKey(e => e.StatisticId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.User)
+                .WithMany(u => u.StatisticVotes)
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => new { e.StatisticId, e.UserId, e.VoteType }).IsUnique();
         });
 
         // AntisticLike configuration

@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import type { Antistic } from '../types';
 import type { AntisticData } from '../types/templates';
-import { CARD_TEMPLATES } from '../types/templates';
-import { DoughnutChart, ColorfulDataChart, createPerspectiveData } from './charts/ChartGenerator';
+import { CARD_TEMPLATES, CHART_COLORS } from '../types/templates';
+import { DoughnutChart, ColorfulDataChart, LineChart, BarChart, createPerspectiveData } from './charts/ChartGenerator';
 import CommentsSection from './CommentsSection';
 import { useLike } from '../hooks/useLike';
 import AdminActions from './AdminActions';
+
+type ChartMode = 'pie' | 'bar' | 'line';
 
 /**
  * AntisticCard Component - Template-based card generation
@@ -96,6 +98,7 @@ const AntisticCard: React.FC<Props> = ({ antistic, templateId = 'two-column-defa
             chartColor: '#6b7280'
           },
           sourceData: { 
+            type: 'pie',
             segments: [
               { label: 'Główna kategoria', percentage: percentage, color: '#FF6A00' },
               { label: 'Pozostałe kategorie', percentage: 100 - percentage, color: '#6b7280' }
@@ -107,6 +110,7 @@ const AntisticCard: React.FC<Props> = ({ antistic, templateId = 'two-column-defa
         return {
           ...baseData,
           singleChartData: {
+            type: 'pie',
             title: antistic.title,
             segments: [
               { label: 'Główna kategoria', percentage: percentage, color: '#FF6A00' },
@@ -132,6 +136,7 @@ const AntisticCard: React.FC<Props> = ({ antistic, templateId = 'two-column-defa
           comparisonData: {
             leftChart: {
               title: 'Przed',
+              type: 'pie',
               segments: [
                 { label: 'Kategoria A', percentage: percentage, color: '#ef4444' },
                 { label: 'Kategoria B', percentage: 100 - percentage, color: '#6b7280' }
@@ -139,6 +144,7 @@ const AntisticCard: React.FC<Props> = ({ antistic, templateId = 'two-column-defa
             },
             rightChart: {
               title: 'Po',
+              type: 'pie',
               segments: [
                 { label: 'Kategoria A', percentage: Math.max(10, percentage - 20), color: '#22c55e' },
                 { label: 'Kategoria B', percentage: Math.min(90, 100 - percentage + 20), color: '#6b7280' }
@@ -159,6 +165,7 @@ const AntisticCard: React.FC<Props> = ({ antistic, templateId = 'two-column-defa
             chartColor: '#6b7280'
           },
           sourceData: { 
+            type: 'pie',
             segments: [
               { label: 'Główna kategoria', percentage: percentage, color: '#FF6A00' },
               { label: 'Pozostałe kategorie', percentage: 100 - percentage, color: '#6b7280' }
@@ -170,6 +177,75 @@ const AntisticCard: React.FC<Props> = ({ antistic, templateId = 'two-column-defa
   
   const chartData = getChartData();
   
+  const resolveChartType = (chart: any): ChartMode => {
+    const raw = chart?.type as ChartMode | undefined;
+    if (raw === 'bar' || raw === 'line') {
+      return raw;
+    }
+    return 'pie';
+  };
+
+  const getChartPoints = (chart: any) => {
+    if (Array.isArray(chart?.points) && chart.points.length > 0) {
+      return chart.points.map((point: any, index: number) => ({
+        label: typeof point.label === 'string' && point.label.length > 0 ? point.label : `Punkt ${index + 1}`,
+        value: Number.isFinite(point.value) ? point.value : 0,
+      }));
+    }
+
+    if (Array.isArray(chart?.segments) && chart.segments.length > 0) {
+      return chart.segments.map((segment: any, index: number) => ({
+        label: typeof segment.label === 'string' && segment.label.length > 0 ? segment.label : `Punkt ${index + 1}`,
+        value: Number.isFinite(segment.percentage) ? segment.percentage : 0,
+      }));
+    }
+
+    return [];
+  };
+
+  const buildBarItems = (chart: any) => {
+    const points: Array<{ label: string; value: number }> = getChartPoints(chart);
+    if (!points.length) {
+      return [];
+    }
+
+    const maxValue = Math.max(...points.map((point) => Math.abs(point.value)), 0) || 1;
+
+    return points.map((point, index) => ({
+      label: point.label,
+      displayValue: chart?.unit
+        ? `${point.value.toLocaleString('pl-PL', { maximumFractionDigits: 2 })} ${chart.unit.trim()}`
+        : point.value.toLocaleString('pl-PL', { maximumFractionDigits: 2 }),
+      percentageWidth: Math.max(5, (Math.abs(point.value) / maxValue) * 100),
+      color: chart?.segments?.[index]?.color ?? CHART_COLORS[index % CHART_COLORS.length],
+    }));
+  };
+
+  const renderChartVisualization = (chart: any) => {
+    const type = resolveChartType(chart);
+    if (type === 'line') {
+      const points = getChartPoints(chart);
+      if (!points.length) {
+        return <p className="text-sm text-gray-500">Brak danych do wyświetlenia.</p>;
+      }
+      return <LineChart points={points} unit={chart?.unit} />;
+    }
+
+    if (type === 'bar') {
+      const items = buildBarItems(chart);
+      if (!items.length) {
+        return <p className="text-sm text-gray-500">Brak danych do wyświetlenia.</p>;
+      }
+      return <BarChart items={items} />;
+    }
+
+    const segments = chart?.segments ?? [];
+    if (!segments.length) {
+      return <p className="text-sm text-gray-500">Brak danych do wizualizacji.</p>;
+    }
+    return <ColorfulDataChart segments={segments} showLegend />;
+  };
+
   // Generate perspective segments
   const perspectiveSegments = chartData.perspectiveData ? 
     createPerspectiveData(
@@ -207,23 +283,31 @@ const AntisticCard: React.FC<Props> = ({ antistic, templateId = 'two-column-defa
           </div>
 
           {/* Right Column: Dane źródłowe */}
-          <div className="flex flex-col items-center">
+          <div className="flex flex-col items-center w-full">
             <h4 className="text-sm font-semibold text-gray-700 mb-4">Dane źródłowe</h4>
-            <ColorfulDataChart segments={chartData.sourceData?.segments || []} />
+            <div className="w-full">
+              {renderChartVisualization(chartData.sourceData)}
+            </div>
           </div>
         </div>
       </div>
     </>
   );
   
-  const renderSingleChartTemplate = () => (
-    <div className="px-6 pb-6">
-      <div className="flex flex-col items-center mb-6">
-        <h4 className="text-sm font-semibold text-gray-700 mb-4">Analiza danych</h4>
-        <ColorfulDataChart segments={chartData.singleChartData?.segments || []} />
+  const renderSingleChartTemplate = () => {
+    const singleChart = chartData.singleChartData;
+
+    return (
+      <div className="px-6 pb-6">
+        <div className="flex flex-col items-center mb-6 w-full">
+          <h4 className="text-sm font-semibold text-gray-700 mb-4">Analiza danych</h4>
+          <div className="w-full">
+            {renderChartVisualization(singleChart)}
+          </div>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
   
   const renderTextFocusedTemplate = () => (
     <div className="px-6 pb-6">
@@ -244,13 +328,17 @@ const AntisticCard: React.FC<Props> = ({ antistic, templateId = 'two-column-defa
   const renderComparisonTemplate = () => (
     <div className="px-6 pb-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
-        <div className="flex flex-col items-center">
-          <h4 className="text-sm font-semibold text-gray-700 mb-4">{chartData.comparisonData?.leftChart.title || 'Przed'}</h4>
-          <ColorfulDataChart segments={chartData.comparisonData?.leftChart.segments || []} />
+        <div className="flex flex-col items-center w-full">
+          <h4 className="text-sm font-semibold text-gray-700 mb-4">{chartData.comparisonData?.leftChart.title || 'Porównanie A'}</h4>
+          <div className="w-full">
+            {renderChartVisualization(chartData.comparisonData?.leftChart)}
+          </div>
         </div>
-        <div className="flex flex-col items-center">
-          <h4 className="text-sm font-semibold text-gray-700 mb-4">{chartData.comparisonData?.rightChart.title || 'Po'}</h4>
-          <ColorfulDataChart segments={chartData.comparisonData?.rightChart.segments || []} />
+        <div className="flex flex-col items-center w-full">
+          <h4 className="text-sm font-semibold text-gray-700 mb-4">{chartData.comparisonData?.rightChart.title || 'Porównanie B'}</h4>
+          <div className="w-full">
+            {renderChartVisualization(chartData.comparisonData?.rightChart)}
+          </div>
         </div>
       </div>
     </div>

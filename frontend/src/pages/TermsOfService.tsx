@@ -399,7 +399,7 @@ const EnglishTermsOfService = () => (
 
     <h2>2. Service Mission and Goals</h2>
     <p className="font-semibold text-lg">
-      "Show people that things are not just black and white. The world is all shades of gray."
+      "Antystyki turns real stats into witty gray-area stories that help our community think deeper before they share."
     </p>
     <p>
       Antystyki is an educational-humor platform that through intelligent interpretation 
@@ -409,7 +409,7 @@ const EnglishTermsOfService = () => (
       <li>Reduce social polarization</li>
       <li>Promote critical thinking</li>
       <li>Show different perspectives of data interpretation</li>
-      <li>Build a community that values nuances and shades of gray</li>
+      <li>Build a community that values witty nuance and thinks deeper before sharing</li>
     </ul>
 
     <h2>3. Registration and Account</h2>
@@ -510,7 +510,7 @@ const EnglishTermsOfService = () => (
     <ul>
       <li>Constructive criticism and substantive discussion</li>
       <li>Respect for different viewpoints</li>
-      <li>Pointing out nuances and "shades of gray"</li>
+      <li>Pointing out witty gray-area insights</li>
       <li>Verifying sources before publication</li>
     </ul>
 

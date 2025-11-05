@@ -1184,7 +1184,7 @@ ab -n 500 -c 10 https://api.antystyki.pl/api/antistics
 ```bash
 # Platforms to create:
 1. **Twitter/X** (@antystyki)
-   - Bio: "Statystyki, które zmuszają do myślenia 🧠 | Showing shades of gray in a black-and-white world"
+   - Bio: "Statystyki, które zmuszają do myślenia 🧠 | Witty gray-area stories that make you think before you share"
    - Link: https://antystyki.pl
    - Pin tweet: Platform launch announcement
    
@@ -1250,7 +1250,7 @@ ab -n 500 -c 10 https://api.antystyki.pl/api/antistics
    
 3. **English Version**:
    "Statistics that make you think twice. 
-    Showing shades of gray in a black-and-white world."
+    Witty gray-area stories that help you think before you share."
 
 4. **Where to Post**:
    - Personal social media

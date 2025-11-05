@@ -1,7 +1,7 @@
 # Antystyki Product Requirements Document (PRD)
 
-**Version**: 1.0  
-**Date**: October 14, 2025  
+**Version**: 1.1  
+**Date**: November 2, 2025  
 **Status**: Production MVP + Future Roadmap  
 **Product Manager**: [Your Name]  
 **Development Team**: [Your Team]  
@@ -11,7 +11,7 @@
 ## 1. Product Overview
 
 ### 1.1 Mission Statement
-**"Show people that things are not just black and white. The world is all shades of gray."**
+**"Antystyki turns real stats into witty gray-area stories that help our community think deeper before they share."**
 
 Antystyki uses intelligent, ironic interpretations of real statistics to reduce social polarization through humor and critical thinking.
 
@@ -106,11 +106,18 @@ To become the leading platform for thought-provoking, statistically-based humor 
    - SSL certificate
    - Monitoring and backups
 
+5. **Statistics Companion Beta**
+   - Launch read-only `Statystyki` hub curated by moderators
+   - Enable like/dislike ranking and analytics tracking for conversion funnels
+   - Provide moderator queue and tooling for approving/importing statistics
+
 #### Success Metrics
 - Application uptime >99%
 - Zero critical security vulnerabilities
 - Email delivery >95%
 - First 100 users registered within 2 weeks
+- 200+ sessions on Statistics companion hub within first month
+- ≥20% of Statistics CTA clicks create or draft an antystyk
 
 ### 3.2 Phase 2: Community Building (Months 2-3)
 
@@ -135,6 +142,11 @@ To become the leading platform for thought-provoking, statistically-based humor 
    - Content creator badges
    - Community moderation tools
 
+5. **Trust & Credibility Signals**
+   - Logged-in users can vote "Trust" or "Fake" on published statistics with rate limits
+   - Dynamic trust meter and fake alerts surfaced on Statistics hub and detail views
+   - Auto-flag high fake ratios into moderator review workflow
+
 #### Success Metrics
 - 1,000+ registered users
 - 5,000+ antistics created
@@ -158,6 +170,11 @@ To become the leading platform for thought-provoking, statistically-based humor 
    - User behavior tracking
    - Content performance metrics
    - Revenue analytics dashboard
+
+4. **Supporter Boosts & Sponsored Statistics**
+   - Allow donors to highlight statistics with annotated boost notes
+   - Offer clearly labeled sponsored statistics slots for aligned partners
+   - Connect boost revenue to premium/supporter tiers
 
 #### International Expansion
 1. **Bilingual Support**
@@ -409,12 +426,15 @@ To become the leading platform for thought-provoking, statistically-based humor 
 - **Session Duration**: Average >3 minutes
 - **Content Creation Rate**: 20% of users create content
 - **User Retention**: 40% monthly retention rate
+- **Statistics CTA Conversion**: ≥20% of statistics hub sessions trigger an antystyk draft or creation (Phase 1 target)
+- **Statistic Vote Participation**: ≥25% of logged-in viewers cast Trust/Fake or Like/Dislike signals once Phase 2 launches
 
 #### Content Quality
 - **Approval Rate**: >70% of submissions approved
 - **Moderation Time**: <24 hours average review time
 - **Source Verification**: 100% of content has verified sources
 - **User Satisfaction**: >4.0/5.0 rating
+- **Trust Resolution SLA**: <12 hours average to review statistics flagged with high "Fake" ratios
 
 ### 9.2 Business Metrics
 
@@ -423,12 +443,14 @@ To become the leading platform for thought-provoking, statistically-based humor 
 - **Customer Acquisition Cost (CAC)**: <$5 per user
 - **Lifetime Value (LTV)**: >$20 per user
 - **Revenue per User**: $0.10-0.50 monthly
+- **Supporter Boost Adoption**: ≥10 supporter boosts or sponsored statistics per month by Phase 3
 
 #### Growth
 - **User Growth Rate**: 20% month-over-month
 - **Content Growth**: 100+ new antistics per month
 - **Geographic Expansion**: 50% international users by Phase 3
 - **Market Penetration**: 10% of target demographic awareness
+- **Statistics Library Depth**: 100 curated statistics live by end of Phase 1, 300 by end of Phase 2
 
 ---
 
@@ -442,6 +464,7 @@ To become the leading platform for thought-provoking, statistically-based humor 
 - [ ] Implement CAPTCHA protection
 - [ ] Configure production email service
 - [ ] Deploy to production server with SSL
+- [ ] Stand up Statistics companion API endpoints with analytics events and admin queue
 
 #### Week 2: Monetization & Launch
 - [ ] Integrate Google AdSense
@@ -449,6 +472,7 @@ To become the leading platform for thought-provoking, statistically-based humor 
 - [ ] Create legal pages (Privacy Policy, Terms of Service)
 - [ ] Implement monitoring and backups
 - [ ] Execute launch marketing campaign
+- [ ] Ship React `Statystyki` hub with like/dislike ranking and CTA into antystyk creator
 
 ### 10.2 Short-term Roadmap (Months 2-3)
 
@@ -457,6 +481,7 @@ To become the leading platform for thought-provoking, statistically-based humor 
 - [ ] Add user profiles and reputation system
 - [ ] Create advanced search functionality
 - [ ] Launch community moderation tools
+- [ ] Activate trust/fake voting signals on Statistics hub with throttle and auto-flag rules
 
 #### Month 3: Enhanced Discovery
 - [ ] Implement trending algorithm
@@ -471,6 +496,7 @@ To become the leading platform for thought-provoking, statistically-based humor 
 - [ ] Implement sponsored content system
 - [ ] Add revenue sharing for creators
 - [ ] Create enterprise features
+- [ ] Roll out supporter boosts and sponsored statistic placements with moderation safeguards
 
 #### Month 6: International Expansion
 - [ ] Launch English language version
@@ -541,3 +567,8 @@ The roadmap provides a clear path from MVP to a profitable, scalable platform th
 **Document Status**: Ready for Development Team  
 **Next Review**: Post-Launch (Week 3)  
 **Approval Required**: Product Owner, Technical Lead, Business Stakeholder
+
+---
+
+## Changelog
+- 2025-11-02: Updated mission statement in §1.1 to emphasize witty, community-driven storytelling grounded in real statistics.

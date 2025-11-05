@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import type { Category, Antistic } from '../types';
 import type { AntisticData } from '../types/templates';
 import api from '../config/api';
@@ -8,15 +8,18 @@ import TemplateSelector from '../components/TemplateSelector';
 import ChartDataInput from '../components/ChartDataInput';
 import AntisticCard from '../components/AntisticCard';
 import { CARD_TEMPLATES } from '../types/templates';
-import { 
-  trackAntisticCreate, 
+import {
+  trackAntisticCreate,
   trackCreateFormOpen
 } from '../utils/analytics';
+import { buildAntisticPrefillFromSnapshot } from '../utils/statisticPrefill';
 
 const CreateAntistic: React.FC = () => {
   // Template system state
   const [selectedTemplate, setSelectedTemplate] = useState('two-column-default');
   const [chartData, setChartData] = useState<Partial<AntisticData>>({});
+  const [prefillData, setPrefillData] = useState<Partial<AntisticData> | null>(null);
+  const [chartPrefillKey, setChartPrefillKey] = useState<string>('initial');
   
   // Basic form state
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -26,6 +29,7 @@ const CreateAntistic: React.FC = () => {
   const [saving, setSaving] = useState(false);
   
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, isAuthenticated, isAnonymous, createAnonymousUser } = useAuth();
 
   useEffect(() => {
@@ -38,7 +42,59 @@ const CreateAntistic: React.FC = () => {
     if (!isAuthenticated && !isAnonymous) {
       createAnonymousUser();
     }
-  }, [isAuthenticated, isAnonymous, createAnonymousUser]);
+
+    const navigationState = location.state as { fromStatisticId?: string } | null;
+    if (navigationState?.fromStatisticId) {
+      const rawPrefill = localStorage.getItem('statistics:prefill');
+
+      if (rawPrefill) {
+        try {
+          const parsed = JSON.parse(rawPrefill) as {
+            statisticId?: string;
+            antisticData?: Partial<AntisticData>;
+            statisticSnapshot?: {
+              title?: string;
+              summary?: string;
+              description?: string | null;
+              sourceUrl?: string;
+              chartData?: unknown;
+            };
+            title?: string;
+            summary?: string;
+            sourceUrl?: string;
+            chartData?: unknown;
+          };
+
+          const snapshot = parsed.statisticSnapshot ?? {
+            title: parsed.title,
+            summary: parsed.summary,
+            description: null,
+            sourceUrl: parsed.sourceUrl,
+            chartData: parsed.chartData,
+          };
+
+          const antisticData: Partial<AntisticData> = parsed.antisticData
+            ?? buildAntisticPrefillFromSnapshot(snapshot);
+
+          const templateFromData = antisticData?.templateId ?? 'single-chart';
+
+          setSelectedTemplate(templateFromData);
+          setPrefillData(antisticData ?? null);
+          setChartPrefillKey(`stat-${navigationState.fromStatisticId}-${Date.now()}`);
+          setChartData((prev) => ({
+            ...prev,
+            ...(antisticData ?? {}),
+            templateId: templateFromData,
+          }));
+        } catch (error) {
+          console.warn('Nie udało się odczytać danych statystyki do wstępnego wypełnienia', error);
+        }
+      }
+
+      localStorage.removeItem('statistics:prefill');
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [isAuthenticated, isAnonymous, createAnonymousUser, location.pathname, location.state, navigate]);
 
   const fetchCategories = async () => {
     try {
@@ -161,8 +217,10 @@ const CreateAntistic: React.FC = () => {
             {/* Chart Data Input */}
             <div className="bg-white rounded-lg border border-gray-200 p-6">
               <ChartDataInput
+                key={chartPrefillKey}
                 templateId={selectedTemplate}
                 onDataChange={setChartData}
+                initialData={prefillData ?? undefined}
               />
             </div>
 

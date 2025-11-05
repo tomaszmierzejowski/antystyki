@@ -50,6 +50,13 @@ const Navbar: React.FC = () => {
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gray-900 group-hover:w-full transition-all duration-300"></span>
             </Link>
             <Link 
+              to="/statistics" 
+              className="text-sm font-normal text-gray-600 hover:text-gray-900 transition-colors relative group"
+            >
+              Statystyki
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gray-900 group-hover:w-full transition-all duration-300"></span>
+            </Link>
+            <Link 
               to="/create" 
               className="text-sm font-normal text-gray-600 hover:text-gray-900 transition-colors relative group"
             >
@@ -146,6 +153,13 @@ const Navbar: React.FC = () => {
                 className="block text-sm font-normal text-gray-900 hover:text-gray-600 transition-colors py-2"
               >
                 Główna
+              </Link>
+              <Link 
+                to="/statistics" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="block text-sm font-normal text-gray-600 hover:text-gray-900 transition-colors py-2"
+              >
+                Statystyki
               </Link>
               <Link 
                 to="/create" 

@@ -11,6 +11,8 @@ public class User : IdentityUser<Guid>
     
     // Navigation properties
     public virtual ICollection<Antistic> Antistics { get; set; } = new List<Antistic>();
+    public virtual ICollection<Statistic> Statistics { get; set; } = new List<Statistic>();
+    public virtual ICollection<StatisticVote> StatisticVotes { get; set; } = new List<StatisticVote>();
     public virtual ICollection<AntisticLike> Likes { get; set; } = new List<AntisticLike>();
     public virtual ICollection<AntisticReport> Reports { get; set; } = new List<AntisticReport>();
     public virtual ICollection<AntisticComment> Comments { get; set; } = new List<AntisticComment>();

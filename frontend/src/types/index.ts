@@ -34,6 +34,37 @@ export interface Category {
   slug: string;
 }
 
+export interface Statistic {
+  id: string;
+  title: string;
+  summary: string;
+  description?: string;
+  sourceUrl: string;
+  sourceCitation?: string;
+  chartData?: any;
+  status: string;
+  likeCount: number;
+  dislikeCount: number;
+  trustPoints: number;
+  fakePoints: number;
+  viewsCount: number;
+  hasLiked: boolean;
+  hasDisliked: boolean;
+  createdAt: string;
+  publishedAt?: string;
+  moderatedAt?: string;
+  createdByUserId: string;
+  convertedAntisticId?: string;
+  createdBy: User;
+}
+
+export interface StatisticListResponse {
+  items: Statistic[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+}
+
 export interface LoginRequest {
   email: string;
   password: string;

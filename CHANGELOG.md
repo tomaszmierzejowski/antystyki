@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (2025-11-02) - Statistics Companion Beta & Trust Signals Roadmap
+- **[BACKEND]** Introduced `Statistic` and `StatisticVote` entities with comprehensive EF migration
+- **[BACKEND]** Added `/api/statistics` public controller (list/detail/vote) and admin moderation endpoints
+- **[BACKEND]** Extended DTOs and admin workflows to support statistics curation and analytics
+- **[FRONTEND]** Launched `Statystyki` page with ranking, trust meter scaffolding, and antystyk conversion CTA
+- **[FRONTEND]** Created reusable `StatisticCard` component, new API client, navbar link, and admin moderation console updates
+- **[FRONTEND]** Prefilled create flow from statistics hub via local storage hand-off
+- **[DOCS]** Updated `ANTYSTYKI_PRD.md` §§3, 6, 9-10 with statistics roadmap, KPIs, and phased rollout
+- **[DOCS]** Updated `ANTYSTYKI_LAUNCH_GUIDE.md` §§1-5 & 7 with statistics tasks, analytics requirements, and risk mitigations
+- **[ANALYTICS]** Added GA4 event plan for statistics views, CTA clicks, and vote activity
+
+### Updated (2025-11-04) - Statistics Visualisations Guidance
+- **[FRONTEND]** Added statistics bar-chart rendering sourced from `chartSuggestion.type="bar"`
+- **[FRONTEND]** Added statistics & antystics line-chart rendering sourced from `chartSuggestion.type="line"` / `singleChartData.type="line"`
+- **[FRONTEND]** Extended antystyk templates with pie/bar/line toggles across two-column, single, and comparison layouts
+- **[FRONTEND]** Added moderator-facing statistics submission page with pie/bar/line chart builder (`/admin/statistics/create`)
+- **[DOCS]** Extended `CONTENT_CREATION_GUIDE.md` with charting quick-reference for antystyk templates and statistics visualisations (bar + line)
+
 ### Fixed (2025-10-27) - UI Improvements & Anonymous User Features
 
 #### Privacy Policy Dark Mode Fix

@@ -50,6 +50,31 @@ public class AdminController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("statistics/pending")]
+    public async Task<IActionResult> GetPendingStatistics([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    {
+        var query = _context.Statistics
+            .Include(s => s.CreatedBy)
+            .Where(s => s.Status == ModerationStatus.Pending)
+            .OrderBy(s => s.CreatedAt);
+
+        var totalCount = await query.CountAsync();
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        var result = new StatisticListDto
+        {
+            Items = items.Select(s => MapStatisticToDto(s)).ToList(),
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize
+        };
+
+        return Ok(result);
+    }
+
     [HttpPost("antistics/{id}/moderate")]
     public async Task<IActionResult> ModerateAntistic(Guid id, [FromBody] ModerateAntisticRequest request)
     {
@@ -78,6 +103,36 @@ public class AdminController : ControllerBase
         await _context.SaveChangesAsync();
 
         return Ok(new { message = "Moderation completed successfully" });
+    }
+
+    [HttpPost("statistics/{id}/moderate")]
+    public async Task<IActionResult> ModerateStatistic(Guid id, [FromBody] ModerateStatisticRequest request)
+    {
+        var statistic = await _context.Statistics.FindAsync(id);
+        if (statistic == null)
+        {
+            return NotFound();
+        }
+
+        var userId = GetCurrentUserId();
+        if (!userId.HasValue)
+        {
+            return Unauthorized();
+        }
+
+        statistic.Status = request.Approve ? ModerationStatus.Approved : ModerationStatus.Rejected;
+        statistic.ModeratorNotes = request.ModeratorNotes;
+        statistic.ModeratedAt = DateTime.UtcNow;
+        statistic.ModeratedByUserId = userId.Value;
+
+        if (request.Approve)
+        {
+            statistic.PublishedAt = DateTime.UtcNow;
+        }
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Statistic moderation completed successfully" });
     }
 
     [HttpGet("reports")]
@@ -268,6 +323,41 @@ public class AdminController : ControllerBase
                 NameEn = ac.Category.NameEn,
                 Slug = ac.Category.Slug
             }).ToList()
+        };
+    }
+
+    private StatisticDto MapStatisticToDto(Statistic statistic)
+    {
+        return new StatisticDto
+        {
+            Id = statistic.Id,
+            Title = statistic.Title,
+            Summary = statistic.Summary,
+            Description = statistic.Description,
+            SourceUrl = statistic.SourceUrl,
+            SourceCitation = statistic.SourceCitation,
+            ChartData = !string.IsNullOrEmpty(statistic.ChartData) ? System.Text.Json.JsonSerializer.Deserialize<object>(statistic.ChartData) : null,
+            Status = statistic.Status.ToString(),
+            LikeCount = statistic.LikeCount,
+            DislikeCount = statistic.DislikeCount,
+            TrustPoints = statistic.TrustPoints,
+            FakePoints = statistic.FakePoints,
+            ViewsCount = statistic.ViewsCount,
+            HasLiked = false,
+            HasDisliked = false,
+            CreatedAt = statistic.CreatedAt,
+            PublishedAt = statistic.PublishedAt,
+            ModeratedAt = statistic.ModeratedAt,
+            CreatedByUserId = statistic.CreatedByUserId,
+            ConvertedAntisticId = statistic.ConvertedAntisticId,
+            CreatedBy = new UserDto
+            {
+                Id = statistic.CreatedBy.Id,
+                Email = statistic.CreatedBy.Email!,
+                Username = statistic.CreatedBy.UserName!,
+                Role = statistic.CreatedBy.Role.ToString(),
+                CreatedAt = statistic.CreatedBy.CreatedAt
+            }
         };
     }
 }

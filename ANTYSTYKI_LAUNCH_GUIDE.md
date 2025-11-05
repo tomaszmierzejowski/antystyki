@@ -1,7 +1,7 @@
 # Antystyki Go-Live & Monetization Plan
 
-**Version**: 1.0  
-**Date**: October 14, 2025  
+**Version**: 1.2  
+**Date**: November 2, 2025  
 **Status**: Ready for Executive Review  
 **Target Launch**: 1-2 weeks  
 
@@ -10,13 +10,13 @@
 ## 1. Executive Summary
 
 ### Mission & Vision
-**Antystyki** ("Antistics") is a bilingual humor platform that uses intelligent, ironic interpretations of real statistics to reduce social polarization. Our mission: "Show people that things are not just black and white. The world is all shades of gray."
+**Antystyki** ("Antistics") is a bilingual humor platform that uses intelligent, ironic interpretations of real statistics to reduce social polarization. Our mission: "Antystyki turns real stats into witty gray-area stories that help our community think deeper before they share."
 
 ### Current Status: 95% Production Ready
 - **Backend**: Complete (.NET Core 9, PostgreSQL, JWT auth, GDPR compliance)
 - **Frontend**: Complete (React 19, TypeScript, Tailwind CSS, responsive design)
 - **Infrastructure**: Docker-ready, Kamatera Cloud configured
-- **Critical Gap**: Security hardening + monetization integration needed
+- **Critical Gap**: Security hardening, monetization integration, Statistics companion beta rollout
 
 ### Revenue Model (Launch-Ready)
 - **Primary**: Ethical display ads (Google AdSense integration)
@@ -65,6 +65,11 @@
 1. **Add Google AdSense** to frontend
 2. **Integrate Buy Me a Coffee** widget
 3. **Create ad-free toggle** for donors
+
+#### Statistics Companion (4 hours)
+1. **Publish read-only Statistics API** with like/dislike aggregation and admin queue
+2. **Launch React `Statystyki` hub** with conversion CTA into the antystyk creator
+3. **Instrument analytics** for views, CTA clicks, and vote activity
 
 ### 🚀 Launch Blockers Removed
 - All technical debt addressed
@@ -187,6 +192,7 @@
 - [ ] Create Terms of Service page
 - [ ] Add legal pages to frontend
 - [ ] Test complete user flow
+- [ ] Deploy Statistics API endpoints and analytics events
 
 ### Week 2: Launch & Marketing
 
@@ -197,6 +203,7 @@
 - [ ] Configure automated backups
 - [ ] Final security audit
 - [ ] Performance testing
+- [ ] QA Statistics hub ranking, analytics, and antystyk conversion CTA
 
 #### Day 11-14: Launch & Promotion (4 hours)
 - [ ] Soft launch to beta users
@@ -205,12 +212,14 @@
 - [ ] Execute launch day promotion
 - [ ] Monitor first 48 hours closely
 - [ ] Respond to user feedback
+- [ ] Feature Statistics hub in launch messaging with "convert to antystyk" CTA
 
 ### Post-Launch (Week 3-4)
 - [ ] Analyze user behavior and feedback
 - [ ] Optimize ad placement based on performance
 - [ ] Plan first sponsored content partnerships
 - [ ] Iterate based on real user data
+- [ ] Review Statistics trust/fake backlog and prepare Phase 2 rollout plan
 
 ---
 
@@ -241,6 +250,7 @@
 | **Moderation Overload** | Medium | High | Automated pre-screening, community moderators, clear guidelines |
 | **Technical Debt** | Low | Medium | Regular refactoring, monitoring, scalable architecture |
 | **Team Burnout** | Medium | Low | Realistic timelines, delegation, automation |
+| **Statistics Misuse** | Medium | Medium | Moderator-only publishing, trust/fake escalation, analytics alerts |
 
 ---
 
@@ -284,14 +294,15 @@
    - **Time**: 3 hours | **Priority**: Medium
 
 8. **📊 Implement Monitoring** ✅ **INFRASTRUCTURE READY**
-   - Health check scripts created, UptimeRobot setup documented
-   - **Time**: 1 hour | **Priority**: Medium
-   - **See**: `HEALTHCHECK.md`
+    - Health check scripts created, UptimeRobot setup documented
+    - Add GA4 events for statistics views, CTA clicks, and votes
+    - **Time**: 1 hour | **Priority**: Medium
+    - **See**: `HEALTHCHECK.md`
 
 9. **🎯 Seed Quality Content**
-   - Create 20-30 launch antistics for viral potential
-   - **Time**: 4 hours | **Priority**: High
-   - **See**: `CONTENT_CREATION_GUIDE.md` (15+ pages with templates!)
+    - Curate initial Statistics library (min. 25 entries) mapped to antystyk ideas
+    - **Time**: 4 hours | **Priority**: High
+    - **See**: `CONTENT_CREATION_GUIDE.md` (15+ pages with templates!)
 
 10. **🤝 Plan Influencer Outreach**
     - Identify and contact Polish educators/communicators
@@ -361,8 +372,8 @@
 
 **Document Status**: Updated with CI/CD Automation  
 **Created**: October 14, 2025  
-**Updated**: October 16, 2025  
-**Version**: 1.1  
+**Updated**: November 2, 2025  
+**Version**: 1.2  
 **Next Review**: Post-Launch (Week 3)
 
 ---
@@ -389,6 +400,8 @@
    - 10 content templates
    - 6 ready-to-use examples
    - See: `CONTENT_CREATION_GUIDE.md` (15+ pages)
+
+5. **Mission Alignment**: Updated mission statement across control docs to emphasize witty, community-minded storytelling (November 2, 2025)
 
 ### 📚 New Documentation
 - `CI_CD_DEPLOYMENT_GUIDE.md` - Complete CI/CD setup guide

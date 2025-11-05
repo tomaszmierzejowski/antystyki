@@ -188,4 +188,165 @@ export const createPerspectiveData = (
   ];
 };
 
-export default { DoughnutChart, ColorfulDataChart, generateSegmentsFromData, createPerspectiveData };
+export const BarChart: React.FC<{
+  items: Array<{
+    label: string;
+    displayValue: string;
+    percentageWidth: number;
+    color: string;
+  }>;
+}> = ({ items }) => {
+  if (!items.length) return null;
+
+  return (
+    <div className="space-y-3">
+      {items.map((item, index) => (
+        <div key={index} className="space-y-1">
+          <div className="flex items-center justify-between text-xs text-gray-600">
+            <span className="truncate pr-2" title={item.label}>
+              {item.label}
+            </span>
+            <span className="font-semibold text-gray-900 whitespace-nowrap">
+              {item.displayValue}
+            </span>
+          </div>
+          <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+            <div
+              className="h-3 rounded-full transition-all"
+              style={{
+                width: `${Math.max(0, Math.min(100, item.percentageWidth))}%`,
+                backgroundColor: item.color,
+              }}
+            ></div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+export const LineChart: React.FC<{
+  points: Array<{ label: string; value: number }>;
+  unit?: string;
+  color?: string;
+  height?: number;
+}> = ({ points, unit, color = '#2563eb', height = 180 }) => {
+  if (!points.length) return null;
+
+  const width = 360;
+  const paddingX = 32;
+  const paddingY = 24;
+
+  const maxValue = Math.max(...points.map((p) => p.value));
+  const minValue = Math.min(...points.map((p) => p.value));
+  const valueRange = maxValue === minValue ? Math.max(1, Math.abs(maxValue)) : maxValue - minValue;
+
+  const chartHeight = height - paddingY * 2;
+  const chartWidth = width - paddingX * 2;
+
+  const toX = (index: number) => {
+    if (points.length === 1) return paddingX + chartWidth / 2;
+    return paddingX + (chartWidth * index) / (points.length - 1);
+  };
+  const toY = (value: number) => {
+    if (valueRange === 0) return paddingY + chartHeight / 2;
+    return paddingY + chartHeight - ((value - minValue) / valueRange) * chartHeight;
+  };
+
+  const pathD = points
+    .map((point, index) => `${index === 0 ? 'M' : 'L'} ${toX(index)} ${toY(point.value)}`)
+    .join(' ');
+
+  const gradientId = `lineGradient-${Math.random().toString(36).slice(2, 8)}`;
+
+  return (
+    <div className="space-y-4">
+      <svg viewBox={`0 0 ${width} ${height}`} className="w-full">
+        <defs>
+          <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity={0.35} />
+            <stop offset="100%" stopColor={color} stopOpacity={0.05} />
+          </linearGradient>
+        </defs>
+
+        {/* Axes */}
+        <line x1={paddingX} y1={paddingY} x2={paddingX} y2={height - paddingY} stroke="#e5e7eb" strokeWidth={1} />
+        <line x1={paddingX} y1={height - paddingY} x2={width - paddingX / 2} y2={height - paddingY} stroke="#e5e7eb" strokeWidth={1} />
+
+        {/* Filled Area */}
+        <path
+          d={`${pathD} L ${toX(points.length - 1)} ${height - paddingY} L ${toX(0)} ${height - paddingY} Z`}
+          fill={`url(#${gradientId})`}
+        />
+
+        {/* Line */}
+        <path d={pathD} fill="none" stroke={color} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
+
+        {/* Points */}
+        {points.map((point, index) => (
+          <g key={`${point.label}-${index}`}>
+            <circle cx={toX(index)} cy={toY(point.value)} r={4} fill={color} stroke="#fff" strokeWidth={1.5} />
+            <text
+              x={toX(index)}
+              y={toY(point.value) - 10}
+              textAnchor="middle"
+              fill="#111827"
+              fontSize={10}
+              fontWeight={600}
+            >
+              {`${point.value.toLocaleString('pl-PL', {
+                minimumFractionDigits: point.value % 1 === 0 ? 0 : 1,
+                maximumFractionDigits: 2,
+              })}${unit ? unit.replace(/^\s*/, ' ') : ''}`}
+            </text>
+          </g>
+        ))}
+
+        {/* X-axis labels */}
+        {points.map((point, index) => (
+          <text
+            key={`${point.label}-label-${index}`}
+            x={toX(index)}
+            y={height - paddingY + 18}
+            textAnchor="middle"
+            fill="#6b7280"
+            fontSize={10}
+          >
+            {point.label}
+          </text>
+        ))}
+
+        {/* Y-axis ticks */}
+        {[0, 0.25, 0.5, 0.75, 1].map((fraction) => {
+          const value = minValue + valueRange * fraction;
+          return (
+            <g key={`tick-${fraction}`}>
+              <line
+                x1={paddingX - 4}
+                y1={toY(value)}
+                x2={paddingX}
+                y2={toY(value)}
+                stroke="#d1d5db"
+                strokeWidth={1}
+              />
+              <text
+                x={paddingX - 8}
+                y={toY(value) + 4}
+                textAnchor="end"
+                fill="#9ca3af"
+                fontSize={10}
+              >
+                {value.toLocaleString('pl-PL', {
+                  minimumFractionDigits: Math.abs(value) < 1 ? 2 : 0,
+                  maximumFractionDigits: 2,
+                })}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+    </div>
+  );
+};
+
+export default { DoughnutChart, ColorfulDataChart, generateSegmentsFromData, createPerspectiveData, BarChart, LineChart };
