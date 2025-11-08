@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import type { Category, Antistic } from '../types';
+import type { Category, Antistic, StatisticChartData } from '../types';
 import type { AntisticData } from '../types/templates';
 import api from '../config/api';
 import { useAuth } from '../context/useAuth';
@@ -66,13 +66,19 @@ const CreateAntistic: React.FC = () => {
             chartData?: unknown;
           };
 
-          const snapshot = parsed.statisticSnapshot ?? {
-            title: parsed.title,
-            summary: parsed.summary,
-            description: null,
-            sourceUrl: parsed.sourceUrl,
-            chartData: parsed.chartData,
-          };
+          const snapshot =
+            parsed.statisticSnapshot
+              ? {
+                  ...parsed.statisticSnapshot,
+                  chartData: parsed.statisticSnapshot.chartData as StatisticChartData | undefined,
+                }
+              : {
+                  title: parsed.title,
+                  summary: parsed.summary,
+                  description: null,
+                  sourceUrl: parsed.sourceUrl,
+                  chartData: parsed.chartData as StatisticChartData | undefined,
+                };
 
           const antisticData: Partial<AntisticData> = parsed.antisticData
             ?? buildAntisticPrefillFromSnapshot(snapshot);

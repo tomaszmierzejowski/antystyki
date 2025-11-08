@@ -1,10 +1,10 @@
 import { useEffect } from 'react';
 
-type AdsByGoogle = Array<Record<string, unknown>> & { push: (params?: Record<string, unknown>) => void };
+type AdsByGoogleQueue = Array<Record<string, unknown>>;
 
 declare global {
   interface Window {
-    adsbygoogle?: AdsByGoogle;
+    adsbygoogle?: AdsByGoogleQueue;
   }
 }
 
@@ -40,8 +40,9 @@ const AdSenseAd: React.FC<AdSenseAdProps> = ({
     // Only load ads if publisher ID is configured
     if (publisherId && publisherId !== 'PLACEHOLDER') {
       try {
-        window.adsbygoogle = window.adsbygoogle ?? [];
-        window.adsbygoogle.push({});
+        const queue: AdsByGoogleQueue = window.adsbygoogle ?? [];
+        queue.push({});
+        window.adsbygoogle = queue;
       } catch (error) {
         console.error('AdSense error:', error);
       }

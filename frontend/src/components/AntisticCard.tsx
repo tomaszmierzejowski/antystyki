@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import type { Antistic } from '../types';
+import type { Antistic, AntisticChartData } from '../types';
 import type { AntisticData, ChartPoint, ChartSegment } from '../types/templates';
 import { CARD_TEMPLATES, CHART_COLORS } from '../types/templates';
 import { DoughnutChart, ColorfulDataChart, LineChart, BarChart } from './charts/ChartGenerator';
@@ -80,11 +80,11 @@ const AntisticCard: React.FC<Props> = ({ antistic, templateId = 'two-column-defa
     
     // Use actual data from backend if available
     if (antistic.chartData) {
-      const backendData = antistic.chartData;
+      const backendData = antistic.chartData as AntisticChartData;
       return {
         perspectiveData: backendData.perspectiveData,
-        sourceData: backendData.sourceData,
-        singleChartData: backendData.singleChartData,
+        sourceData: backendData.sourceData as AntisticData['sourceData'],
+        singleChartData: backendData.singleChartData as AntisticData['singleChartData'],
         textData: backendData.textData,
         comparisonData: backendData.comparisonData,
         title: antistic.title,
@@ -331,7 +331,7 @@ const AntisticCard: React.FC<Props> = ({ antistic, templateId = 'two-column-defa
           <div className="flex flex-col items-center w-full">
             <h4 className="text-sm font-semibold text-gray-700 mb-4">Dane źródłowe</h4>
             <div className="w-full">
-              {renderChartVisualization(chartData.sourceData)}
+              {renderChartVisualization(chartData.sourceData as ChartDefinition | undefined)}
             </div>
           </div>
         </div>
@@ -347,7 +347,7 @@ const AntisticCard: React.FC<Props> = ({ antistic, templateId = 'two-column-defa
         <div className="flex flex-col items-center mb-6 w-full">
           <h4 className="text-sm font-semibold text-gray-700 mb-4">Analiza danych</h4>
           <div className="w-full">
-            {renderChartVisualization(singleChart)}
+            {renderChartVisualization(singleChart as ChartDefinition | undefined)}
           </div>
         </div>
       </div>
@@ -376,13 +376,13 @@ const AntisticCard: React.FC<Props> = ({ antistic, templateId = 'two-column-defa
         <div className="flex flex-col items-center w-full">
           <h4 className="text-sm font-semibold text-gray-700 mb-4">{chartData.comparisonData?.leftChart.title || 'Porównanie A'}</h4>
           <div className="w-full">
-            {renderChartVisualization(chartData.comparisonData?.leftChart)}
+            {renderChartVisualization(chartData.comparisonData?.leftChart as ChartDefinition | undefined)}
           </div>
         </div>
         <div className="flex flex-col items-center w-full">
           <h4 className="text-sm font-semibold text-gray-700 mb-4">{chartData.comparisonData?.rightChart.title || 'Porównanie B'}</h4>
           <div className="w-full">
-            {renderChartVisualization(chartData.comparisonData?.rightChart)}
+            {renderChartVisualization(chartData.comparisonData?.rightChart as ChartDefinition | undefined)}
           </div>
         </div>
       </div>
