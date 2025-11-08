@@ -161,7 +161,7 @@ app.Use(async (context, next) =>
             "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com; " +
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
             "font-src 'self' https://fonts.gstatic.com data:; " +
-            "connect-src 'self' https://www.google-analytics.com https://region1.analytics.google.com https://www.googletagmanager.com;" );
+            "connect-src 'self' https://www.google-analytics.com https://region1.analytics.google.com https://region1.google-analytics.com https://*.google-analytics.com https://www.googletagmanager.com;" );
     }
     
     // Strict Transport Security (HSTS) - enforce HTTPS
