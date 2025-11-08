@@ -5,6 +5,14 @@ FROM node:20-alpine AS frontend-build
 
 WORKDIR /app/frontend
 
+# Declare build arguments for Vite environment variables
+# These will be baked into the frontend JavaScript at build time
+ARG VITE_GA4_MEASUREMENT_ID
+ARG VITE_ADSENSE_PUBLISHER_ID
+ARG VITE_ADSENSE_HEADER_SLOT
+ARG VITE_ADSENSE_IN_FEED_SLOT
+ARG VITE_ADSENSE_SIDEBAR_SLOT
+
 # Copy package files
 COPY frontend/package*.json ./
 
@@ -14,7 +22,7 @@ RUN npm ci
 # Copy frontend source
 COPY frontend/ ./
 
-# Build production bundle
+# Build production bundle (Vite will use ARG variables)
 RUN npm run build
 
 # ============================================================================
