@@ -828,3 +828,49 @@ trackUserLogin('email');
 **Version**: 1.0  
 **Status**: ✅ Production Ready
 
+## Server-Side Visitor Metrics (Cookieless)
+
+### Why
+- Capture total visit counts even when analytics cookies are rejected or blocked.
+- Fully GDPR compliant: no cookies, no personal data stored.
+- IP + User Agent are hashed with a secret per day and never persisted.
+
+### What is Collected
+- Total page views per day (HTML requests only).
+- Unique human visitors (based on daily HMAC hash).
+- Bot traffic (detected via User-Agent) tracked separately.
+- Aggregated data stored for 60 days under `logs/visitor-metrics/` as JSON.
+
+### Configuration
+1. Generate a 32+ character secret, e.g. `openssl rand -hex 32`.
+2. Set `VISITOR_METRICS_HASH_SECRET` in the production `.env` file.
+3. Optional settings (with defaults) live under `VisitorMetrics` in `appsettings.json`:
+   ```json
+   {
+     "VisitorMetrics": {
+       "RetentionDays": 60,
+       "FlushIntervalMinutes": 5,
+       "TrackBots": true
+     }
+   }
+   ```
+
+### How to Access the Data
+- **API (requires admin JWT):** `GET /api/metrics/visitors/daily?days=30`
+  ```bash
+  curl -H "Authorization: Bearer <ADMIN_TOKEN>" \
+       https://antystyki.pl/api/metrics/visitors/daily?days=30
+  ```
+- **Disk:** JSON files per day in `logs/visitor-metrics/YYYY-MM-DD.json` on the server.
+
+### GDPR Notes
+- No IP addresses or user agents are stored at rest—only aggregated counts.
+- Hashes rotate daily; removing the secret breaks reversibility even in memory.
+- Covered in Privacy Policy section 3.2 and 7.5.
+- Users can continue to opt-in/out of GA4 independently.
+
+### Operations Checklist
+- [ ] Ensure `VISITOR_METRICS_HASH_SECRET` is set on production.
+- [ ] Monitor log directory size (expected to be a few KB per day).
+- [ ] Include counts in weekly operational dashboards if needed.
+

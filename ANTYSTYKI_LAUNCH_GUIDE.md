@@ -299,10 +299,11 @@
    - **Time**: 3 hours | **Priority**: Medium
 
 8. **📊 Implement Monitoring** ✅ **INFRASTRUCTURE READY**
-    - Health check scripts created, UptimeRobot setup documented
-    - Add GA4 events for statistics views, CTA clicks, and votes
-    - **Time**: 1 hour | **Priority**: Medium
-    - **See**: `HEALTHCHECK.md`
+   - Health check scripts created, UptimeRobot setup documented
+   - Add GA4 events for statistics views, CTA clicks, and votes
+   - Enable cookieless visitor metrics (set `VISITOR_METRICS_HASH_SECRET`, verify daily counts via `/api/metrics/visitors/daily`)
+   - **Time**: 1 hour | **Priority**: Medium
+   - **See**: `HEALTHCHECK.md` and `ANALYTICS_GUIDE.md`
 
 9. **🎯 Seed Quality Content**
     - Curate initial Statistics library (min. 25 entries) mapped to antystyk ideas

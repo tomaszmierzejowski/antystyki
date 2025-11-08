@@ -45,8 +45,8 @@ const PrivacyPolicy = () => {
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
             {language === 'pl' 
-              ? 'Ostatnia aktualizacja: 29 października 2025' 
-              : 'Last updated: October 29, 2025'}
+              ? 'Ostatnia aktualizacja: 8 listopada 2025' 
+              : 'Last updated: November 8, 2025'}
           </p>
         </div>
 
@@ -102,6 +102,7 @@ const PolishPrivacyPolicy = () => (
       <li><strong>Dane techniczne:</strong> adres IP (zanonimizowany), typ przeglądarki, system operacyjny</li>
       <li><strong>Dane użytkowania:</strong> czas wizyty, odwiedzone strony, akcje w Serwisie</li>
       <li><strong>Dane analityczne:</strong> Google Analytics 4 - szczegóły w sekcji 7.2</li>
+      <li><strong>Anonimowe liczniki odwiedzin:</strong> zaszyfrowane sumy wizyt przechowywane wyłącznie na naszych serwerach (bez identyfikacji użytkownika)</li>
       <li><strong>Pliki cookies:</strong> szczegóły w sekcji 7</li>
     </ul>
 
@@ -253,6 +254,14 @@ const PolishPrivacyPolicy = () => (
       wpłynąć na funkcjonalność Serwisu.
     </p>
 
+    <h4>7.5 Liczniki odwiedzin bez cookies</h4>
+    <p>
+      Dla celów statystycznych przechowujemy anonimowe liczniki odwiedzin generowane na serwerze.
+      Identyfikator wizyty powstaje z jednorazowego skrótu (HMAC) adresu IP i przeglądarki danego dnia,
+      dzięki czemu nie przechowujemy informacji pozwalających na identyfikację użytkownika.
+      Dane zagregowane (liczba odsłon i unikalnych odwiedzających) są przechowywane maksymalnie 60 dni.
+    </p>
+
     <h2>8. Twoje Prawa (GDPR)</h2>
     <p>Zgodnie z GDPR masz prawo do:</p>
     <ul>
@@ -349,8 +358,8 @@ const PolishPrivacyPolicy = () => (
     </p>
 
     <p className="text-sm text-gray-600 dark:text-gray-400 mt-8 pt-4 border-t border-gray-200 dark:border-gray-700">
-      <strong>Data ostatniej aktualizacji:</strong> 29 października 2025<br />
-      <strong>Wersja:</strong> 1.1<br />
+      <strong>Data ostatniej aktualizacji:</strong> 8 listopada 2025<br />
+      <strong>Wersja:</strong> 1.2<br />
       <strong>Status:</strong> Obowiązująca
     </p>
   </>
@@ -392,6 +401,7 @@ const EnglishPrivacyPolicy = () => (
       <li><strong>Technical data:</strong> IP address (anonymized), browser type, operating system</li>
       <li><strong>Usage data:</strong> visit time, pages viewed, actions in the Service</li>
       <li><strong>Analytics data:</strong> Google Analytics 4 - details in section 7.2</li>
+      <li><strong>Cookieless counters:</strong> encrypted server-side visit totals (no user identification)</li>
       <li><strong>Cookies:</strong> details in section 7</li>
     </ul>
 
@@ -543,6 +553,14 @@ const EnglishPrivacyPolicy = () => (
       Service functionality.
     </p>
 
+    <h4>7.5 Cookieless visitor counters</h4>
+    <p>
+      For statistical purposes we maintain anonymous server-side visit counters. Each visit receives
+      a daily HMAC hash of the IP address and browser, which prevents us from identifying a person while
+      still allowing unique visitor counts. Aggregated data (page views and unique visitors) is retained
+      for a maximum of 60 days.
+    </p>
+
     <h2>8. Your Rights (GDPR)</h2>
     <p>Under GDPR, you have the right to:</p>
     <ul>
@@ -638,8 +656,8 @@ const EnglishPrivacyPolicy = () => (
     </p>
 
     <p className="text-sm text-gray-600 dark:text-gray-400 mt-8 pt-4 border-t border-gray-200 dark:border-gray-700">
-      <strong>Last updated:</strong> October 29, 2025<br />
-      <strong>Version:</strong> 1.1<br />
+      <strong>Last updated:</strong> November 8, 2025<br />
+      <strong>Version:</strong> 1.2<br />
       <strong>Status:</strong> Active
     </p>
   </>

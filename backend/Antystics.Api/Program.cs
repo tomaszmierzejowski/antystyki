@@ -1,4 +1,5 @@
 using System.Text;
+using Antystics.Api.Extensions;
 using Antystics.Core.Entities;
 using Antystics.Core.Interfaces;
 using Antystics.Infrastructure.Data;
@@ -98,6 +99,8 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IStorageService, StorageService>();
 builder.Services.AddScoped<IImageService, ImageService>();
 
+builder.Services.AddVisitorMetrics(builder.Configuration);
+
 // Configure CORS
 builder.Services.AddCors(options =>
 {
@@ -176,6 +179,8 @@ app.Use(async (context, next) =>
 
     await next();
 });
+
+app.UseVisitorMetrics();
 
 // Serve static files from uploads folder
 app.UseStaticFiles();

@@ -105,6 +105,7 @@ To become the leading platform for thought-provoking, statistically-based humor 
    - Server provisioning
    - SSL certificate
    - Monitoring and backups
+   - Cookieless visitor metrics (daily unique visitor counts via server-side HMAC logs, Feature ID: OPS-VISITOR-LOG)
 
 5. **Statistics Companion Beta**
    - Launch read-only `Statystyki` hub curated by moderators

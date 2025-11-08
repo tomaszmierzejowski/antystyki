@@ -449,7 +449,7 @@ npm run build
 # Ads should appear within 10-20 minutes
 ```
 
-**Implementation Note**: AI created `AdSenseAd` component but didn't integrate it into pages yet. See Action #28 for integration.
+**Implementation Note**: AI created `AdSenseAd` component but didn't integrate it into pages yet. See Action #29 for integration.
 
 **Status**: 🔵 **WAITING** (blocked by Action #9 approval)  
 **Blocker**: No - Revenue feature  
@@ -1397,44 +1397,78 @@ Auth: Admin only
 
 ---
 
-### 27. Set Up Google Analytics (30 minutes) - Optional but Recommended
+### 27. Set Up Google Analytics 4 (30 minutes)
 
-**Why**: Track user behavior, optimize content  
+**Why**: Track user behavior (with consent) for optimization
 
 ```bash
 # Step 1: Create GA4 Property
 1. Go to: https://analytics.google.com/
 2. Click "Create Property"
-3. Name: "Antystyki"
-4. Set timezone: Poland
-5. Create Data Stream: Web
-6. URL: https://antystyki.pl
+3. Name: "Antystyki Production"
+4. Timezone: Poland | Currency: PLN
+5. Create Data Stream: Web → URL https://antystyki.pl
 
-# Step 2: Get Measurement ID
+# Step 2: Copy Measurement ID
 # Format: G-XXXXXXXXXX
 
-# Step 3: Add to Frontend
-# File: frontend/index.html (in <head>)
-<!-- Google Analytics -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-XXXXXXXXXX');
-</script>
+# Step 3: Update environment configuration
+1. On your local machine: open .env
+2. Add/Update: VITE_GA4_MEASUREMENT_ID=G-XXXXXXXXXX
+3. Commit + push
+4. On the server:
+   git pull origin main
+   docker-compose -f docker-compose.production.yml down
+   docker-compose -f docker-compose.production.yml build --no-cache app
+   docker-compose -f docker-compose.production.yml up -d
 
 # Step 4: Verify
-# Visit your site, check GA Real-Time reports
+1. Visit https://antystyki.pl
+2. Accept cookie banner
+3. Check GA4 → Reports → Realtime (should show 1 active user)
 ```
 
-**Status**: 🔵 **OPTIONAL**  
-**Recommended**: Yes, for growth insights  
-**Timing**: Week 2 or post-launch
+**Status**: 🔵 **OPTIONAL BUT HIGHLY RECOMMENDED**  
+**Docs**: `ANALYTICS_GUIDE.md` (GA4 section)
 
 ---
 
-### 28. Integrate AdSense Ads into Pages (When Action #10 Complete)
+### 28. Configure Cookieless Visitor Metrics (10 minutes)
+
+**Why**: Count total visits (page views + unique visitors) even when users decline cookies
+
+```bash
+# Step 1: Generate a secret
+openssl rand -hex 32
+
+# Step 2: Update production environment
+# On server (or deployment secret store)
+1. Edit /var/www/antystyki/.env
+2. Add/update line:
+   VISITOR_METRICS_HASH_SECRET=<paste-secret-here>
+
+# Step 3: Redeploy (picks up secret for hashing)
+cd /var/www/antystyki
+sudo systemctl restart docker   # if needed
+# or rebuild app container
+docker-compose -f docker-compose.production.yml down
+docker-compose -f docker-compose.production.yml build --no-cache app
+docker-compose -f docker-compose.production.yml up -d
+
+# Step 4: Verify counts
+# Requires admin JWT token
+token=<ADMIN_JWT>
+curl -H "Authorization: Bearer $token" \
+     https://antystyki.pl/api/metrics/visitors/daily?days=7 | jq
+# Expect JSON array with daily totals + uniqueVisitors
+```
+
+**Status**: 🔴 **CRITICAL FOR BASELINE REPORTING**  
+**Docs**: `ANALYTICS_GUIDE.md` → Server-Side Visitor Metrics, Privacy Policy §7.5
+
+---
+
+### 29. Integrate AdSense Ads into Pages (When Action #10 Complete)
 
 **Prerequisites**: Action #10 complete (AdSense approved + configured)  
 **Files to modify**: `frontend/src/pages/Home.tsx`  
@@ -1496,6 +1530,7 @@ const Home = () => {
 - [ ] **Action #18**: Test email verification (15m)
 - [ ] **Action #19**: Test complete flow (30m)
 - [ ] **Action #20**: Security audit (30m)
+- [ ] **Action #28**: Configure cookieless visitor metrics (10m)
 
 **Total Time for Launch**: ~12-14 hours
 

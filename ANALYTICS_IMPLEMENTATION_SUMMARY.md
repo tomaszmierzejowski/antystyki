@@ -620,3 +620,11 @@ Then sit back and watch the data roll in! 📊
 
 Happy analyzing! 🎉📈
 
+### Server-Side Visitor Metrics (New)
+- GDPR-compliant daily counts captured via middleware before static file serving.
+- Anonymous HMAC hash of IP + User-Agent (rotates daily) stored only in-memory.
+- Aggregated counts flushed every 5 minutes to `logs/visitor-metrics/` (60-day retention).
+- Admin-only API: `GET /api/metrics/visitors/daily?days=30`.
+- Requires `VISITOR_METRICS_HASH_SECRET` in production `.env`.
+- Documented in `ANALYTICS_GUIDE.md` and Privacy Policy section 7.5.
+
