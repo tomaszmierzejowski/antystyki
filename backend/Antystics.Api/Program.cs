@@ -374,17 +374,17 @@ static bool IsDatabaseTimeout(DbException exception)
             or "53300"; // too many connections
     }
 
-    if (exception is TimeoutException)
+    if (exception is TimeoutException || exception.InnerException is TimeoutException)
     {
         return true;
     }
 
-    return exception.InnerException switch
+    if (exception.InnerException is DbException dbException)
     {
-        DbException db => IsDatabaseTimeout(db),
-        TimeoutException => true,
-        _ => false
-    };
+        return IsDatabaseTimeout(dbException);
+    }
+
+    return false;
 }
 
 async Task SeedData(ApplicationDbContext context, UserManager<User> userManager, RoleManager<IdentityRole<Guid>> roleManager)

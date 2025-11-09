@@ -375,8 +375,6 @@ public class AuthController : ControllerBase
         await _emailService.SendEmailVerificationAsync(user.Email!, verificationLink);
 
         return Ok(new { message = "Verification email sent successfully" });
-
-        return Ok(response);
     }
 
     private static string HashIdentifier(string value)
