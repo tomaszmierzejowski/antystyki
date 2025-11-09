@@ -106,6 +106,7 @@ To become the leading platform for thought-provoking, statistically-based humor 
    - SSL certificate
    - Monitoring and backups
    - Cookieless visitor metrics (daily unique visitor counts via server-side HMAC logs, Feature ID: OPS-VISITOR-LOG)
+   - Centralized logging stack (`OPS-LOG-STACK`): Grafana Loki + Promtail + Grafana with 7-day retention, owner-only Grafana access, and email alert when error rate >5/min (aligned with Launch Guide §5)
 
 5. **Statistics Companion Beta**
    - Launch read-only `Statystyki` hub curated by moderators
@@ -238,6 +239,7 @@ To become the leading platform for thought-provoking, statistically-based humor 
 - **Backend**: ASP.NET Core 9, PostgreSQL, Entity Framework
 - **Frontend**: React 19, TypeScript, Tailwind CSS
 - **Infrastructure**: Docker, Nginx, Kamatera Cloud
+- **Observability**: Grafana Loki + Promtail + Grafana (self-hosted, EU-resident, OPS-LOG-STACK)
 - **Authentication**: JWT tokens
 - **Email**: SMTP integration
 

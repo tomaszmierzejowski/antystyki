@@ -111,6 +111,35 @@ docker-compose logs -f
 
 # Verify services are running
 docker-compose ps
+
+# Expected containers (per PRD §3.1 – Production Deployment):
+# antystics-backend (if running split services) or antystics-app in production build
+# antystics-db
+# antystics-frontend (dev mode only)
+# antystics-loki
+# antystics-promtail
+# antystics-grafana (bound to 127.0.0.1:3001 by default)
+
+### 5.1 Confirm Grafana & Loki
+
+```bash
+# Internal curl checks (run on server)
+curl -I http://localhost:3001/login
+curl -s http://localhost:3100/ready
+```
+
+Expected responses:
+- Grafana login page returns `HTTP 200` or `302`
+- Loki `/ready` endpoint returns `ready`
+
+To access the dashboard securely:
+
+```bash
+ssh -L 3001:localhost:3001 antystics@YOUR_SERVER_IP
+# Then open http://localhost:3001/login in your browser
+```
+
+Credentials come from `.env` (`GRAFANA_ADMIN_USER`, `GRAFANA_ADMIN_PASSWORD`).
 ```
 
 ### 6. Set Up Reverse Proxy (Nginx)
@@ -313,17 +342,26 @@ docker-compose up -d
 docker-compose logs -f
 ```
 
-### Monitor Logs
+### Monitor Logs (Loki + Grafana)
 
+1. Forward Grafana port:
+   ```bash
+   ssh -L 3001:localhost:3001 antystics@YOUR_SERVER_IP
+   ```
+2. Login at http://localhost:3001/login using `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD`.
+3. Open the **Antystyki Logging Overview** dashboard (provisioned automatically).
+4. Use Explore to query Loki with LogQL, e.g.:
+   ```
+   {level="error"}
+   {eventType="auth.failed_login"}
+   {eventType="frontend.js_error"} |= "component"
+   ```
+5. Alerts: `Backend error rate > 5/min` is provisioned and emails `tmierzejowski@gmail.com`. Adjust via Grafana UI if you add Discord webhooks.
+
+Fallback CLI tails:
 ```bash
-# View all logs
-docker-compose logs -f
-
-# View specific service
-docker-compose logs -f backend
-
-# View last 100 lines
-docker-compose logs --tail=100
+docker-compose logs -f antystics-app
+docker-compose logs -f antystics-promtail
 ```
 
 ### Database Migrations
@@ -410,15 +448,13 @@ SELECT * FROM pg_stat_activity;
 
 ## Monitoring
 
-### Set Up Monitoring (Optional)
+Centralized logging and alerting are already deployed via the `monitoring/` stack (Grafana Loki + Promtail + Grafana), satisfying Launch Guide §5 “Verify Loki + Grafana logging operational”. Key files:
 
-Install monitoring tools:
+- `monitoring/loki-config.yml` – single-node Loki configuration with 7-day retention.
+- `monitoring/promtail-config.yml` – docker_sd scraping with JSON parsing for Serilog.
+- `monitoring/grafana/provisioning/*` – datasources, dashboard, and alert provisioning as code.
 
-```bash
-# Prometheus + Grafana
-docker run -d --name=prometheus -p 9090:9090 prom/prometheus
-docker run -d --name=grafana -p 3001:3000 grafana/grafana
-```
+To customize dashboards or alerts, edit the provisioning files and redeploy (`docker-compose up -d grafana`). Use Grafana’s Explore view for ad‑hoc queries; avoid installing additional agents unless required.
 
 ## Support
 

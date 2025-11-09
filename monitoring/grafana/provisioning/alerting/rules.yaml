@@ -1,0 +1,49 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: antystics-logging-alerts
+    folder: Logging
+    interval: 1m
+    rules:
+      - uid: error_rate_high
+        title: Backend error rate > 5/min
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: loki
+            model:
+              datasource:
+                type: loki
+                uid: loki
+              editorMode: code
+              expr: sum by (service) (count_over_time({level=\"error\"}[1m]))
+              format: table
+              instant: true
+              interval: ""
+              maxLines: 1000
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              expression: "5"
+              refId: B
+              type: constant
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              expression: "A > B"
+              refId: C
+              type: threshold
+        annotations:
+          summary: High error rate detected (>5/min)
+        labels:
+          severity: high
+        for: 1m
+        noDataState: NoData
+        execErrState: Error
+        isPaused: false
+

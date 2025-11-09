@@ -1,4 +1,5 @@
 using System;
+using System.Data.Common;
 using System.Security.Claims;
 using System.Text;
 using Antystics.Api.Extensions;
@@ -11,8 +12,36 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Npgsql;
+using Serilog;
+using Serilog.Context;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Logging.ClearProviders();
+builder.Host.UseSerilog((context, services, loggerConfiguration) =>
+{
+    loggerConfiguration
+        .ReadFrom.Configuration(context.Configuration)
+        .Enrich.FromLogContext()
+        .Enrich.WithProperty("environment", context.HostingEnvironment.EnvironmentName)
+        .Enrich.WithProperty("application", "antystics");
+});
+
+var sentrySection = builder.Configuration.GetSection("Sentry");
+var sentryDsn = sentrySection.GetValue<string>("Dsn");
+var sentryEnabled = sentrySection.GetValue<bool>("Enabled");
+if (!string.IsNullOrWhiteSpace(sentryDsn) && sentryEnabled)
+{
+    builder.WebHost.UseSentry(options =>
+    {
+        options.Dsn = sentryDsn;
+        options.Environment = sentrySection.GetValue<string>("Environment");
+        options.Release = sentrySection.GetValue<string>("Release");
+        options.SendDefaultPii = sentrySection.GetValue<bool>("SendDefaultPii");
+        options.TracesSampleRate = sentrySection.GetValue<double?>("TracesSampleRate") ?? 0.0;
+    });
+}
 
 // Add services to the container
 builder.Services.AddControllers();
@@ -144,6 +173,8 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+app.Lifetime.ApplicationStopped.Register(Log.CloseAndFlush);
+
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
@@ -153,6 +184,75 @@ if (app.Environment.IsDevelopment())
 
 // ✅ SECURITY: Enforce HTTPS redirection
 app.UseHttpsRedirection();
+
+app.Use(async (context, next) =>
+{
+    var correlationId = context.Request.Headers.TryGetValue("X-Correlation-ID", out var rawHeader) &&
+                        !string.IsNullOrWhiteSpace(rawHeader.FirstOrDefault())
+        ? rawHeader.First()
+        : Guid.NewGuid().ToString("N");
+
+    context.Response.Headers["X-Correlation-ID"] = correlationId;
+    context.Items["CorrelationId"] = correlationId;
+
+    using (LogContext.PushProperty("CorrelationId", correlationId))
+    using (LogContext.PushProperty("RequestPath", context.Request.Path.Value))
+    using (LogContext.PushProperty("RequestMethod", context.Request.Method))
+    {
+        await next();
+    }
+});
+
+app.UseSerilogRequestLogging();
+
+app.Use(async (context, next) =>
+{
+    var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+    try
+    {
+        await next();
+
+        if (context.Response.StatusCode >= StatusCodes.Status500InternalServerError)
+        {
+            logger.LogError("Request {Method} {Path} completed with status code {StatusCode}",
+                context.Request.Method,
+                context.Request.Path,
+                context.Response.StatusCode);
+        }
+    }
+    catch (DbException dbException) when (IsDatabaseTimeout(dbException))
+    {
+        logger.LogError(dbException,
+            "Database timeout detected while processing {Method} {Path}",
+            context.Request.Method,
+            context.Request.Path);
+
+        if (!context.Response.HasStarted)
+        {
+            context.Response.StatusCode = StatusCodes.Status504GatewayTimeout;
+            await context.Response.WriteAsJsonAsync(new
+            {
+                error = "A database timeout occurred while processing your request."
+            });
+        }
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex,
+            "Unhandled exception occurred while processing {Method} {Path}",
+            context.Request.Method,
+            context.Request.Path);
+
+        if (!context.Response.HasStarted)
+        {
+            context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+            await context.Response.WriteAsJsonAsync(new
+            {
+                error = "An unexpected error occurred."
+            });
+        }
+    }
+});
 
 // ✅ SECURITY: Add security headers middleware
 app.Use(async (context, next) =>
@@ -264,6 +364,28 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.Run();
+
+static bool IsDatabaseTimeout(DbException exception)
+{
+    if (exception is PostgresException postgresException)
+    {
+        return postgresException.SqlState is "57014" // query canceled
+            or "55P03" // lock not available
+            or "53300"; // too many connections
+    }
+
+    if (exception is TimeoutException)
+    {
+        return true;
+    }
+
+    return exception.InnerException switch
+    {
+        DbException db => IsDatabaseTimeout(db),
+        TimeoutException => true,
+        _ => false
+    };
+}
 
 async Task SeedData(ApplicationDbContext context, UserManager<User> userManager, RoleManager<IdentityRole<Guid>> roleManager)
 {

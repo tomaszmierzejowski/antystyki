@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using Antystics.Api.DTOs;
 using Antystics.Core.Entities;
 using Antystics.Core.Interfaces;
@@ -18,6 +20,7 @@ public class AuthController : ControllerBase
     private readonly IEmailService _emailService;
     private readonly ApplicationDbContext _context;
     private readonly IConfiguration _configuration;
+    private readonly ILogger<AuthController> _logger;
 
     public AuthController(
         UserManager<User> userManager,
@@ -25,7 +28,8 @@ public class AuthController : ControllerBase
         ITokenService tokenService,
         IEmailService emailService,
         ApplicationDbContext context,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        ILogger<AuthController> logger)
     {
         _userManager = userManager;
         _signInManager = signInManager;
@@ -33,6 +37,7 @@ public class AuthController : ControllerBase
         _emailService = emailService;
         _context = context;
         _configuration = configuration;
+        _logger = logger;
     }
 
     [HttpPost("register")]
@@ -141,14 +146,23 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
         var user = await _userManager.FindByEmailAsync(request.Email);
+        var emailHash = HashIdentifier(request.Email);
         
         if (user == null)
         {
+            _logger.LogWarning("Failed login attempt eventType={EventType} reason={Reason} emailHash={EmailHash}",
+                "auth.failed_login",
+                "user_not_found",
+                emailHash);
             return Unauthorized(new { message = "Invalid credentials" });
         }
 
         if (!user.EmailConfirmed)
         {
+            _logger.LogWarning("Failed login attempt eventType={EventType} reason={Reason} emailHash={EmailHash}",
+                "auth.failed_login",
+                "email_not_verified",
+                emailHash);
             return Unauthorized(new { message = "Please verify your email before logging in" });
         }
 
@@ -156,11 +170,19 @@ public class AuthController : ControllerBase
         
         if (!result.Succeeded)
         {
+            _logger.LogWarning("Failed login attempt eventType={EventType} reason={Reason} emailHash={EmailHash}",
+                "auth.failed_login",
+                "invalid_password",
+                emailHash);
             return Unauthorized(new { message = "Invalid credentials" });
         }
 
         user.LastLoginAt = DateTime.UtcNow;
         await _userManager.UpdateAsync(user);
+
+        _logger.LogInformation("Successful login eventType={EventType} emailHash={EmailHash}",
+            "auth.login_success",
+            emailHash);
 
         var token = _tokenService.GenerateJwtToken(user);
         var refreshToken = _tokenService.GenerateRefreshToken();
@@ -353,6 +375,21 @@ public class AuthController : ControllerBase
         await _emailService.SendEmailVerificationAsync(user.Email!, verificationLink);
 
         return Ok(new { message = "Verification email sent successfully" });
+
+        return Ok(response);
+    }
+
+    private static string HashIdentifier(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return "unknown";
+        }
+
+        var normalized = value.Trim().ToLowerInvariant();
+        var bytes = Encoding.UTF8.GetBytes(normalized);
+        var hashBytes = SHA256.HashData(bytes);
+        return Convert.ToHexString(hashBytes.AsSpan(0, 8));
     }
 }
 

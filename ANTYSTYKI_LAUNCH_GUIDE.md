@@ -194,6 +194,7 @@
 - [ ] Add legal pages to frontend
 - [ ] Test complete user flow
 - [ ] Deploy Statistics API endpoints and analytics events
+- [ ] Stand up Loki + Promtail + Grafana logging stack (`OPS-LOG-STACK`) and confirm alert hook for errors >5/min (SSH tunnel required per §5)
 - [x] Validate canonical share URLs, mission-aligned copy, and GA4 instrumentation across Statystyki & Antystyki hubs
 
 ### Week 2: Launch & Marketing

@@ -374,6 +374,13 @@ docker-compose -f docker-compose.production.yml logs -f
 
 # Verify all containers are running
 docker ps
+
+# Expected containers (per PRD §3.1 Requirement 4 - Production Deployment):
+# - antystics-app (ASP.NET + React)
+# - antystics-db (PostgreSQL)
+# - antystics-loki (central log store)
+# - antystics-promtail (log shipper)
+# - antystics-grafana (observability UI - bound to localhost)
 ```
 
 ### 5.4 Verify Application
@@ -383,6 +390,10 @@ docker ps
 curl http://localhost:5000/health
 
 # Should return: {"status":"healthy","timestamp":"..."}
+
+# Verify internal Grafana UI (bound to localhost for security)
+curl -I http://localhost:3001/login
+# Expect HTTP 200 or 302
 ```
 
 ---
@@ -557,19 +568,23 @@ Open browser and visit:
    - Go to admin panel
    - Approve/reject submission
 
-### 7.4 Monitor Logs
+### 7.4 Monitor Logs & Alerts
 
-```bash
-# View all logs
-docker-compose -f docker-compose.production.yml logs -f
-
-# View specific service
-docker-compose -f docker-compose.production.yml logs -f backend
-docker-compose -f docker-compose.production.yml logs -f postgres
-
-# Check for errors
-docker-compose -f docker-compose.production.yml logs | grep -i error
-```
+1. **Forward Grafana port over SSH** (keeps access internal-only per Launch Guide §5):  
+   ```bash
+   ssh -L 3001:localhost:3001 antystics@YOUR_SERVER_IP
+   ```
+2. **Login to Grafana** at [http://localhost:3001/login](http://localhost:3001/login) using the credentials from `PRODUCTION.env` (`GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD`).
+3. Open the dashboard **Logging → Antystyki Logging Overview** to confirm:
+   - Error rate panel is populating
+   - Failed login panel shows activity when you attempt invalid logins
+   - Frontend JS errors appear when you trigger the error boundary (DevTools → run `throw new Error('test')`)
+4. Navigate to **Alerting → Alert rules** and confirm rule `Backend error rate > 5/min` is active and points to the default email contact (`tmierzejowski@gmail.com`).
+5. (Fallback) Tail raw containers if needed:  
+   ```bash
+   docker-compose -f docker-compose.production.yml logs -f antystics-app
+   docker-compose -f docker-compose.production.yml logs -f antystics-promtail
+   ```
 
 ---
 
@@ -634,40 +649,75 @@ ls -lh /home/antystics/backups/
 
 ---
 
-## 📊 Step 9: Setup Monitoring (20 minutes)
+## 📊 Step 9: Observability & Alerting (20 minutes)
 
-### 9.1 Install Monitoring Tools
+This step fulfils the centralized logging requirement in **PRD §3.1 – Production Deployment** and the launch checklist item “Verify Loki + Grafana logging operational” in **Go-Live §5**.
 
-```bash
-# Install htop for resource monitoring
-sudo apt install htop -y
-
-# Install netdata (optional but recommended)
-bash <(curl -Ss https://my-netdata.io/kickstart.sh)
-
-# Access Netdata at: http://YOUR_SERVER_IP:19999
-# Configure firewall to restrict access
-```
-
-### 9.2 Setup External Uptime Monitoring
-
-1. **Sign up for UptimeRobot** (free): https://uptimerobot.com
-2. **Add monitors**:
-   - Website: https://antystyki.pl
-   - API: https://antystyki.pl/api/health
-3. **Configure alerts**:
-   - Email notifications
-   - SMS (if available)
-
-### 9.3 Setup Log Monitoring
+### 9.1 Confirm Loki Stack is Running
 
 ```bash
-# Create log directory
-mkdir -p /home/antystics/antystics/logs/backend
-
-# Update docker-compose.production.yml to mount logs
-# (Already configured in the production compose file)
+docker ps --format "table {{.Names}}\t{{.Status}}"
+# Ensure you see:
+# - antystics-loki
+# - antystics-promtail
+# - antystics-grafana
 ```
+
+Volumes are created automatically:
+
+```bash
+docker volume ls | grep loki
+docker volume ls | grep grafana
+```
+
+### 9.2 Secure Grafana Access
+
+1. Open `.env` (root) and set:
+   ```
+   GRAFANA_ADMIN_USER=tmierzejowski@gmail.com
+   GRAFANA_ADMIN_PASSWORD=<generate a strong unique password>
+   ```
+2. Restart only Grafana to pick up changes:
+   ```bash
+   docker-compose -f docker-compose.production.yml up -d grafana
+   ```
+3. Keep Grafana bound to `127.0.0.1:3001` (already configured) so only SSH tunnels can reach it, satisfying GDPR and Launch Guide security notes.
+
+### 9.3 Review Dashboards & Alerts
+
+1. Create an SSH tunnel (same as Step 7.4):
+   ```bash
+   ssh -L 3001:localhost:3001 antystics@YOUR_SERVER_IP
+   ```
+2. Login at http://localhost:3001/login using the credentials above.
+3. Visit **Logging → Antystyki Logging Overview** and confirm all panels show data (error rate, failed logins, API 500s, frontend errors).
+4. Go to **Alerting → Contact points** and verify the auto-provisioned receiver `default-email` points to `tmierzejowski@gmail.com`.
+5. Go to **Alerting → Alert rules** and ensure rule `Backend error rate > 5/min` is `Active`. Trigger a test (temporarily log multiple errors) if needed.
+
+### 9.4 Optional: Enable Sentry (Self-hosted or SaaS)
+
+1. Deploy a Sentry instance in the EU (or use an EU-hosted SaaS plan).
+2. Set the following in `.env`:
+   ```
+   SENTRY_DSN=https://<key>@<host>/<project>
+   SENTRY_ENABLED=true
+   SENTRY_ENVIRONMENT=Production
+   SENTRY_RELEASE=antystics@1.0.0
+   ```
+3. Restart the application container:
+   ```bash
+   docker-compose -f docker-compose.production.yml up -d app
+   ```
+4. Sentry will now receive unhandled backend exceptions while Loki/Grafana continue to serve as the primary log store.
+
+### 9.5 External Uptime Monitoring (Recommended)
+
+1. Sign up for UptimeRobot or BetterStack.
+2. Add monitors for:
+   - https://antystyki.pl (homepage)
+   - https://antystyki.pl/api/health (API health check)
+   - Optional: a custom keyword check for “healthy” response.
+3. Point notifications to the same inbox used for Grafana alerts to keep operations centralized.
 
 ---
 

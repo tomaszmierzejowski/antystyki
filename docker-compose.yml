@@ -37,6 +37,10 @@ services:
       - Email__FromName=${EMAIL_FROM_NAME:-Antystyki}
       - FrontendUrl=${FRONTEND_URL:-http://localhost:3000}
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:3000}
+      - Sentry__Dsn=${SENTRY_DSN:-}
+      - Sentry__Enabled=${SENTRY_ENABLED:-false}
+      - Sentry__Environment=${SENTRY_ENVIRONMENT:-Development}
+      - Sentry__Release=${SENTRY_RELEASE:-antystics@dev}
     ports:
       - "5000:8080"
     depends_on:
@@ -44,6 +48,9 @@ services:
         condition: service_healthy
     volumes:
       - ./backend/uploads:/app/wwwroot/uploads
+    labels:
+      - "logging.antystics.app=true"
+      - "logging.antystics.service=backend"
 
   frontend:
     build:
@@ -56,9 +63,67 @@ services:
       - "3000:80"
     depends_on:
       - backend
+    labels:
+      - "logging.antystics.app=true"
+      - "logging.antystics.service=frontend"
+
+  loki:
+    image: grafana/loki:3.0.0
+    container_name: antystics-loki
+    restart: always
+    command: -config.file=/etc/loki/loki-config.yml
+    ports:
+      - "127.0.0.1:3100:3100"
+    volumes:
+      - loki_data:/var/lib/loki
+      - ./monitoring/loki-config.yml:/etc/loki/loki-config.yml:ro
+    networks:
+      - default
+
+  promtail:
+    image: grafana/promtail:3.0.0
+    container_name: antystics-promtail
+    restart: always
+    command: -config.file=/etc/promtail/promtail-config.yml
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./monitoring/promtail-config.yml:/etc/promtail/promtail-config.yml:ro
+      - promtail_positions:/data
+    depends_on:
+      - loki
+    networks:
+      - default
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    container_name: antystics-grafana
+    restart: always
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SECURITY_ALLOW_EMBEDDING=false
+      - GF_SERVER_HTTP_PORT=3000
+      - GF_SERVER_DOMAIN=localhost
+    ports:
+      - "127.0.0.1:3001:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./monitoring/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - loki
+    networks:
+      - default
 
 volumes:
   postgres_data:
+  loki_data:
+  grafana_data:
+  promtail_positions:
 
 
 
