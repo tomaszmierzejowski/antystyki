@@ -47,6 +47,11 @@ if (!string.IsNullOrWhiteSpace(sentryDsn) && sentryEnabled)
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddMemoryCache();
+builder.Services.AddHttpClient();
+builder.Services.AddHttpClient("google-oauth", client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(15);
+});
 
 // Configure Swagger with JWT authentication
 builder.Services.AddSwaggerGen(c =>
@@ -100,12 +105,13 @@ builder.Services.AddIdentity<User, IdentityRole<Guid>>(options =>
 var jwtSecret = builder.Configuration["Jwt:Secret"] ?? "your-super-secret-key-change-this-in-production-min-32-chars";
 var key = Encoding.ASCII.GetBytes(jwtSecret);
 
-builder.Services.AddAuthentication(options =>
+var authenticationBuilder = builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
+});
+
+authenticationBuilder.AddJwtBearer(options =>
 {
     // ✅ SECURITY: Enforce HTTPS metadata in production
     options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
@@ -122,6 +128,18 @@ builder.Services.AddAuthentication(options =>
         ClockSkew = TimeSpan.Zero
     };
 });
+
+var googleClientId = builder.Configuration["Authentication:Google:ClientId"];
+var googleClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
+if (!string.IsNullOrWhiteSpace(googleClientId) && !string.IsNullOrWhiteSpace(googleClientSecret))
+{
+    authenticationBuilder.AddGoogle(options =>
+    {
+        options.ClientId = googleClientId;
+        options.ClientSecret = googleClientSecret;
+        options.SignInScheme = IdentityConstants.ExternalScheme;
+    });
+}
 
 builder.Services.AddAuthorization(options =>
 {
@@ -141,6 +159,7 @@ builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IStorageService, StorageService>();
 builder.Services.AddScoped<IImageService, ImageService>();
+builder.Services.AddScoped<ISocialAuthService, SocialAuthService>();
 
 builder.Services.AddVisitorMetrics(builder.Configuration);
 
@@ -415,7 +434,9 @@ async Task SeedData(ApplicationDbContext context, UserManager<User> userManager,
             UserName = "admin",
             Email = "admin@antystyki.pl",
             EmailConfirmed = true,
-            Role = UserRole.Admin
+            Role = UserRole.Admin,
+            Provider = "local",
+            ProviderUserId = null
         };
         
         await userManager.CreateAsync(adminUser, "Admin123!");

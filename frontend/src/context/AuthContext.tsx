@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { User, LoginRequest, RegisterRequest, LoginResponse } from '../types';
+import type { User, LoginRequest, RegisterRequest, LoginResponse, SocialLoginRequest } from '../types';
 import api from '../config/api';
 import { AuthContext } from './authContextValue';
 
@@ -43,17 +43,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(false);
   }, []);
 
+  const persistAuthResponse = (response: LoginResponse) => {
+    localStorage.setItem('token', response.token);
+    localStorage.setItem('user', JSON.stringify(response.user));
+    setUser(response.user);
+    setIsAnonymous(false);
+  };
+
   const login = async (credentials: LoginRequest) => {
     const response = await api.post<LoginResponse>('/auth/login', credentials);
-    const { token, user: userData } = response.data;
-    
-    localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(userData));
-    setUser(userData);
+    persistAuthResponse(response.data);
   };
 
   const register = async (data: RegisterRequest) => {
     await api.post('/auth/register', data);
+  };
+
+  const socialLogin = async (data: SocialLoginRequest) => {
+    const response = await api.post<LoginResponse>('/auth/social-login', data);
+    persistAuthResponse(response.data);
+    return response.data;
   };
 
   const createAnonymousUser = () => {
@@ -86,6 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         loading,
         login,
         register,
+        socialLogin,
         logout,
         isAuthenticated: !!user,
         isAnonymous,

@@ -14,6 +14,10 @@ JWT_SECRET=CHANGE_ME_RANDOM_64_CHARACTER_STRING_USE_OPENSSL_RAND_BASE64_48
 JWT_ISSUER=Antystics
 JWT_AUDIENCE=AntysticsUsers
 
+# Social login secrets
+GOOGLE_CLIENT_ID=your-google-oauth-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-google-oauth-client-secret
+
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=your-email@gmail.com
@@ -22,6 +26,7 @@ EMAIL_FROM_ADDRESS=noreply@antystyki.pl
 EMAIL_FROM_NAME=Antystyki
 
 VITE_API_URL=http://localhost:5000/api
+VITE_GOOGLE_CLIENT_ID=your-google-oauth-client-id.apps.googleusercontent.com
 
 # For production, change to:
 # VITE_API_URL=https://api.antystyki.pl/api

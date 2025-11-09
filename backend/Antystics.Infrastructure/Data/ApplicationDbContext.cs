@@ -32,6 +32,11 @@ public class ApplicationDbContext : IdentityDbContext<User, IdentityRole<Guid>, 
         {
             entity.HasIndex(e => e.Email).IsUnique();
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(e => e.Provider).HasMaxLength(50);
+            entity.Property(e => e.ProviderUserId).HasMaxLength(255);
+            entity.HasIndex(e => new { e.Provider, e.ProviderUserId })
+                .IsUnique()
+                .HasFilter("\"Provider\" IS NOT NULL AND \"ProviderUserId\" IS NOT NULL");
         });
 
         // Antistic configuration

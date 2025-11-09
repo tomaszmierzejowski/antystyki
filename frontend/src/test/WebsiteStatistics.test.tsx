@@ -20,17 +20,20 @@ const LocationObserver = ({ onChange }: { onChange: (path: string, search: strin
   return null;
 };
 
+const baseUser = {
+  id: '1',
+  email: 'tmierzejowski@gmail.com',
+  username: 'Admin Owner',
+  role: 'Admin',
+  createdAt: new Date().toISOString(),
+};
+
 const baseAuthValue: AuthContextType = {
-  user: {
-    id: '1',
-    email: 'tmierzejowski@gmail.com',
-    username: 'Admin Owner',
-    role: 'Admin',
-    createdAt: new Date().toISOString(),
-  },
+  user: baseUser,
   loading: false,
   login: async () => {},
   register: async () => {},
+  socialLogin: async () => ({ token: '', refreshToken: '', user: baseUser }),
   logout: () => {},
   isAuthenticated: true,
   isAnonymous: false,

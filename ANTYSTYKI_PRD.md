@@ -37,7 +37,7 @@ To become the leading platform for thought-provoking, statistically-based humor 
 ### 2.1 Completed Features ✅
 
 #### Core Platform
-- **User Authentication**: JWT-based auth with email verification
+- **User Authentication** (Feature IDs: F01, F10): JWT-based auth with email verification, plus Google OAuth 2.0 social login (auto-registration, unified JWT issuance, provider-linked identities)
 - **Content Creation**: Antistics creation with chart generation and templates
 - **Moderation System**: Admin approval workflow for all user submissions
 - **User Engagement**: Like, report, and basic interaction features
@@ -586,3 +586,4 @@ The roadmap provides a clear path from MVP to a profitable, scalable platform th
 - 2025-11-02: Updated mission statement in §1.1 to emphasize witty, community-driven storytelling grounded in real statistics.
 - 2025-11-05: Documented cross-platform sharing milestone in §3.1 and reinforced mission-aligned share guidelines per §§1.1, 5.1.
 - 2025-11-05: Added home toggle and compact filtering requirements for Statystyki visibility enhancements (§3.1, §5.2).
+- 2025-11-09: Added Feature F10 Social Login requirements and status (Google OAuth) including provider-linked identities and GDPR-compliant consent messaging; deferred Facebook integration until business registration is available.

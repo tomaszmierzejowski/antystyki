@@ -21,6 +21,13 @@ public class LoginResponse
     public UserDto User { get; set; } = null!;
 }
 
+public class SocialLoginRequest
+{
+    public string Provider { get; set; } = "google";
+    public string Token { get; set; } = string.Empty;
+    public string? ProviderUserId { get; set; }
+}
+
 public class VerifyEmailRequest
 {
     public string Token { get; set; } = string.Empty;
@@ -49,6 +56,7 @@ public class UserDto
     public string Username { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
+    public string Provider { get; set; } = "local";
 }
 
 

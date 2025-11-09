@@ -20,6 +20,11 @@
   - Attempt access with secondary admin/moderator account → expect redirect to `/?message=Access%20Denied`
   - Call `GET /api/admin/statistics/summary` with non-owner JWT → expect HTTP 403
 - 📧 Email delivery smoke test (registration + verification)
+- [ ] Configure Gmail App Password or SendGrid
+- [ ] Test email verification in production
+- [ ] Provision Kamatera server (2GB RAM, 20GB storage)
+- [ ] Verify Google OAuth secrets (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`) are populated in GitHub Secrets and production `.env`
+- [ ] Configure GitHub Actions CI/CD pipeline (automated deployment with approval gates)
 
 ## 2. Launch Day Checklist
 1. Redeploy latest `main` via GitHub Actions approval gate

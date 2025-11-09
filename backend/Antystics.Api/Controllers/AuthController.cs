@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using Antystics.Api.DTOs;
 using Antystics.Core.Entities;
 using Antystics.Core.Interfaces;
@@ -18,6 +19,7 @@ public class AuthController : ControllerBase
     private readonly SignInManager<User> _signInManager;
     private readonly ITokenService _tokenService;
     private readonly IEmailService _emailService;
+    private readonly ISocialAuthService _socialAuthService;
     private readonly ApplicationDbContext _context;
     private readonly IConfiguration _configuration;
     private readonly ILogger<AuthController> _logger;
@@ -27,6 +29,7 @@ public class AuthController : ControllerBase
         SignInManager<User> signInManager,
         ITokenService tokenService,
         IEmailService emailService,
+        ISocialAuthService socialAuthService,
         ApplicationDbContext context,
         IConfiguration configuration,
         ILogger<AuthController> logger)
@@ -35,6 +38,7 @@ public class AuthController : ControllerBase
         _signInManager = signInManager;
         _tokenService = tokenService;
         _emailService = emailService;
+        _socialAuthService = socialAuthService;
         _context = context;
         _configuration = configuration;
         _logger = logger;
@@ -104,12 +108,10 @@ public class AuthController : ControllerBase
             UserName = request.Username,
             Email = request.Email,
             EmailConfirmed = false,
+            Provider = "local",
+            ProviderUserId = null,
             // Assign roles based on email
-            Role = request.Email.Equals("admin@antystyki.pl", StringComparison.OrdinalIgnoreCase)
-                ? UserRole.Admin
-                : request.Email.Equals("tmierzejowski@gmail.com", StringComparison.OrdinalIgnoreCase)
-                    ? UserRole.Moderator
-                    : UserRole.User
+            Role = ResolveRoleFromEmail(request.Email)
         };
 
         var result = await _userManager.CreateAsync(user, request.Password);
@@ -197,7 +199,171 @@ public class AuthController : ControllerBase
                 Email = user.Email!,
                 Username = user.UserName!,
                 Role = user.Role.ToString(),
-                CreatedAt = user.CreatedAt
+                CreatedAt = user.CreatedAt,
+                Provider = string.IsNullOrWhiteSpace(user.Provider) ? "local" : user.Provider
+            }
+        };
+
+        return Ok(response);
+    }
+
+    [HttpPost("social-login")]
+    public async Task<IActionResult> SocialLogin([FromBody] SocialLoginRequest request, CancellationToken cancellationToken)
+    {
+        if (request is null || string.IsNullOrWhiteSpace(request.Token))
+        {
+            return BadRequest(new { message = "Social login token is required." });
+        }
+
+        var providerKey = string.IsNullOrWhiteSpace(request.Provider)
+            ? "google"
+            : request.Provider.Trim().ToLowerInvariant();
+
+        if (!string.Equals(providerKey, "google", StringComparison.Ordinal))
+        {
+            return BadRequest(new { message = "Unsupported social provider" });
+        }
+
+        var socialUser = await _socialAuthService.ValidateGoogleTokenAsync(request.Token, cancellationToken);
+
+        if (socialUser is null)
+        {
+            _logger.LogWarning("Failed social login eventType={EventType} reason={Reason} provider={Provider}",
+                "auth.social_login_failed",
+                "token_invalid",
+                providerKey);
+            return Unauthorized(new { message = "Invalid social login token" });
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.ProviderUserId) &&
+            !string.Equals(request.ProviderUserId, socialUser.ProviderUserId, StringComparison.Ordinal))
+        {
+            _logger.LogWarning("Failed social login eventType={EventType} reason={Reason} provider={Provider}",
+                "auth.social_login_failed",
+                "provider_user_mismatch",
+                providerKey);
+            return Unauthorized(new { message = "Invalid social login credentials" });
+        }
+
+        var emailHash = HashIdentifier(socialUser.Email);
+
+        var user = await _userManager.Users
+            .FirstOrDefaultAsync(u =>
+                u.Provider == socialUser.Provider &&
+                u.ProviderUserId == socialUser.ProviderUserId, cancellationToken);
+
+        var isNewUser = false;
+        var updateRequired = false;
+
+        if (user is null)
+        {
+            user = await _userManager.FindByEmailAsync(socialUser.Email);
+
+            if (user is not null)
+            {
+                if (!string.Equals(user.Provider, socialUser.Provider, StringComparison.OrdinalIgnoreCase) ||
+                    !string.Equals(user.ProviderUserId, socialUser.ProviderUserId, StringComparison.Ordinal))
+                {
+                    user.Provider = socialUser.Provider;
+                    user.ProviderUserId = socialUser.ProviderUserId;
+                    updateRequired = true;
+                }
+
+                if (!user.EmailConfirmed)
+                {
+                    user.EmailConfirmed = true;
+                    updateRequired = true;
+                }
+            }
+            else
+            {
+                var username = await GenerateUniqueUsernameAsync(socialUser.FullName, socialUser.Email, cancellationToken);
+                user = new User
+                {
+                    UserName = username,
+                    Email = socialUser.Email,
+                    EmailConfirmed = true,
+                    Provider = socialUser.Provider,
+                    ProviderUserId = socialUser.ProviderUserId,
+                    Role = ResolveRoleFromEmail(socialUser.Email),
+                    LastLoginAt = DateTime.UtcNow
+                };
+
+                var createResult = await _userManager.CreateAsync(user);
+                if (!createResult.Succeeded)
+                {
+                    _logger.LogError("Failed to auto-create social user eventType={EventType} provider={Provider} emailHash={EmailHash} errors={Errors}",
+                        "auth.social_registration_failed",
+                        providerKey,
+                        emailHash,
+                        string.Join(",", createResult.Errors.Select(e => e.Code)));
+                    return StatusCode(StatusCodes.Status500InternalServerError, new
+                    {
+                        message = "Unable to complete social registration.",
+                        errors = createResult.Errors.Select(e => e.Description)
+                    });
+                }
+
+                isNewUser = true;
+            }
+        }
+
+        if (!isNewUser)
+        {
+            user.LastLoginAt = DateTime.UtcNow;
+            updateRequired = true;
+        }
+
+        if (updateRequired && !isNewUser)
+        {
+            var updateResult = await _userManager.UpdateAsync(user);
+            if (!updateResult.Succeeded)
+            {
+                _logger.LogError("Failed to update user during social login eventType={EventType} provider={Provider} emailHash={EmailHash} errors={Errors}",
+                    "auth.social_login_failed",
+                    providerKey,
+                    emailHash,
+                    string.Join(",", updateResult.Errors.Select(e => e.Code)));
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    message = "Unable to update account for social login.",
+                    errors = updateResult.Errors.Select(e => e.Description)
+                });
+            }
+        }
+
+        if (isNewUser)
+        {
+            try
+            {
+                await _emailService.SendWelcomeEmailAsync(user.Email!, user.UserName!);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to send welcome email for social registration emailHash={EmailHash}", emailHash);
+            }
+        }
+
+        _logger.LogInformation("Successful social login eventType={EventType} provider={Provider} emailHash={EmailHash}",
+            "auth.social_login_success",
+            providerKey,
+            emailHash);
+
+        var token = _tokenService.GenerateJwtToken(user);
+        var refreshToken = _tokenService.GenerateRefreshToken();
+
+        var response = new LoginResponse
+        {
+            Token = token,
+            RefreshToken = refreshToken,
+            User = new UserDto
+            {
+                Id = user.Id,
+                Email = user.Email!,
+                Username = user.UserName ?? socialUser.Email,
+                Role = user.Role.ToString(),
+                CreatedAt = user.CreatedAt,
+                Provider = string.IsNullOrWhiteSpace(user.Provider) ? socialUser.Provider : user.Provider
             }
         };
 
@@ -388,6 +554,56 @@ public class AuthController : ControllerBase
         var bytes = Encoding.UTF8.GetBytes(normalized);
         var hashBytes = SHA256.HashData(bytes);
         return Convert.ToHexString(hashBytes.AsSpan(0, 8));
+    }
+
+    private UserRole ResolveRoleFromEmail(string email)
+    {
+        if (email.Equals("admin@antystyki.pl", StringComparison.OrdinalIgnoreCase))
+        {
+            return UserRole.Admin;
+        }
+
+        if (email.Equals("tmierzejowski@gmail.com", StringComparison.OrdinalIgnoreCase))
+        {
+            return UserRole.Moderator;
+        }
+
+        return UserRole.User;
+    }
+
+    private async Task<string> GenerateUniqueUsernameAsync(string? fullName, string email, CancellationToken cancellationToken)
+    {
+        var baseName = !string.IsNullOrWhiteSpace(fullName)
+            ? fullName.ToLowerInvariant()
+            : email.Split('@', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault() ?? "user";
+
+        baseName = Regex.Replace(baseName, "[^a-z0-9]", string.Empty);
+
+        if (string.IsNullOrWhiteSpace(baseName))
+        {
+            baseName = "user";
+        }
+
+        if (baseName.Length > 20)
+        {
+            baseName = baseName[..20];
+        }
+
+        var candidate = baseName;
+        var suffix = 0;
+
+        while (!cancellationToken.IsCancellationRequested &&
+               await _userManager.FindByNameAsync(candidate) is not null)
+        {
+            suffix++;
+            candidate = $"{baseName}{suffix}";
+            if (candidate.Length > 30)
+            {
+                candidate = candidate[..30];
+            }
+        }
+
+        return candidate;
     }
 }
 

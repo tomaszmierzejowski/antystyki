@@ -4,6 +4,7 @@ export interface User {
   username: string;
   role: string;
   createdAt: string;
+  provider?: string;
 }
 
 import type { AntisticData } from './templates';
@@ -91,6 +92,11 @@ export interface LoginResponse {
   token: string;
   refreshToken: string;
   user: User;
+}
+
+export interface SocialLoginRequest {
+  provider: 'google';
+  token: string;
 }
 
 export interface AntisticListResponse {

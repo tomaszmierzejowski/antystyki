@@ -8,6 +8,8 @@ public class User : IdentityUser<Guid>
     public DateTime? LastLoginAt { get; set; }
     public bool IsActive { get; set; } = true;
     public UserRole Role { get; set; } = UserRole.User;
+    public string? Provider { get; set; }
+    public string? ProviderUserId { get; set; }
     
     // Navigation properties
     public virtual ICollection<Antistic> Antistics { get; set; } = new List<Antistic>();
