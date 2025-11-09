@@ -122,7 +122,7 @@ function sendLog(message: string, options: LogOptions) {
 
   const payload = {
     message: sanitizedMessage,
-    stackTrace: truncated(sanitizedStack, 4000),
+    stackTrace: sanitizedStack ? truncated(sanitizedStack, 4000) : undefined,
     component: options.component ?? 'unknown',
     severity: options.severity ?? 'error',
     url,
@@ -194,9 +194,9 @@ function shouldSendLogs(): boolean {
   return typeof window !== 'undefined' && import.meta.env.PROD;
 }
 
-function truncated(value: string | undefined, maxLength: number): string | undefined {
+function truncated(value: string, maxLength: number): string {
   if (!value) {
-    return value;
+    return '';
   }
 
   return value.length <= maxLength ? value : `${value.slice(0, maxLength)}...`;

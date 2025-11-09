@@ -1,4 +1,5 @@
-import { Component, ErrorInfo, ReactNode } from 'react';
+import { Component } from 'react';
+import type { ErrorInfo, ReactNode } from 'react';
 import { logClientError } from '../utils/clientLogger';
 
 type ErrorBoundaryProps = {
@@ -23,8 +24,8 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
       component: 'ErrorBoundary',
       stack: error.stack ?? null,
       context: {
-        componentStack: info.componentStack,
-        path: typeof window !== 'undefined' ? window.location.pathname : 'unknown',
+        componentStack: info.componentStack ?? '',
+        path: typeof window !== 'undefined' ? window.location.pathname : '',
       },
     });
   }
