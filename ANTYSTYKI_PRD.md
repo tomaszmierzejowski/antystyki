@@ -114,6 +114,10 @@ To become the leading platform for thought-provoking, statistically-based humor 
    - **[Feature ID: STAT-HOME-TOGGLE]** Surface the `Statystyki` hub as a co-primary home experience alongside `Antystyki`, with a desktop toggle adjacent to the `Dodaj Antytyk` CTA and mobile swipe gestures to switch views
    - **[Feature ID: STAT-FILTER-REFINE]** Replace the horizontal category filter list with a compact filter control (modal, sheet, or similar) and emphasize contextual hashtags or chips within cards to preserve rapid discovery without consuming hero space
    - [x] Cross-platform share actions with canonical slugs, nuanced mission copy, and GA4 telemetry (`share_button_v1`) aligned with §§1.1, 5.1
+6. **Website Statistics Dashboard (Feature ID: F11)**
+   - Aggregate cookieless visitor metrics and GA4 insights for owner oversight
+   - Backend endpoint `/api/admin/statistics/summary` with 15-minute caching window
+   - Frontend admin view `/admin/statistics` restricted to tmierzejowski@gmail.com
 
 #### Success Metrics
 - Application uptime >99%

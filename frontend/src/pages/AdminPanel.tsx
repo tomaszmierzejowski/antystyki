@@ -16,6 +16,7 @@ const AdminPanel: React.FC = () => {
   const [statisticsError, setStatisticsError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'statistics' | 'antistics'>('statistics');
   const { user } = useAuth();
+  const canViewWebsiteStats = user?.email?.toLowerCase() === 'tmierzejowski@gmail.com';
 
   useEffect(() => {
     fetchPendingAntistics();
@@ -368,6 +369,16 @@ const AdminPanel: React.FC = () => {
               <span className="ml-2 px-2 py-1 bg-gray-200 text-gray-700 rounded-full text-xs">
                 {user.role}
               </span>
+            )}
+            {canViewWebsiteStats && (
+              <div className="mt-3">
+                <Link
+                  to="/admin/statistics"
+                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-900 text-white text-xs font-medium hover:bg-gray-800 transition-colors"
+                >
+                  📈 Website Statistics
+                </Link>
+              </div>
             )}
           </div>
         </div>

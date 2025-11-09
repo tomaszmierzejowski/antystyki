@@ -628,3 +628,9 @@ Happy analyzing! 🎉📈
 - Requires `VISITOR_METRICS_HASH_SECRET` in production `.env`.
 - Documented in `ANALYTICS_GUIDE.md` and Privacy Policy section 7.5.
 
+### Website Statistics Dashboard (Feature F11)
+- React page `/admin/statistics` (WebsiteStatistics.tsx) gated to tmierzejowski@gmail.com.
+- Fetches `/api/admin/statistics/summary` and displays Today/7d/30d/365d/Overall KPIs.
+- Optional Recharts bar chart comparing page views vs unique visitors.
+- Unauthorized users are redirected to `/?message=Access%20Denied`.
+

@@ -96,8 +96,9 @@
 | GL-C04 | Configure automated database backups | ⏳ Pending | 🔴 Critical | DevOps | Oct 24 | §10.1 | 1h | Daily backups to separate storage |
 | GL-C05 | Run final security audit (OWASP checklist) | ⏳ Pending | 🔴 Critical | Security | Oct 25 | §4.3, §8.1 | 2h | Check for common vulnerabilities |
 | GL-C06 | Performance testing (load, stress, endurance) | ⏳ Pending | 🟡 High | QA | Oct 25 | §4.2, §3.1.4 | 2h | Ensure 1000+ concurrent user support |
+| GL-C07 | Verify admin statistics access control | ⏳ Pending | 🔴 Critical | Product Owner | Oct 25 | §3.1 (F11) | 20m | Confirm tylko tmierzejowski@gmail.com widzi panel „Website Statistics" |
 
-**Subtotal: Day 8-10** - 6 tasks, 9 hours estimated
+**Subtotal: Day 8-10** - 7 tasks, 9 hours estimated
 
 ---
 

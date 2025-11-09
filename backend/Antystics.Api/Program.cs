@@ -1,3 +1,5 @@
+using System;
+using System.Security.Claims;
 using System.Text;
 using Antystics.Api.Extensions;
 using Antystics.Core.Entities;
@@ -15,6 +17,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddMemoryCache();
 
 // Configure Swagger with JWT authentication
 builder.Services.AddSwaggerGen(c =>
@@ -91,7 +94,18 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminOnly", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.RequireAssertion(context =>
+        {
+            var email = context.User.FindFirstValue(ClaimTypes.Email);
+            return email is not null && string.Equals(email, "tmierzejowski@gmail.com", StringComparison.OrdinalIgnoreCase);
+        });
+    });
+});
 
 // Register application services
 builder.Services.AddScoped<ITokenService, TokenService>();

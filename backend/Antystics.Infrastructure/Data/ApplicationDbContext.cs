@@ -21,6 +21,7 @@ public class ApplicationDbContext : IdentityDbContext<User, IdentityRole<Guid>, 
     public DbSet<Category> Categories { get; set; }
     public DbSet<AntisticCategory> AntisticCategories { get; set; }
     public DbSet<EmailVerificationToken> EmailVerificationTokens { get; set; }
+    public DbSet<GaStatistic> GaStatistics { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -227,6 +228,20 @@ public class ApplicationDbContext : IdentityDbContext<User, IdentityRole<Guid>, 
 
             entity.HasIndex(e => e.Token);
             entity.HasIndex(e => new { e.Email, e.IsUsed });
+        });
+
+        builder.Entity<GaStatistic>(entity =>
+        {
+            entity.ToTable("ga_statistics");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).ValueGeneratedOnAdd();
+            entity.Property(e => e.Date).HasColumnType("date");
+            entity.Property(e => e.TotalPageViews).HasColumnType("bigint");
+            entity.Property(e => e.UniqueVisitors).HasColumnType("bigint");
+            entity.Property(e => e.TotalBotRequests).HasColumnType("bigint");
+            entity.Property(e => e.UniqueBots).HasColumnType("bigint");
+            entity.Property(e => e.HumanPageViews).HasColumnType("bigint");
+            entity.HasIndex(e => e.Date).IsUnique();
         });
     }
 }

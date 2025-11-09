@@ -873,4 +873,5 @@ trackUserLogin('email');
 - [ ] Ensure `VISITOR_METRICS_HASH_SECRET` is set on production.
 - [ ] Monitor log directory size (expected to be a few KB per day).
 - [ ] Include counts in weekly operational dashboards if needed.
+- [ ] Schedule GA4 collector to upsert daily rows into `ga_statistics` (run after 02:00 CET).
 

@@ -128,4 +128,18 @@ export interface CreateCommentRequest {
   content: string;
 }
 
+export interface AdminStatisticsSummaryBlock {
+  totalPageViews: number;
+  uniqueVisitors: number;
+  humanPageViews: number;
+}
+
+export interface AdminStatisticsSummary {
+  today: AdminStatisticsSummaryBlock;
+  last7Days: AdminStatisticsSummaryBlock;
+  last30Days: AdminStatisticsSummaryBlock;
+  last365Days: AdminStatisticsSummaryBlock;
+  overall: AdminStatisticsSummaryBlock;
+}
+
 
