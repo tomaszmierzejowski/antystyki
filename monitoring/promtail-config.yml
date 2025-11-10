@@ -16,28 +16,32 @@ scrape_configs:
       - host: unix:///var/run/docker.sock
         refresh_interval: 5s
     relabel_configs:
-      # Set job label (guaranteed to exist)
-      - target_label: job
-        replacement: container-logs
-      # Set container label - use simple regex that always matches
-      - source_labels: ['__meta_docker_container_name']
-        target_label: container
-        regex: '(.*)'
-        replacement: '${1}'
-      # Remove leading slash from container name
-      - source_labels: ['container']
-        target_label: container
-        regex: '/(.+)'
-        replacement: '${1}'
-      # Set service label from Docker label
-      - source_labels: ['__meta_docker_container_label_logging_antystics_service']
-        target_label: service
-        regex: '(.*)'
-        replacement: '${1}'
-      # Only keep containers with our logging label (do this AFTER setting labels)
+      # FIRST: Filter containers - drop those without our logging label
       - source_labels: ['__meta_docker_container_label_logging_antystics_app']
         regex: "true"
         action: keep
+      # SECOND: Set job label unconditionally (this MUST exist)
+      - target_label: job
+        replacement: container-logs
+      # THIRD: Set container label - handle both /name and name formats
+      - source_labels: ['__meta_docker_container_name']
+        target_label: container
+        regex: '/(.+)'
+        replacement: '${1}'
+      - source_labels: ['__meta_docker_container_name']
+        target_label: container
+        regex: '(.+)'
+        replacement: '${1}'
+      # FOURTH: Set service label if available
+      - source_labels: ['__meta_docker_container_label_logging_antystics_service']
+        target_label: service
+        regex: '(.+)'
+        replacement: '${1}'
+      # FIFTH: Ensure container label always exists (fallback)
+      - source_labels: ['__meta_docker_container_id']
+        target_label: container
+        regex: '(.+)'
+        replacement: '${1}'
     pipeline_stages:
       - docker: {}
       - json:
@@ -48,7 +52,5 @@ scrape_configs:
             correlationId: CorrelationId
             exception: '["@x"]'
           on_error: keep
-      # Temporarily removed labels stage - it was causing labels to be stripped
-      # We'll query by container and service labels instead, and filter by level in queries
       - output:
           source: message
