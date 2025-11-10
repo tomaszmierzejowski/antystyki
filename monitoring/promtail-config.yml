@@ -36,7 +36,6 @@ scrape_configs:
           expressions:
             level: '@l'
             message: '@m'
-            serviceProperty: service
             eventType: EventType
             correlationId: CorrelationId
             exception: '@x'
@@ -45,7 +44,7 @@ scrape_configs:
           level:
           eventType:
           correlationId:
-          service: serviceProperty
+          service: service
       - output:
           source: message
 
