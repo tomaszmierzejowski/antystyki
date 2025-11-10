@@ -48,10 +48,7 @@ scrape_configs:
             correlationId: CorrelationId
             exception: '["@x"]'
           on_error: keep
-      # Promote extracted JSON fields to labels
-      - labels:
-          level:
-          eventType:
-          correlationId:
+      # Temporarily removed labels stage - it was causing labels to be stripped
+      # We'll query by container and service labels instead, and filter by level in queries
       - output:
           source: message

@@ -103,7 +103,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "sum by (service) (count_over_time({level=\"error\"}[5m]))",
+          "expr": "sum by (service) (count_over_time({service=\"backend\"} | json | level = \"error\" [5m]))",
           "legendFormat": "{{service}}",
           "range": true,
           "refId": "A"
@@ -194,7 +194,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "sum by (Reason) (count_over_time({eventType=\"auth.failed_login\"}[1h]))",
+          "expr": "sum by (Reason) (count_over_time({service=\"backend\"} | json | eventType = \"auth.failed_login\" [1h]))",
           "legendFormat": "{{Reason}}",
           "range": true,
           "refId": "A"
@@ -268,7 +268,7 @@
             "uid": "loki"
           },
           "editorMode": "code",
-          "expr": "topk(\r\n  10,\r\n  sum by (RequestPath) (\r\n    count_over_time(\r\n      {service=\"antystics-api\"}\r\n      | json\r\n      | label_format RequestPath=\"{{.RequestPath}}\"\r\n      | RequestPath != \"\"\r\n    [30m])\r\n  )\r\n)",
+          "expr": "topk(\r\n  10,\r\n  sum by (RequestPath) (\r\n    count_over_time(\r\n      {service=\"backend\"}\r\n      | json\r\n      | label_format RequestPath=\"{{.RequestPath}}\"\r\n      | RequestPath != \"\"\r\n    [30m])\r\n  )\r\n)",
           "legendFormat": "{{RequestPath}}",
           "queryType": "range",
           "range": true,
@@ -371,7 +371,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "sum by (component) (count_over_time({eventType=\"frontend.js_error\"}[1h]))",
+          "expr": "sum by (component) (count_over_time({service=\"backend\"} | json | eventType = \"frontend.js_error\" [1h]))",
           "legendFormat": "{{component}}",
           "range": true,
           "refId": "A"
