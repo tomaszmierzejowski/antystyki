@@ -19,17 +19,22 @@ scrape_configs:
       - source_labels: ['__meta_docker_container_label_logging_antystics_app']
         regex: "true"
         action: keep
-      - source_labels: ['__meta_docker_container_label_logging_antystics_service']
-        target_label: service
       - source_labels: ['__meta_docker_container_name']
         regex: '/?(?P<name>[^/]+)'
         target_label: container
+        replacement: '${1}'
+      - source_labels: ['__meta_docker_container_label_logging_antystics_service']
+        target_label: service
+        replacement: '${1}'
       - source_labels: ['__meta_docker_container_id']
         target_label: container_id
+        replacement: '${1}'
       - source_labels: ['__meta_docker_container_label_com_docker_compose_project']
         target_label: compose_project
+        replacement: '${1}'
       - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
         target_label: compose_service
+        replacement: '${1}'
     pipeline_stages:
       - docker: {}
       - json:
@@ -39,7 +44,7 @@ scrape_configs:
             eventType: EventType
             correlationId: CorrelationId
             exception: '["@x"]'
-          on_error: drop
+          on_error: keep
       - labels:
           level:
           eventType:
