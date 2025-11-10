@@ -126,7 +126,7 @@ services:
       - antystics-network
 
   promtail:
-    image: grafana/promtail:3.0.0
+    image: grafana/promtail:2.9.3
     container_name: antystics-promtail
     restart: always
     command: -config.file=/etc/promtail/promtail-config.yml
