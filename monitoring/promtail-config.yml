@@ -34,12 +34,12 @@ scrape_configs:
       - docker: {}
       - json:
           expressions:
-            level: '@l'
-            message: '@m'
+            level: '["@l"]'
+            message: '["@m"]'
             service: service
             eventType: EventType
             correlationId: CorrelationId
-            exception: '@x'
+            exception: '["@x"]'
           on_error: drop
       - labels:
           level:
