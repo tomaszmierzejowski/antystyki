@@ -18,7 +18,6 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": null,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -33,6 +32,7 @@
             "mode": "palette-classic"
           },
           "custom": {
+            "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
             "axisLabel": "",
@@ -46,6 +46,7 @@
               "tooltip": false,
               "viz": false
             },
+            "insertNulls": false,
             "lineInterpolation": "smooth",
             "lineWidth": 2,
             "pointSize": 4,
@@ -122,6 +123,7 @@
             "mode": "palette-classic"
           },
           "custom": {
+            "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
             "axisLabel": "",
@@ -135,6 +137,7 @@
               "tooltip": false,
               "viz": false
             },
+            "insertNulls": false,
             "lineInterpolation": "smooth",
             "lineWidth": 2,
             "pointSize": 4,
@@ -209,7 +212,10 @@
         "defaults": {
           "custom": {
             "align": "auto",
-            "displayMode": "color-text"
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
           },
           "mappings": [],
           "thresholds": {
@@ -237,6 +243,15 @@
       },
       "id": 3,
       "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
         "showHeader": true,
         "sortBy": [
           {
@@ -248,9 +263,14 @@
       "pluginVersion": "11.1.0",
       "targets": [
         {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
           "editorMode": "code",
-          "expr": "topk(10, sum by (RequestPath) (count_over_time({service=\"antystics-api\"} | json | label_format RequestPath={{RequestPath}} | RequestPath!=\"\" [30m])))",
+          "expr": "topk(\r\n  10,\r\n  sum by (RequestPath) (\r\n    count_over_time(\r\n      {service=\"antystics-api\"}\r\n      | json\r\n      | label_format RequestPath=\"{{.RequestPath}}\"\r\n      | RequestPath != \"\"\r\n    [30m])\r\n  )\r\n)",
           "legendFormat": "{{RequestPath}}",
+          "queryType": "range",
           "range": true,
           "refId": "A"
         }
@@ -280,6 +300,7 @@
             "mode": "palette-classic"
           },
           "custom": {
+            "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
             "axisLabel": "",
@@ -293,6 +314,7 @@
               "tooltip": false,
               "viz": false
             },
+            "insertNulls": false,
             "lineInterpolation": "smooth",
             "lineWidth": 2,
             "pointSize": 4,
@@ -361,7 +383,6 @@
   ],
   "refresh": "30s",
   "schemaVersion": 39,
-  "style": "dark",
   "tags": [
     "logging",
     "antystics"
@@ -380,4 +401,3 @@
   "version": 1,
   "weekStart": ""
 }
-
