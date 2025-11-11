@@ -9,6 +9,13 @@ on:
 env:
   DOCKER_IMAGE: antystyki/app
   DOCKER_TAG: ${{ github.sha }}
+  VITE_GA4_MEASUREMENT_ID: ${{ secrets.VITE_GA4_MEASUREMENT_ID }}
+  VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+  VITE_ADSENSE_PUBLISHER_ID: ${{ secrets.VITE_ADSENSE_PUBLISHER_ID }}
+  VITE_ADSENSE_HEADER_SLOT: ${{ secrets.VITE_ADSENSE_HEADER_SLOT }}
+  VITE_ADSENSE_IN_FEED_SLOT: ${{ secrets.VITE_ADSENSE_IN_FEED_SLOT }}
+  VITE_ADSENSE_SIDEBAR_SLOT: ${{ secrets.VITE_ADSENSE_SIDEBAR_SLOT }}
+  GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
   GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
   GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
   
@@ -98,6 +105,14 @@ jobs:
             ${{ env.DOCKER_IMAGE }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: |
+            VITE_GA4_MEASUREMENT_ID=${{ env.VITE_GA4_MEASUREMENT_ID }}
+            VITE_GOOGLE_CLIENT_ID=${{ env.VITE_GOOGLE_CLIENT_ID }}
+            VITE_ADSENSE_PUBLISHER_ID=${{ env.VITE_ADSENSE_PUBLISHER_ID }}
+            VITE_ADSENSE_HEADER_SLOT=${{ env.VITE_ADSENSE_HEADER_SLOT }}
+            VITE_ADSENSE_IN_FEED_SLOT=${{ env.VITE_ADSENSE_IN_FEED_SLOT }}
+            VITE_ADSENSE_SIDEBAR_SLOT=${{ env.VITE_ADSENSE_SIDEBAR_SLOT }}
+            GOOGLE_CLIENT_ID=${{ env.GOOGLE_CLIENT_ID }}
           outputs: type=docker,dest=/tmp/antystyki-image.tar
           
       - name: 📤 Upload Docker Image Artifact
