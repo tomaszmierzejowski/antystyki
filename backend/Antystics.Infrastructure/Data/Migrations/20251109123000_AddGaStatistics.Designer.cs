@@ -807,17 +807,35 @@ namespace Antystics.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("Antystics.Core.Entities.User", b =>
                 {
-                    b.Navigation("Antistics");
+                    if (b.Metadata.FindNavigation("Antistics") is not null)
+                    {
+                        b.Navigation("Antistics");
+                    }
 
-                    b.Navigation("Comments");
+                    if (b.Metadata.FindNavigation("Comments") is not null)
+                    {
+                        b.Navigation("Comments");
+                    }
 
-                    b.Navigation("Likes");
+                    if (b.Metadata.FindNavigation("Likes") is not null)
+                    {
+                        b.Navigation("Likes");
+                    }
 
-                    b.Navigation("Reports");
+                    if (b.Metadata.FindNavigation("Reports") is not null)
+                    {
+                        b.Navigation("Reports");
+                    }
 
-                    b.Navigation("StatisticVotes");
+                    if (b.Metadata.FindNavigation("StatisticVotes") is not null)
+                    {
+                        b.Navigation("StatisticVotes");
+                    }
 
-                    b.Navigation("Statistics");
+                    if (b.Metadata.FindNavigation("Statistics") is not null)
+                    {
+                        b.Navigation("Statistics");
+                    }
                 });
 
             modelBuilder.Entity("Antystics.Core.Entities.Antistic", b =>
