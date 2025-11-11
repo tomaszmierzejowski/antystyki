@@ -64,7 +64,7 @@ const Navbar: React.FC = () => {
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gray-900 group-hover:w-full transition-all duration-300"></span>
             </Link>
             <Link 
-              to="/categories" 
+              to="/topka" 
               className="text-sm font-normal text-gray-600 hover:text-gray-900 transition-colors relative group"
             >
               Topka
@@ -169,7 +169,7 @@ const Navbar: React.FC = () => {
                 Dodaj
               </Link>
               <Link 
-                to="/categories" 
+                to="/topka" 
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="block text-sm font-normal text-gray-600 hover:text-gray-900 transition-colors py-2"
               >

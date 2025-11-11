@@ -19,6 +19,8 @@ import ChartDataTest from './components/ChartDataTest';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import Statistics from './pages/Statistics';
+import TopkaPage from './pages/Topka';
+import AboutPage from './pages/About';
 import CreateStatisticPage from './pages/CreateStatistic';
 import StatisticDetailPage from './pages/StatisticDetail';
 import AntisticDetailPage from './pages/AntisticDetail';
@@ -55,12 +57,14 @@ function App() {
             <Route path="/contact" element={<Contact />} />
             <Route path="/statistics/:slug" element={<StatisticDetailPage />} />
             <Route path="/statistics" element={<Statistics />} />
+            <Route path="/topka" element={<TopkaPage />} />
             <Route path="/admin/statistics" element={<WebsiteStatistics />} />
             <Route path="/admin/statistics/create" element={<CreateStatisticPage />} />
             <Route path="/create" element={<CreateAntistic />} />
             <Route path="/admin" element={<AdminPanel />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/terms" element={<TermsOfService />} />
+            <Route path="/about" element={<AboutPage />} />
             <Route path="/buttons" element={<ButtonShowcase />} />
             <Route path="/templates" element={<TemplateShowcase />} />
             <Route path="/test-anonymous" element={<AnonymousTest />} />
