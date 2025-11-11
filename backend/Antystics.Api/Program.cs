@@ -294,10 +294,10 @@ app.Use(async (context, next) =>
         context.Response.Headers.Append("Content-Security-Policy", 
             "default-src 'self'; " +
             "img-src 'self' data: https:; " +
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com; " +
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://accounts.google.com https://apis.google.com; " +
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
             "font-src 'self' https://fonts.gstatic.com data:; " +
-            "connect-src 'self' https://www.google-analytics.com https://region1.analytics.google.com https://region1.google-analytics.com https://*.google-analytics.com https://www.googletagmanager.com;" );
+            "connect-src 'self' https://www.google-analytics.com https://region1.analytics.google.com https://region1.google-analytics.com https://*.google-analytics.com https://www.googletagmanager.com https://accounts.google.com https://apis.google.com;" );
     }
     
     // Strict Transport Security (HSTS) - enforce HTTPS
