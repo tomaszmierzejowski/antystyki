@@ -37,30 +37,33 @@ const AdSenseAd: React.FC<AdSenseAdProps> = ({
   const publisherId = import.meta.env.VITE_ADSENSE_PUBLISHER_ID;
 
   useEffect(() => {
-    // Only load ads if publisher ID is configured
-    if (publisherId && publisherId !== 'PLACEHOLDER') {
-      try {
-        const queue: AdsByGoogleQueue = window.adsbygoogle ?? [];
-        queue.push({});
-        window.adsbygoogle = queue;
-      } catch (error) {
-        console.error('AdSense error:', error);
-      }
+    if (!publisherId || publisherId === 'PLACEHOLDER') {
+      return;
+    }
+
+    const scriptId = 'adsbygoogle-init';
+    const existingScript = document.getElementById(scriptId) as HTMLScriptElement | null;
+
+    if (!existingScript) {
+      const script = document.createElement('script');
+      script.id = scriptId;
+      script.async = true;
+      script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${publisherId}`;
+      script.crossOrigin = 'anonymous';
+      document.head.appendChild(script);
+    }
+
+    try {
+      const queue: AdsByGoogleQueue = window.adsbygoogle ?? [];
+      queue.push({});
+      window.adsbygoogle = queue;
+    } catch (error) {
+      console.error('AdSense error:', error);
     }
   }, [publisherId]);
 
-  // Don't render if AdSense is not configured
   if (!publisherId || publisherId === 'PLACEHOLDER') {
-    return (
-      <div className={`bg-gray-100 border border-gray-300 rounded-lg p-4 text-center ${className}`}>
-        <p className="text-sm text-gray-500">
-          📢 Ad space (AdSense not configured)
-        </p>
-        <p className="text-xs text-gray-400 mt-1">
-          Set VITE_ADSENSE_PUBLISHER_ID to enable
-        </p>
-      </div>
-    );
+    return null;
   }
 
   return (

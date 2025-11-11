@@ -6,6 +6,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { AntisticData } from '../types/templates';
+import { CHART_COLORS } from '../types/templates';
 import { generateSegmentsFromData, createPerspectiveData } from './charts/chartUtils';
 
 interface Props {
@@ -18,39 +19,51 @@ interface Props {
 type ChartMode = 'pie' | 'bar' | 'line';
 
 type SegmentValue = number | '';
+type SegmentColor = string | null;
 
 interface Segment {
   label: string;
   percentage: SegmentValue;
+  color: SegmentColor;
 }
 
-interface NumericSegment {
+interface SanitizedSegment {
   label: string;
   percentage: number;
+  color?: string;
 }
 
 type SegmentField = 'sourceSegments' | 'singleSegments' | 'comparisonLeftSegments';
 
 const DEFAULT_SEGMENTS: Segment[] = [
-  { label: 'Kategoria A', percentage: 40 },
-  { label: 'Kategoria B', percentage: 35 },
-  { label: 'Kategoria C', percentage: 25 },
+  { label: 'Kategoria A', percentage: 40, color: null },
+  { label: 'Kategoria B', percentage: 35, color: null },
+  { label: 'Kategoria C', percentage: 25, color: null },
 ];
 
-const sanitizeSegments = (segments: Segment[]): NumericSegment[] =>
+const getDefaultColor = (index: number): string =>
+  CHART_COLORS[index % CHART_COLORS.length];
+
+const sanitizeSegments = (segments: Segment[]): SanitizedSegment[] =>
   segments.map((segment, index) => {
     const numeric =
       typeof segment.percentage === 'number' && Number.isFinite(segment.percentage)
         ? segment.percentage
         : 0;
+
+    const cleanedLabel = segment.label?.trim() || `Kategoria ${index + 1}`;
+    const customColor =
+      segment.color && /^#([0-9a-f]{3}){1,2}$/i.test(segment.color) ? segment.color : undefined;
+
     return {
-      label: segment.label?.trim() || `Kategoria ${index + 1}`,
+      label: cleanedLabel,
       percentage: numeric,
+      color: customColor,
     };
   });
 
-const segmentsToPoints = (segments: Segment[]) =>
-  sanitizeSegments(segments).map((segment) => ({
+const segmentsToPoints = (segments: SanitizedSegment[]) =>
+  segments.map((segment) => ({
     label: segment.label,
     value: segment.percentage,
   }));
@@ -84,26 +97,29 @@ interface FormState {
 const buildInitialState = (initialData?: Partial<AntisticData> | null): FormState => {
   const perspective = initialData?.perspectiveData;
 
-  const sourceSegments = initialData?.sourceData?.segments?.length
-    ? sanitizeSegments(initialData.sourceData.segments.map((segment) => ({
-        label: segment.label,
-        percentage: segment.percentage,
-      })))
-    : DEFAULT_SEGMENTS;
+  const cloneDefaultSegments = (): Segment[] =>
+    DEFAULT_SEGMENTS.map((segment) => ({ ...segment }));
 
-  const singleSegments = initialData?.singleChartData?.segments?.length
-    ? sanitizeSegments(initialData.singleChartData.segments.map((segment) => ({
-        label: segment.label,
-        percentage: segment.percentage,
-      })))
-    : sourceSegments;
+  const toSegmentState = (
+    segments?: Array<{ label: string; percentage: number; color?: string }>
+  ): Segment[] =>
+    segments && segments.length
+      ? segments.map((segment) => ({
+          label: segment.label,
+          percentage: segment.percentage,
+          color: segment.color ?? null,
+        }))
+      : cloneDefaultSegments();
 
-  const comparisonLeftSegments = initialData?.comparisonData?.leftChart?.segments?.length
-    ? sanitizeSegments(initialData.comparisonData.leftChart.segments.map((segment) => ({
-        label: segment.label,
-        percentage: segment.percentage,
-      })))
-    : sourceSegments;
+  const sourceSegments = toSegmentState(initialData?.sourceData?.segments);
+  const singleSegments =
+    initialData?.singleChartData?.segments?.length
+      ? toSegmentState(initialData.singleChartData.segments)
+      : sourceSegments.map((segment) => ({ ...segment }));
+  const comparisonLeftSegments =
+    initialData?.comparisonData?.leftChart?.segments?.length
+      ? toSegmentState(initialData.comparisonData.leftChart.segments)
+      : sourceSegments.map((segment) => ({ ...segment }));
 
   const sourceChartType = (initialData?.sourceData?.type as ChartMode | undefined)
     ?? (initialData?.sourceData?.points?.length ? 'bar' : 'pie');
@@ -359,7 +375,7 @@ const ChartDataInput: React.FC<Props> = ({ templateId, onDataChange, className =
   const addSegment = (field: SegmentField) => {
     setFormData((prev) => ({
       ...prev,
-      [field]: [...prev[field], { label: '', percentage: 0 }],
+      [field]: [...prev[field], { label: '', percentage: '', color: null }],
     }));
   };
 
@@ -438,36 +454,92 @@ const ChartDataInput: React.FC<Props> = ({ templateId, onDataChange, className =
         <p className="text-sm text-gray-500">{emptyMessage}</p>
       ) : (
         <div className="space-y-3">
-          {formData[field].map((segment, index) => (
-            <div key={`${field}-${index}`} className="grid grid-cols-1 md:grid-cols-[2fr,1fr,auto] gap-3 p-3 border border-gray-200 rounded-lg">
-              <input
-                type="text"
-                value={segment.label}
-                onChange={(e) => updateSegmentField(field, index, 'label', e.target.value)}
-                placeholder="Nazwa kategorii"
-                className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-accent focus:border-accent"
-              />
+          {formData[field].map((segment, index) => {
+            const defaultColor = getDefaultColor(index);
+            const colorValue = segment.color ?? defaultColor;
 
-              <input
-                type="number"
-                step="0.1"
-                value={segment.percentage === '' ? '' : segment.percentage}
-                onChange={(e) => updateSegmentField(field, index, 'percentage', e.target.value)}
-                placeholder={mode === 'pie' ? 'Procent' : 'Wartość'}
-                className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-accent focus:border-accent"
-              />
+            return (
+              <div
+                key={`${field}-${index}`}
+                className="grid grid-cols-1 gap-3 p-3 border border-gray-200 rounded-lg md:grid-cols-[2fr,1fr,auto]"
+              >
+                <input
+                  type="text"
+                  value={segment.label}
+                  onChange={(e) => updateSegmentField(field, index, 'label', e.target.value)}
+                  placeholder="Nazwa kategorii"
+                  className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-accent focus:border-accent"
+                />
 
-              {formData[field].length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => removeSegment(field, index)}
-                  className="text-red-500 hover:text-red-700 text-sm"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-          ))}
+                <input
+                  type="number"
+                  step="0.1"
+                  value={segment.percentage === '' ? '' : segment.percentage}
+                  onChange={(e) => updateSegmentField(field, index, 'percentage', e.target.value)}
+                  placeholder={mode === 'pie' ? 'Procent' : 'Wartość'}
+                  className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-accent focus:border-accent"
+                />
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={colorValue}
+                    onChange={(e) =>
+                      setFormData((prev) => {
+                        const next = [...prev[field]];
+                        if (!next[index]) {
+                          return prev;
+                        }
+                        next[index] = {
+                          ...next[index],
+                          color: e.target.value,
+                        };
+                        return {
+                          ...prev,
+                          [field]: next,
+                        };
+                      })
+                    }
+                    className="h-9 w-12 cursor-pointer rounded border border-gray-300 bg-white"
+                    title="Wybierz kolor segmentu"
+                  />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setFormData((prev) => {
+                        const next = [...prev[field]];
+                        if (!next[index]) {
+                          return prev;
+                        }
+                        next[index] = {
+                          ...next[index],
+                          color: null,
+                        };
+                        return {
+                          ...prev,
+                          [field]: next,
+                        };
+                      })
+                    }
+                    className="text-xs text-gray-500 hover:text-gray-700 transition"
+                    disabled={segment.color === null}
+                  >
+                    Domyślny
+                  </button>
+
+                  {formData[field].length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeSegment(field, index)}
+                      className="text-red-500 hover:text-red-700 text-sm"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -494,8 +566,9 @@ const ChartDataInput: React.FC<Props> = ({ templateId, onDataChange, className =
       )}
 
       {mode !== 'pie' && (
-        <div className="text-xs text-gray-400">
-          Pozostaw pole puste, aby dodać wartość później.
+        <div className="text-xs text-gray-400 space-y-1">
+          <p>Możesz wybrać własne kolory dla wykresów. Kliknij „Domyślny”, aby przywrócić automatyczny dobór.</p>
+          <p>Pozostaw pole puste, aby dodać wartość później.</p>
         </div>
       )}
     </div>

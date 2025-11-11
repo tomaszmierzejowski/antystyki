@@ -163,12 +163,14 @@ const getTrimmedString = (value: unknown): string | undefined => {
   return trimmed.length > 0 ? trimmed : undefined;
 };
 
-const normalizeSimpleSegments = (value: unknown): Array<{ label: string; percentage: number }> | undefined => {
+const normalizeSimpleSegments = (
+  value: unknown
+): Array<{ label: string; percentage: number; color?: string }> | undefined => {
   if (!Array.isArray(value)) {
     return undefined;
   }
 
-  const segments: Array<{ label: string; percentage: number }> = [];
+  const segments: Array<{ label: string; percentage: number; color?: string }> = [];
 
   value.forEach((segment) => {
     if (!isRecord(segment)) {
@@ -183,7 +185,10 @@ const normalizeSimpleSegments = (value: unknown): Array<{ label: string; percent
       return;
     }
 
-    segments.push({ label, percentage });
+    const colorValue = getTrimmedString(segment['color']);
+    const color = colorValue && /^#([0-9a-f]{3}){1,2}$/i.test(colorValue) ? colorValue : undefined;
+
+    segments.push({ label, percentage, color });
   });
 
   return segments.length ? segments : undefined;
