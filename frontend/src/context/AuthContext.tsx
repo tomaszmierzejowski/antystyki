@@ -9,11 +9,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isAnonymous, setIsAnonymous] = useState(false);
 
   useEffect(() => {
-    // Check if user is logged in on mount
     const token = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
-    const isAnonymousUser = localStorage.getItem('isAnonymous') === 'true';
-    
+
     if (token && storedUser) {
       try {
         setUser(JSON.parse(storedUser));
@@ -22,24 +20,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error('Error parsing stored user:', error);
         localStorage.removeItem('token');
         localStorage.removeItem('user');
-        localStorage.removeItem('isAnonymous');
       }
-    } else if (isAnonymousUser) {
-      // Create anonymous user for temporary access
-      const anonymousUser: User = {
-        id: `anon_${Date.now()}`,
-        username: 'Anonimowy',
-        email: 'anonymous@antystyki.pl',
-        role: 'User',
-        createdAt: new Date().toISOString()
-      };
-      
-      setUser(anonymousUser);
-      setIsAnonymous(true);
-      localStorage.setItem('user', JSON.stringify(anonymousUser));
-      localStorage.setItem('isAnonymous', 'true');
+    } else {
+      setUser(null);
+      setIsAnonymous(false);
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
     }
-    
+
+    localStorage.removeItem('isAnonymous');
     setLoading(false);
   }, []);
 
@@ -48,6 +37,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('user', JSON.stringify(response.user));
     setUser(response.user);
     setIsAnonymous(false);
+    localStorage.removeItem('isAnonymous');
   };
 
   const login = async (credentials: LoginRequest) => {
@@ -76,8 +66,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     setUser(anonymousUser);
     setIsAnonymous(true);
-    localStorage.setItem('user', JSON.stringify(anonymousUser));
-    localStorage.setItem('isAnonymous', 'true');
   };
 
   const logout = () => {
@@ -88,6 +76,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsAnonymous(false);
   };
 
+  const isLoggedIn = !!user && !isAnonymous;
+
   return (
     <AuthContext.Provider
       value={{
@@ -97,7 +87,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         register,
         socialLogin,
         logout,
-        isAuthenticated: !!user,
+        isAuthenticated: isLoggedIn,
         isAnonymous,
         createAnonymousUser,
       }}

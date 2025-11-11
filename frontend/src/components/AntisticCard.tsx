@@ -430,8 +430,8 @@ const AntisticCard: React.FC<Props> = ({ antistic, templateId = 'two-column-defa
           </div>
         </div>
         <p className="text-sm text-gray-600">
-          {template.layout === 'two-column' && chartData.perspectiveData 
-            ? `${chartData.perspectiveData.mainPercentage}% wypadków drogowych powodują trzeźwi kierowcy`
+          {template.layout === 'two-column' && chartData.perspectiveData?.mainLabel
+            ? chartData.perspectiveData.mainLabel
             : chartData.description}
         </p>
       </div>

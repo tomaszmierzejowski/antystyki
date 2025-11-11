@@ -68,7 +68,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ activeView, onViewChange }) =
             onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#E55F00')}
             onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#FF6A00')}
           >
-            Dodaj Antystyk
+            Dodaj Antystykę
           </Link>
         </div>
       </div>

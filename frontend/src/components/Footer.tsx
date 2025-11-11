@@ -59,7 +59,7 @@ const Footer: React.FC = () => {
               </li>
               <li>
                 <Link to="/create" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
-                  Dodaj Antystyk
+                  Dodaj Antystykę
                 </Link>
               </li>
               <li>

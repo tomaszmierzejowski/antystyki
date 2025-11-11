@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import type { Category, Antistic, StatisticChartData } from '../types';
 import type { AntisticData } from '../types/templates';
 import api from '../config/api';
@@ -31,77 +31,76 @@ const CreateAntistic: React.FC = () => {
   
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, isAuthenticated, isAnonymous, createAnonymousUser } = useAuth();
+  const { user, isAuthenticated, isAnonymous } = useAuth();
 
   useEffect(() => {
-    fetchCategories();
-    
-    // Track that user opened the create form
-    trackCreateFormOpen();
-    
-    // Create anonymous user if not authenticated
-    if (!isAuthenticated && !isAnonymous) {
-      createAnonymousUser();
+    if (!isAuthenticated) {
+      return;
     }
 
-    const navigationState = location.state as { fromStatisticId?: string } | null;
-    if (navigationState?.fromStatisticId) {
-      const rawPrefill = localStorage.getItem('statistics:prefill');
+    fetchCategories();
+    trackCreateFormOpen();
 
-      if (rawPrefill) {
-        try {
-          const parsed = JSON.parse(rawPrefill) as {
-            statisticId?: string;
-            antisticData?: Partial<AntisticData>;
-            statisticSnapshot?: {
-              title?: string;
-              summary?: string;
-              description?: string | null;
-              sourceUrl?: string;
-              chartData?: unknown;
-            };
+    const navigationState = location.state as { fromStatisticId?: string } | null;
+    if (!navigationState?.fromStatisticId) {
+      return;
+    }
+
+    const rawPrefill = localStorage.getItem('statistics:prefill');
+
+    if (rawPrefill) {
+      try {
+        const parsed = JSON.parse(rawPrefill) as {
+          statisticId?: string;
+          antisticData?: Partial<AntisticData>;
+          statisticSnapshot?: {
             title?: string;
             summary?: string;
+            description?: string | null;
             sourceUrl?: string;
             chartData?: unknown;
           };
+          title?: string;
+          summary?: string;
+          sourceUrl?: string;
+          chartData?: unknown;
+        };
 
-          const snapshot =
-            parsed.statisticSnapshot
-              ? {
-                  ...parsed.statisticSnapshot,
-                  chartData: parsed.statisticSnapshot.chartData as StatisticChartData | undefined,
-                }
-              : {
-                  title: parsed.title,
-                  summary: parsed.summary,
-                  description: null,
-                  sourceUrl: parsed.sourceUrl,
-                  chartData: parsed.chartData as StatisticChartData | undefined,
-                };
+        const snapshot =
+          parsed.statisticSnapshot
+            ? {
+                ...parsed.statisticSnapshot,
+                chartData: parsed.statisticSnapshot.chartData as StatisticChartData | undefined,
+              }
+            : {
+                title: parsed.title,
+                summary: parsed.summary,
+                description: null,
+                sourceUrl: parsed.sourceUrl,
+                chartData: parsed.chartData as StatisticChartData | undefined,
+              };
 
-          const antisticData: Partial<AntisticData> = parsed.antisticData
-            ?? buildAntisticPrefillFromSnapshot(snapshot);
+        const antisticData: Partial<AntisticData> = parsed.antisticData
+          ?? buildAntisticPrefillFromSnapshot(snapshot);
 
-          const templateFromData = antisticData?.templateId ?? 'single-chart';
+        const templateFromData = antisticData?.templateId ?? 'single-chart';
 
-          setSelectedTemplate(templateFromData);
-          setPrefillData(antisticData ?? null);
-          setChartPrefillKey(`stat-${navigationState.fromStatisticId}-${Date.now()}`);
-          setChartData((prev) => ({
-            ...prev,
-            ...(antisticData ?? {}),
-            templateId: templateFromData,
-          }));
-        } catch (error) {
-          console.warn('Nie udało się odczytać danych statystyki do wstępnego wypełnienia', error);
-        }
+        setSelectedTemplate(templateFromData);
+        setPrefillData(antisticData ?? null);
+        setChartPrefillKey(`stat-${navigationState.fromStatisticId}-${Date.now()}`);
+        setChartData((prev) => ({
+          ...prev,
+          ...(antisticData ?? {}),
+          templateId: templateFromData,
+        }));
+      } catch (error) {
+        console.warn('Nie udało się odczytać danych statystyki do wstępnego wypełnienia', error);
       }
-
-      localStorage.removeItem('statistics:prefill');
-      navigate(location.pathname, { replace: true, state: {} });
     }
-  }, [isAuthenticated, isAnonymous, createAnonymousUser, location.pathname, location.state, navigate]);
+
+    localStorage.removeItem('statistics:prefill');
+    navigate(location.pathname, { replace: true, state: {} });
+  }, [isAuthenticated, location.pathname, location.state, navigate]);
 
   const fetchCategories = async () => {
     try {
@@ -128,9 +127,8 @@ const CreateAntistic: React.FC = () => {
       return;
     }
 
-    // Ensure we have a user (anonymous or authenticated)
-    if (!user) {
-      setError('Wystąpił błąd z autentykacją');
+    if (!isAuthenticated || !user) {
+      setError('Zaloguj się, aby tworzyć antystyki.');
       return;
     }
 
@@ -161,9 +159,6 @@ const CreateAntistic: React.FC = () => {
         setError('');
         alert('Szkic został zapisany!');
       } else {
-        if (isAnonymous) {
-          alert('Antystyk został wysłany do moderacji! Jako użytkownik anonimowy, możesz zalogować się aby śledzić status swojego antystyku.');
-        }
         navigate('/');
       }
     } catch (error: unknown) {
@@ -183,6 +178,16 @@ const CreateAntistic: React.FC = () => {
   };
 
   // Create mock antistic for preview
+  const previewOwner =
+    user ??
+    {
+      id: 'preview-user',
+      username: 'Ty',
+      email: 'user@antystyki.pl',
+      role: 'User' as const,
+      createdAt: new Date().toISOString(),
+    };
+
   const previewAntistic: Antistic = {
     id: 'preview',
     title: chartData.title || 'Twój tytuł...',
@@ -197,15 +202,43 @@ const CreateAntistic: React.FC = () => {
     commentsCount: 0,
     isLikedByCurrentUser: false,
     createdAt: new Date().toISOString(),
-    user: user || { id: 'current', username: 'Ty', email: 'user@antystyki.pl', role: 'User', createdAt: new Date().toISOString() },
+    user: previewOwner,
     categories: categories.filter(cat => selectedCategories.includes(cat.id)),
     backgroundImageKey: 'default'
   };
 
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-[#f8f9fb]">
+        <div className="mx-auto max-w-3xl px-6 py-16 text-center">
+          <h1 className="text-3xl font-bold text-gray-900 sm:text-4xl">Stwórz Antystykę</h1>
+          <p className="mt-4 text-gray-600 sm:text-lg">
+            Aby tworzyć antystyki, zaloguj się lub załóż konto. Dzięki temu będziesz mógł śledzić status swoich zgłoszeń
+            i wracać do szkiców.
+          </p>
+          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <Link
+              to="/login"
+              className="inline-flex items-center justify-center rounded-lg bg-gray-900 px-5 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-gray-800"
+            >
+              Zaloguj się
+            </Link>
+            <Link
+              to="/register"
+              className="inline-flex items-center justify-center rounded-lg border border-gray-300 px-5 py-2 text-sm font-medium text-gray-700 transition hover:border-gray-400 hover:text-gray-900"
+            >
+              Załóż konto
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#f8f9fb' }}>
       <div className="max-w-7xl mx-auto px-6 py-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Stwórz Antystyk</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-8">Stwórz Antystykę</h1>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Form */}

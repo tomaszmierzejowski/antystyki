@@ -17,7 +17,14 @@ interface Props {
 
 type ChartMode = 'pie' | 'bar' | 'line';
 
+type SegmentValue = number | '';
+
 interface Segment {
+  label: string;
+  percentage: SegmentValue;
+}
+
+interface NumericSegment {
   label: string;
   percentage: number;
 }
@@ -30,11 +37,17 @@ const DEFAULT_SEGMENTS: Segment[] = [
   { label: 'Kategoria C', percentage: 25 },
 ];
 
-const sanitizeSegments = (segments: Segment[]): Segment[] =>
-  segments.map((segment, index) => ({
-    label: segment.label?.trim() || `Kategoria ${index + 1}`,
-    percentage: Number.isFinite(segment.percentage) ? segment.percentage : 0,
-  }));
+const sanitizeSegments = (segments: Segment[]): NumericSegment[] =>
+  segments.map((segment, index) => {
+    const numeric =
+      typeof segment.percentage === 'number' && Number.isFinite(segment.percentage)
+        ? segment.percentage
+        : 0;
+    return {
+      label: segment.label?.trim() || `Kategoria ${index + 1}`,
+      percentage: numeric,
+    };
+  });
 
 const segmentsToPoints = (segments: Segment[]) =>
   sanitizeSegments(segments).map((segment) => ({
@@ -52,7 +65,7 @@ interface FormState {
   title: string;
   description: string;
   source: string;
-  mainPercentage: number;
+  mainPercentage: number | '';
   mainLabel: string;
   secondaryLabel: string;
   sourceSegments: Segment[];
@@ -127,7 +140,16 @@ const ChartDataInput: React.FC<Props> = ({ templateId, onDataChange, className =
   const serializedInitialData = useMemo(() => (initialData ? JSON.stringify(initialData) : null), [initialData]);
   const lastAppliedInitialData = useRef<string | null>(serializedInitialData);
 
+  const clampPercentage = (value: number | ''): number => {
+    if (typeof value !== 'number' || Number.isNaN(value)) {
+      return 0;
+    }
+    return Math.max(0, Math.min(100, value));
+  };
+
   const generateChartData = (template: string, data: FormState): Partial<AntisticData> => {
+    const mainPercentage = clampPercentage(data.mainPercentage);
+
     const baseData: Partial<AntisticData> = {
       title: data.title,
       description: data.description,
@@ -165,9 +187,9 @@ const ChartDataInput: React.FC<Props> = ({ templateId, onDataChange, className =
         return {
           ...baseData,
           perspectiveData: {
-            mainPercentage: Math.max(0, Math.min(100, data.mainPercentage)),
-            mainLabel: `${Math.max(0, Math.min(100, data.mainPercentage)).toFixed(1)}% ${data.mainLabel}`,
-            secondaryPercentage: Math.max(0, 100 - Math.max(0, Math.min(100, data.mainPercentage))),
+            mainPercentage,
+            mainLabel: `${mainPercentage.toFixed(1)}% ${data.mainLabel}`,
+            secondaryPercentage: Math.max(0, 100 - mainPercentage),
             secondaryLabel: data.secondaryLabel,
             chartColor: '#6b7280',
           },
@@ -197,14 +219,14 @@ const ChartDataInput: React.FC<Props> = ({ templateId, onDataChange, className =
         return {
           ...baseData,
           perspectiveData: {
-            mainPercentage: Math.max(0, Math.min(100, data.mainPercentage)),
-            mainLabel: `${Math.max(0, Math.min(100, data.mainPercentage)).toFixed(1)}% ${data.mainLabel}`,
-            secondaryPercentage: Math.max(0, 100 - Math.max(0, Math.min(100, data.mainPercentage))),
+            mainPercentage,
+            mainLabel: `${mainPercentage.toFixed(1)}% ${data.mainLabel}`,
+            secondaryPercentage: Math.max(0, 100 - mainPercentage),
             secondaryLabel: data.secondaryLabel,
             chartColor: '#6b7280',
           },
           textData: {
-            mainStatistic: `${Math.max(0, Math.min(100, data.mainPercentage)).toFixed(1)}% ${data.mainLabel}`,
+            mainStatistic: `${mainPercentage.toFixed(1)}% ${data.mainLabel}`,
             context: data.description,
             comparison: data.secondaryLabel,
           },
@@ -213,8 +235,8 @@ const ChartDataInput: React.FC<Props> = ({ templateId, onDataChange, className =
 
       case 'comparison': {
         const perspectiveSegments = createPerspectiveData(
-          Math.max(0, Math.min(100, data.mainPercentage)),
-          `${Math.max(0, Math.min(100, data.mainPercentage)).toFixed(1)}% ${data.mainLabel}`,
+          mainPercentage,
+          `${mainPercentage.toFixed(1)}% ${data.mainLabel}`,
           data.secondaryLabel,
           '#6b7280'
         );
@@ -264,9 +286,9 @@ const ChartDataInput: React.FC<Props> = ({ templateId, onDataChange, className =
             rightChart: buildComparisonRight(),
           },
           perspectiveData: {
-            mainPercentage: Math.max(0, Math.min(100, data.mainPercentage)),
-            mainLabel: `${Math.max(0, Math.min(100, data.mainPercentage)).toFixed(1)}% ${data.mainLabel}`,
-            secondaryPercentage: Math.max(0, 100 - Math.max(0, Math.min(100, data.mainPercentage))),
+            mainPercentage,
+            mainLabel: `${mainPercentage.toFixed(1)}% ${data.mainLabel}`,
+            secondaryPercentage: Math.max(0, 100 - mainPercentage),
             secondaryLabel: data.secondaryLabel,
             chartColor: '#6b7280',
           },
@@ -319,7 +341,12 @@ const ChartDataInput: React.FC<Props> = ({ templateId, onDataChange, className =
       if (key === 'label') {
         updated.label = value;
       } else {
-        updated.percentage = Number.parseFloat(value) || 0;
+        if (value === '') {
+          updated.percentage = '';
+        } else {
+          const parsed = Number.parseFloat(value);
+          updated.percentage = Number.isNaN(parsed) ? '' : parsed;
+        }
       }
       segments[index] = updated;
       return {
@@ -424,7 +451,7 @@ const ChartDataInput: React.FC<Props> = ({ templateId, onDataChange, className =
               <input
                 type="number"
                 step="0.1"
-                value={segment.percentage}
+                value={segment.percentage === '' ? '' : segment.percentage}
                 onChange={(e) => updateSegmentField(field, index, 'percentage', e.target.value)}
                 placeholder={mode === 'pie' ? 'Procent' : 'Wartość'}
                 className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-accent focus:border-accent"
@@ -446,10 +473,29 @@ const ChartDataInput: React.FC<Props> = ({ templateId, onDataChange, className =
 
       {mode === 'pie' && (
         <div className="text-sm text-gray-600">
-          Suma: {formData[field].reduce((sum, seg) => sum + seg.percentage, 0).toFixed(1)}%
-          {Math.abs(formData[field].reduce((sum, seg) => sum + seg.percentage, 0) - 100) > 0.5 && (
-            <span className="text-red-500 ml-2">(Dla wykresu kołowego suma powinna wynosić 100%)</span>
-          )}
+          {(() => {
+            const total = formData[field].reduce(
+              (sum, seg) => sum + (typeof seg.percentage === 'number' ? seg.percentage : 0),
+              0
+            );
+
+            return (
+              <>
+                Suma: {total.toFixed(1)}%
+                {Math.abs(total - 100) > 0.5 && (
+                  <span className="text-red-500 ml-2">
+                    (Dla wykresu kołowego suma powinna wynosić 100%)
+                  </span>
+                )}
+              </>
+            );
+          })()}
+        </div>
+      )}
+
+      {mode !== 'pie' && (
+        <div className="text-xs text-gray-400">
+          Pozostaw pole puste, aby dodać wartość później.
         </div>
       )}
     </div>
@@ -506,8 +552,14 @@ const ChartDataInput: React.FC<Props> = ({ templateId, onDataChange, className =
                 min="0"
                 max="100"
                 step="0.1"
-                value={formData.mainPercentage}
-                onChange={(e) => updateFormData({ mainPercentage: Number.parseFloat(e.target.value) || 0 })}
+                value={formData.mainPercentage === '' ? '' : formData.mainPercentage}
+                onChange={(e) => {
+                  const nextValue = e.target.value === '' ? '' : Number.parseFloat(e.target.value);
+                  updateFormData({
+                    mainPercentage:
+                      typeof nextValue === 'number' && !Number.isNaN(nextValue) ? nextValue : '',
+                  });
+                }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
               />
             </div>

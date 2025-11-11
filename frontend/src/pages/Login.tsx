@@ -137,8 +137,9 @@ const Login: React.FC = () => {
                 <button
                   type="button"
                   className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  onClick={() => setShowPassword(!showPassword)}
-                  tabIndex={-1}
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  onMouseDown={(e) => e.preventDefault()}
+                  aria-label={showPassword ? 'Ukryj hasło' : 'Pokaż hasło'}
                 >
                   {showPassword ? (
                     <svg className="h-5 w-5 text-gray-400 hover:text-gray-600" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
