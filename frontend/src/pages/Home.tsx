@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSwipeable } from 'react-swipeable';
 import type { Antistic, AntisticListResponse, Category, Statistic } from '../types';
@@ -10,6 +10,7 @@ import Footer from '../components/Footer';
 import CardSkeleton from '../components/CardSkeleton';
 import FilterControls from '../components/FilterControls';
 import StatisticsHub from '../components/StatisticsHub';
+import AdSenseAd from '../components/AdSenseAd';
 import { trackCategoryFilter, trackEvent, trackLoadMore, trackSearch } from '../utils/analytics';
 
 /**
@@ -40,6 +41,8 @@ const Home: React.FC = () => {
   const [activeView, setActiveView] = useState<HomeView>('antistics');
   const [isFetchingMore, setIsFetchingMore] = useState(false);
   const [filtersVersion, setFiltersVersion] = useState(0);
+  const headerAdSlot = import.meta.env.VITE_ADSENSE_HEADER_SLOT ?? '';
+  const inFeedAdSlot = import.meta.env.VITE_ADSENSE_IN_FEED_SLOT ?? '';
 
   const isFiltering = useMemo(() => Boolean(selectedCategory || searchQuery), [searchQuery, selectedCategory]);
 
@@ -224,17 +227,30 @@ const Home: React.FC = () => {
       <>
         <div className="space-y-8">
           {antistics.map((antistic, index) => (
-            <div
-              key={antistic.id}
-              style={{ animationDelay: `${index * 100}ms` }}
-              className="animate-fade-in-up"
-            >
-              <AntisticCard
-                antistic={antistic}
-                onAdminAction={fetchAntistics}
-                onCategoryClick={(categoryId) => applyCategoryFilter(categoryId, 'card', { allowToggle: false })}
-              />
-            </div>
+            <Fragment key={antistic.id}>
+              <div
+                style={{ animationDelay: `${index * 100}ms` }}
+                className="animate-fade-in-up"
+              >
+                <AntisticCard
+                  antistic={antistic}
+                  onAdminAction={fetchAntistics}
+                  onCategoryClick={(categoryId) =>
+                    applyCategoryFilter(categoryId, 'card', { allowToggle: false })
+                  }
+                />
+              </div>
+
+              {inFeedAdSlot && index === 2 && (
+                <AdSenseAd
+                  key={`home-feed-ad-${index}`}
+                  adSlot={inFeedAdSlot}
+                  className="my-10"
+                  adFormat="auto"
+                  fullWidthResponsive
+                />
+              )}
+            </Fragment>
           ))}
         </div>
 
@@ -264,6 +280,16 @@ const Home: React.FC = () => {
               onSearch={handleSearch}
               isFiltering={isFiltering}
             />
+
+            {headerAdSlot && (
+              <AdSenseAd
+                key="home-header-ad"
+                adSlot={headerAdSlot}
+                className="mb-6"
+                adFormat="auto"
+                fullWidthResponsive
+              />
+            )}
 
             <div className="flex gap-1 mb-6 bg-gray-100 p-1 rounded-lg">
               {[
