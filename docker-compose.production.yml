@@ -180,4 +180,6 @@ volumes:
 networks:
   antystics-network:
     driver: bridge
+  logging-internal:
+    driver: bridge
 
