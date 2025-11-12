@@ -26,7 +26,7 @@ interface AdSenseAdProps {
  * 5. Add AdSense script to index.html
  * 
  * Usage:
- * <AdSenseAd adSlot="1234567890" adFormat="auto" />
+ * <AdSenseAd adSlot="5319170662" adFormat="auto" />
  */
 const AdSenseAd: React.FC<AdSenseAdProps> = ({
   adSlot,
