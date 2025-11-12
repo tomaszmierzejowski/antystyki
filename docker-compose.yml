@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -73,6 +71,7 @@ services:
   loki:
     image: grafana/loki:3.0.0
     container_name: antystics-loki
+    hostname: loki
     restart: always
     command: -config.file=/etc/loki/loki-config.yml
     ports:
@@ -81,7 +80,9 @@ services:
       - loki_data:/var/lib/loki
       - ./monitoring/loki-config.yml:/etc/loki/loki-config.yml:ro
     networks:
-      - default
+      default:
+        aliases:
+          - loki
 
   promtail:
     image: grafana/promtail:3.0.0
