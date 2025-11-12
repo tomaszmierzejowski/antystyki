@@ -113,9 +113,8 @@ services:
     command: -config.file=/etc/loki/loki-config.yml
     ports:
       - "127.0.0.1:3100:3100"
-    tmpfs:
-      - /var/lib/loki:size=100m,mode=0700
     volumes:
+      - loki_data:/var/lib/loki
       - ./monitoring/loki-config.yml:/etc/loki/loki-config.yml:ro
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:3100/ready"]
@@ -178,6 +177,8 @@ volumes:
   grafana_data:
     driver: local
   promtail_positions:
+    driver: local
+  loki_data:
     driver: local
 
 networks:
