@@ -303,6 +303,7 @@
    - Health check scripts created, UptimeRobot setup documented
    - Add GA4 events for statistics views, CTA clicks, and votes
    - Enable cookieless visitor metrics (set `VISITOR_METRICS_HASH_SECRET`, verify daily counts via `/api/metrics/visitors/daily`)
+   - Confirm `/api/admin/statistics/summary` surfaces OPS-VISITOR-LOG daily aggregates with GA4 fallback after deployment
    - **Time**: 1 hour | **Priority**: Medium
    - **See**: `HEALTHCHECK.md` and `ANALYTICS_GUIDE.md`
 
@@ -417,3 +418,8 @@
 - `CI_CD_IMPLEMENTATION_SUMMARY.md` - Executive summary
 - `User_Actions_After_Vibe_Coding_On_MVP.md` - Updated with 30 actions (1500+ lines)
 - `STAT_HOME_TOGGLE_VALIDATION.md` (planned) - Capture QA scripts for the Antystyki/Statystyki toggle and compact filtering experience
+
+---
+
+## Changelog
+- 2025-11-12T10:35Z: Documented monitoring check to confirm admin statistics summary uses OPS-VISITOR-LOG cookieless aggregates with GA4 fallback (§5.8).

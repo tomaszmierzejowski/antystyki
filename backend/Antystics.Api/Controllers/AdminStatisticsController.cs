@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Antystics.Core.Entities;
 using Antystics.Infrastructure.Data;
+using Antystics.Api.Services.VisitorMetrics;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -24,15 +25,18 @@ public class AdminStatisticsController : ControllerBase
     private readonly ApplicationDbContext _context;
     private readonly IMemoryCache _cache;
     private readonly ILogger<AdminStatisticsController> _logger;
+    private readonly IVisitorMetricsService _visitorMetricsService;
 
     public AdminStatisticsController(
         ApplicationDbContext context,
         IMemoryCache cache,
-        ILogger<AdminStatisticsController> logger)
+        ILogger<AdminStatisticsController> logger,
+        IVisitorMetricsService visitorMetricsService)
     {
         _context = context;
         _cache = cache;
         _logger = logger;
+        _visitorMetricsService = visitorMetricsService;
     }
 
     [HttpGet("summary")]
@@ -44,12 +48,16 @@ public class AdminStatisticsController : ControllerBase
             {
                 entry.AbsoluteExpirationRelativeToNow = CacheDuration;
 
+                var requestUtcNow = DateTime.UtcNow;
+                var today = DateOnly.FromDateTime(requestUtcNow.Date);
+                var visitorFromDate = today.AddDays(-364);
+                var visitorSummaries = _visitorMetricsService.GetDailySummaries(visitorFromDate, today);
                 var stats = await _context.GaStatistics
                     .AsNoTracking()
                     .OrderBy(s => s.Date)
                     .ToListAsync(cancellationToken);
 
-                return AdminStatisticsSummaryResponse.Create(stats, DateTime.UtcNow);
+                return AdminStatisticsSummaryResponse.Create(stats, visitorSummaries, requestUtcNow);
             }).ConfigureAwait(false);
 
             return Ok(summary);
@@ -71,31 +79,53 @@ public class AdminStatisticsController : ControllerBase
 
         public static AdminStatisticsSummaryResponse Empty => new();
 
-        public static AdminStatisticsSummaryResponse Create(IReadOnlyCollection<GaStatistic> stats, DateTime utcNow)
+        public static AdminStatisticsSummaryResponse Create(
+            IReadOnlyCollection<GaStatistic> gaStatistics,
+            IReadOnlyCollection<VisitorDailySummary> visitorSummaries,
+            DateTime utcNow)
         {
-            if (stats.Count == 0)
+            if (gaStatistics.Count == 0 && visitorSummaries.Count == 0)
             {
                 return Empty;
             }
 
             var today = DateOnly.FromDateTime(utcNow.Date);
-            var dateIndexed = stats
-                .Select(s => new DailyStatistic(DateOnly.FromDateTime(s.Date.Date), s))
-                .ToList();
+            var aggregatedByDate = new Dictionary<DateOnly, DailyAggregate>();
+
+            foreach (var summary in gaStatistics)
+            {
+                var date = DateOnly.FromDateTime(summary.Date.Date);
+                aggregatedByDate[date] = new DailyAggregate(
+                    date,
+                    summary.TotalPageViews,
+                    summary.UniqueVisitors,
+                    summary.HumanPageViews);
+            }
+
+            foreach (var visitorSummary in visitorSummaries)
+            {
+                aggregatedByDate[visitorSummary.Date] = new DailyAggregate(
+                    visitorSummary.Date,
+                    visitorSummary.TotalPageViews,
+                    visitorSummary.UniqueVisitors,
+                    visitorSummary.HumanPageViews);
+            }
+
+            var dailySeries = aggregatedByDate.Values.ToList();
 
             return new AdminStatisticsSummaryResponse
             {
-                Today = Compute(dateIndexed.Where(s => s.Date == today).Select(s => s.Source)),
-                Last7Days = Compute(dateIndexed.Where(s => s.Date >= today.AddDays(-6)).Select(s => s.Source)),
-                Last30Days = Compute(dateIndexed.Where(s => s.Date >= today.AddDays(-29)).Select(s => s.Source)),
-                Last365Days = Compute(dateIndexed.Where(s => s.Date >= today.AddDays(-364)).Select(s => s.Source)),
-                Overall = Compute(dateIndexed.Select(s => s.Source))
+                Today = Compute(dailySeries.Where(s => s.Date == today)),
+                Last7Days = Compute(dailySeries.Where(s => s.Date >= today.AddDays(-6))),
+                Last30Days = Compute(dailySeries.Where(s => s.Date >= today.AddDays(-29))),
+                Last365Days = Compute(dailySeries.Where(s => s.Date >= today.AddDays(-364))),
+                Overall = Compute(dailySeries)
             };
         }
 
-        private static SummaryBlock Compute(IEnumerable<GaStatistic> stats)
+        private static SummaryBlock Compute(IEnumerable<DailyAggregate> stats)
         {
-            var list = stats as IList<GaStatistic> ?? stats.ToList();
+            var list = stats as IList<DailyAggregate> ?? stats.ToList();
             if (list.Count == 0)
             {
                 return SummaryBlock.Empty;
@@ -105,11 +135,11 @@ public class AdminStatisticsController : ControllerBase
             {
                 TotalPageViews = list.Sum(s => s.TotalPageViews),
                 UniqueVisitors = list.Sum(s => s.UniqueVisitors),
-                HumanPageViews = list.Sum(s => s.HumanPageViews)
+                HumanPageViews = list.Sum(s => s.HumanPageViews),
             };
         }
 
-        private readonly record struct DailyStatistic(DateOnly Date, GaStatistic Source);
+        private sealed record DailyAggregate(DateOnly Date, long TotalPageViews, long UniqueVisitors, long HumanPageViews);
     }
 
     public sealed class SummaryBlock
