@@ -33,7 +33,7 @@ internal sealed class VisitorMetricsHostedService : BackgroundService
             {
                 await _metricsService.PersistAsync(stoppingToken).ConfigureAwait(false);
                 var minimumDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-_options.RetentionDays));
-                _metricsService.RemoveExpiredData(minimumDate);
+                await _metricsService.RemoveExpiredDataAsync(minimumDate, stoppingToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {

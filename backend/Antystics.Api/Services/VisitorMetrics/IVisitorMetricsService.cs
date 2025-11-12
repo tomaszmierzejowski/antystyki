@@ -13,5 +13,5 @@ public interface IVisitorMetricsService
 
     Task PersistAsync(CancellationToken cancellationToken);
 
-    void RemoveExpiredData(DateOnly minimumDateToKeep);
+    Task RemoveExpiredDataAsync(DateOnly minimumDateToKeep, CancellationToken cancellationToken);
 }

@@ -2,15 +2,17 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Antystics.Core.Entities;
+using Antystics.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Antystics.Api.Services.VisitorMetrics;
 
@@ -18,15 +20,19 @@ internal sealed class VisitorMetricsService : IVisitorMetricsService
 {
     private readonly VisitorMetricsOptions _options;
     private readonly ILogger<VisitorMetricsService> _logger;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly ConcurrentDictionary<DateOnly, VisitorDailyMetrics> _dailyMetrics = new();
     private readonly ConcurrentDictionary<DateOnly, VisitorDailySummary> _persistedSummaries = new();
-    private readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web);
     private byte[] _hashSecretBytes = Array.Empty<byte>();
 
-    public VisitorMetricsService(IOptions<VisitorMetricsOptions> options, ILogger<VisitorMetricsService> logger)
+    public VisitorMetricsService(
+        IOptions<VisitorMetricsOptions> options,
+        ILogger<VisitorMetricsService> logger,
+        IServiceScopeFactory scopeFactory)
     {
         _options = options.Value;
         _logger = logger;
+        _scopeFactory = scopeFactory;
         InitializeHashSecret();
         LoadPersistedSummaries();
     }
@@ -75,18 +81,49 @@ internal sealed class VisitorMetricsService : IVisitorMetricsService
     {
         try
         {
-            Directory.CreateDirectory(_options.StorageDirectory);
+            var snapshots = _dailyMetrics.ToArray();
+            if (snapshots.Length == 0)
+            {
+                return;
+            }
 
-            foreach (var (date, metrics) in _dailyMetrics.ToArray())
+            using var scope = _scopeFactory.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var targetDates = snapshots.Select(x => x.Key).ToArray();
+            var existing = await dbContext.VisitorMetrics
+                .Where(metric => targetDates.Contains(metric.Date))
+                .ToDictionaryAsync(metric => metric.Date, cancellationToken)
+                .ConfigureAwait(false);
+
+            foreach (var (date, metrics) in snapshots)
             {
                 var summary = metrics.AsSummary();
-                var filePath = GetFilePath(date);
 
-                await using var stream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None);
-                await JsonSerializer.SerializeAsync(stream, summary, _jsonOptions, cancellationToken).ConfigureAwait(false);
+                if (existing.TryGetValue(date, out var entity))
+                {
+                    entity.TotalPageViews = summary.TotalPageViews;
+                    entity.UniqueVisitors = summary.UniqueVisitors;
+                    entity.TotalBotRequests = summary.TotalBotRequests;
+                    entity.UniqueBots = summary.UniqueBots;
+                    entity.LastUpdatedAtUtc = DateTime.UtcNow;
+                }
+                else
+                {
+                    dbContext.VisitorMetrics.Add(new VisitorMetric
+                    {
+                        Date = summary.Date,
+                        TotalPageViews = summary.TotalPageViews,
+                        UniqueVisitors = summary.UniqueVisitors,
+                        TotalBotRequests = summary.TotalBotRequests,
+                        UniqueBots = summary.UniqueBots,
+                        LastUpdatedAtUtc = DateTime.UtcNow
+                    });
+                }
 
                 _persistedSummaries[date] = summary;
             }
+
+            await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -94,7 +131,7 @@ internal sealed class VisitorMetricsService : IVisitorMetricsService
         }
     }
 
-    public void RemoveExpiredData(DateOnly minimumDateToKeep)
+    public async Task RemoveExpiredDataAsync(DateOnly minimumDateToKeep, CancellationToken cancellationToken)
     {
         foreach (var key in _dailyMetrics.Keys)
         {
@@ -109,8 +146,27 @@ internal sealed class VisitorMetricsService : IVisitorMetricsService
             if (key < minimumDateToKeep)
             {
                 _persistedSummaries.TryRemove(key, out _);
-                TryDeleteFile(key);
             }
+        }
+
+        try
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var expired = await dbContext.VisitorMetrics
+                .Where(metric => metric.Date < minimumDateToKeep)
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            if (expired.Count > 0)
+            {
+                dbContext.VisitorMetrics.RemoveRange(expired);
+                await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to remove expired visitor metrics from database");
         }
     }
 
@@ -130,33 +186,28 @@ internal sealed class VisitorMetricsService : IVisitorMetricsService
     {
         try
         {
-            if (!Directory.Exists(_options.StorageDirectory))
-            {
-                return;
-            }
+            using var scope = _scopeFactory.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var oldestDateToLoad = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-_options.RetentionDays));
+            var storedSummaries = dbContext.VisitorMetrics
+                .Where(metric => metric.Date >= oldestDateToLoad)
+                .AsNoTracking()
+                .ToList();
 
-            foreach (var file in Directory.EnumerateFiles(_options.StorageDirectory, "*.json"))
+            foreach (var metric in storedSummaries)
             {
-                try
-                {
-                    using var stream = File.OpenRead(file);
-                    var summary = JsonSerializer.Deserialize<VisitorDailySummary>(stream, _jsonOptions);
-                    if (summary is null)
-                    {
-                        continue;
-                    }
-
-                    _persistedSummaries[summary.Date] = summary;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Failed to load visitor metrics file {File}", file);
-                }
+                var summary = new VisitorDailySummary(
+                    metric.Date,
+                    metric.TotalPageViews,
+                    metric.UniqueVisitors,
+                    metric.TotalBotRequests,
+                    metric.UniqueBots);
+                _persistedSummaries[metric.Date] = summary;
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to enumerate persisted visitor metrics");
+            _logger.LogError(ex, "Failed to load persisted visitor metrics");
         }
     }
 
@@ -168,26 +219,6 @@ internal sealed class VisitorMetricsService : IVisitorMetricsService
         using var hmac = new HMACSHA256(_hashSecretBytes);
         var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(payload));
         return Convert.ToHexString(hash);
-    }
-
-    private string GetFilePath(DateOnly date) => Path.Combine(_options.StorageDirectory, $"{date:yyyy-MM-dd}.json");
-
-    private void TryDeleteFile(DateOnly date)
-    {
-        var path = GetFilePath(date);
-        if (!File.Exists(path))
-        {
-            return;
-        }
-
-        try
-        {
-            File.Delete(path);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to delete expired visitor metrics file {File}", path);
-        }
     }
 
     private sealed class VisitorDailyMetrics

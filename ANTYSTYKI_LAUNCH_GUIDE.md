@@ -304,6 +304,7 @@
    - Add GA4 events for statistics views, CTA clicks, and votes
    - Enable cookieless visitor metrics (set `VISITOR_METRICS_HASH_SECRET`, verify daily counts via `/api/metrics/visitors/daily`)
    - Confirm `/api/admin/statistics/summary` surfaces OPS-VISITOR-LOG daily aggregates with GA4 fallback after deployment
+   - Verify `visitor_metrics` Postgres table persists daily aggregates across container restarts (volume + migration applied)
    - **Time**: 1 hour | **Priority**: Medium
    - **See**: `HEALTHCHECK.md` and `ANALYTICS_GUIDE.md`
 
@@ -423,3 +424,4 @@
 
 ## Changelog
 - 2025-11-12T10:35Z: Documented monitoring check to confirm admin statistics summary uses OPS-VISITOR-LOG cookieless aggregates with GA4 fallback (§5.8).
+- 2025-11-12T17:56Z: Added deployment verification for `visitor_metrics` Postgres persistence of cookieless aggregates (§5.8).

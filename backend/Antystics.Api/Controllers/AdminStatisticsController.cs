@@ -20,7 +20,7 @@ namespace Antystics.Api.Controllers;
 public class AdminStatisticsController : ControllerBase
 {
     private static readonly string CacheKey = "admin_statistics_summary";
-    private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(15);
+    private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(1);
 
     private readonly ApplicationDbContext _context;
     private readonly IMemoryCache _cache;
@@ -99,16 +99,43 @@ public class AdminStatisticsController : ControllerBase
                     date,
                     summary.TotalPageViews,
                     summary.UniqueVisitors,
-                    summary.HumanPageViews);
+                    summary.HumanPageViews,
+                    false);
             }
 
             foreach (var visitorSummary in visitorSummaries)
             {
-                aggregatedByDate[visitorSummary.Date] = new DailyAggregate(
+                var aggregate = new DailyAggregate(
                     visitorSummary.Date,
                     visitorSummary.TotalPageViews,
                     visitorSummary.UniqueVisitors,
-                    visitorSummary.HumanPageViews);
+                    visitorSummary.HumanPageViews,
+                    true);
+
+                if (aggregatedByDate.TryGetValue(visitorSummary.Date, out var existing))
+                {
+                    var combined = existing.IsCookieless
+                        ? new DailyAggregate(
+                            existing.Date,
+                            Math.Max(existing.TotalPageViews, aggregate.TotalPageViews),
+                            Math.Max(existing.UniqueVisitors, aggregate.UniqueVisitors),
+                            Math.Max(existing.HumanPageViews, aggregate.HumanPageViews),
+                            true)
+                        : (aggregate.TotalPageViews > 0 || aggregate.UniqueVisitors > 0 || aggregate.HumanPageViews > 0)
+                            ? new DailyAggregate(
+                                aggregate.Date,
+                                Math.Max(existing.TotalPageViews, aggregate.TotalPageViews),
+                                Math.Max(existing.UniqueVisitors, aggregate.UniqueVisitors),
+                                Math.Max(existing.HumanPageViews, aggregate.HumanPageViews),
+                                true)
+                            : existing;
+
+                    aggregatedByDate[visitorSummary.Date] = combined;
+                }
+                else
+                {
+                    aggregatedByDate[visitorSummary.Date] = aggregate;
+                }
             }
 
             var dailySeries = aggregatedByDate.Values.ToList();
@@ -139,7 +166,7 @@ public class AdminStatisticsController : ControllerBase
             };
         }
 
-        private sealed record DailyAggregate(DateOnly Date, long TotalPageViews, long UniqueVisitors, long HumanPageViews);
+        private sealed record DailyAggregate(DateOnly Date, long TotalPageViews, long UniqueVisitors, long HumanPageViews, bool IsCookieless);
     }
 
     public sealed class SummaryBlock

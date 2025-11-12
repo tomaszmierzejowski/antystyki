@@ -119,6 +119,7 @@ To become the leading platform for thought-provoking, statistically-based humor 
    - Aggregate cookieless visitor metrics and GA4 insights for owner oversight
    - Backend endpoint `/api/admin/statistics/summary` with 15-minute caching window
    - Data sourcing priority: prefer `OPS-VISITOR-LOG` HMAC daily summaries with GA4 fallback for historical gaps
+   - Persist cookieless aggregates in Postgres table `visitor_metrics` to survive container restarts and enable longitudinal reporting
    - Frontend admin view `/admin/statistics` restricted to tmierzejowski@gmail.com
 
 #### Success Metrics
@@ -589,3 +590,4 @@ The roadmap provides a clear path from MVP to a profitable, scalable platform th
 - 2025-11-05: Added home toggle and compact filtering requirements for Statystyki visibility enhancements (§3.1, §5.2).
 - 2025-11-09: Added Feature F10 Social Login requirements and status (Google OAuth) including provider-linked identities and GDPR-compliant consent messaging; deferred Facebook integration until business registration is available.
 - 2025-11-12T10:30Z: Clarified Feature F11 data sourcing to prioritize OPS-VISITOR-LOG cookieless summaries with GA4 fallback (§3.1).
+- 2025-11-12T17:55Z: Required persistence of cookieless visitor aggregates in Postgres (`visitor_metrics`) to ensure statistics survive container restarts (§3.1).

@@ -96,13 +96,48 @@ internal sealed class VisitorMetricsMiddleware
 
     private static string ResolveIpAddress(HttpContext context)
     {
+        static bool TryParseIp(string? value, out string parsed)
+        {
+            parsed = string.Empty;
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return false;
+            }
+
+            if (IPAddress.TryParse(value.Trim(), out var ip))
+            {
+                parsed = ip.MapToIPv6().ToString();
+                return true;
+            }
+
+            return false;
+        }
+
+        if (context.Request.Headers.TryGetValue("CF-Connecting-IP", out var cfConnectingIp) &&
+            TryParseIp(cfConnectingIp.ToString(), out var cloudflareIp))
+        {
+            return cloudflareIp;
+        }
+
+        if (context.Request.Headers.TryGetValue("True-Client-IP", out var trueClientIp) &&
+            TryParseIp(trueClientIp.ToString(), out var akamaiIp))
+        {
+            return akamaiIp;
+        }
+
         if (context.Request.Headers.TryGetValue("X-Forwarded-For", out var forwardedFor))
         {
-            var first = forwardedFor.ToString().Split(',').FirstOrDefault()?.Trim();
-            if (IPAddress.TryParse(first, out var ip))
+            var first = forwardedFor.ToString().Split(',').FirstOrDefault();
+            if (TryParseIp(first, out var parsedForwarded))
             {
-                return ip.ToString();
+                return parsedForwarded;
             }
+        }
+
+        if (context.Request.Headers.TryGetValue("X-Real-IP", out var realIp) &&
+            TryParseIp(realIp.ToString(), out var nginxIp))
+        {
+            return nginxIp;
         }
 
         return context.Connection.RemoteIpAddress?.ToString() ?? "unknown";

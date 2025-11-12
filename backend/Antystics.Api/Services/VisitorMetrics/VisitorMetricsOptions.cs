@@ -1,6 +1,4 @@
 using System;
-using System.IO;
-
 namespace Antystics.Api.Services.VisitorMetrics;
 
 public class VisitorMetricsOptions
@@ -9,11 +7,6 @@ public class VisitorMetricsOptions
     /// Secret used to HMAC visitor identifiers. Must be configured via environment variable VISITOR_METRICS_HASH_SECRET.
     /// </summary>
     public string HashSecret { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Directory where aggregated daily metrics will be persisted as JSON (relative to app root by default).
-    /// </summary>
-    public string StorageDirectory { get; set; } = Path.Combine(AppContext.BaseDirectory, "logs", "visitor-metrics");
 
     /// <summary>
     /// Number of days to retain aggregated metrics in memory and on disk.
