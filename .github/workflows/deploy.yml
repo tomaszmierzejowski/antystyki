@@ -180,15 +180,20 @@ jobs:
             
             # Stop old containers (graceful shutdown)
             echo "🛑 Stopping old containers..."
-            docker-compose -f docker-compose.production.yml down || true
+            docker compose -f docker-compose.production.yml down --remove-orphans || true
             
             # Start new containers
             echo "▶️ Starting new containers..."
-            docker-compose -f docker-compose.production.yml up -d
-            
-            # Wait for services to start
-            echo "⏳ Waiting for services to start..."
-            sleep 15
+            docker compose -f docker-compose.production.yml up -d
+
+            echo "🔁 Refreshing logging stack..."
+            docker compose -f docker-compose.production.yml up -d --force-recreate loki promtail
+
+            echo "🔍 Checking Loki readiness..."
+            curl -sf http://localhost:3100/ready
+
+            echo "🔍 Verifying DNS resolution from Promtail..."
+            docker compose -f docker-compose.production.yml exec -T promtail getent hosts antystics-loki
             
             echo "✅ Deployment complete!"
           ENDSSH
@@ -337,10 +342,10 @@ jobs:
               docker tag ${{ env.DOCKER_IMAGE }}:previous ${{ env.DOCKER_IMAGE }}:latest
               
               # Stop current containers
-              docker-compose -f docker-compose.production.yml down
+              docker compose -f docker-compose.production.yml down
               
               # Start with previous version
-              docker-compose -f docker-compose.production.yml up -d
+              docker compose -f docker-compose.production.yml up -d
               
               # Wait for startup
               sleep 15
@@ -362,7 +367,7 @@ jobs:
       - name: ❌ Deployment Failed
         run: |
           echo "❌ Deployment failed and was rolled back"
-          echo "🔍 Check logs: ssh ${{ secrets.SSH_USER }}@${{ secrets.PROD_SERVER_IP }} 'cd /var/www/antystyki && docker-compose logs'"
+          echo "🔍 Check logs: ssh ${{ secrets.SSH_USER }}@${{ secrets.PROD_SERVER_IP }} 'cd /var/www/antystyki && docker compose logs'"
           exit 1
 
   # ============================================================================
