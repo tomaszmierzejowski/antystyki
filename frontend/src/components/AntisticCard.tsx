@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import type { Antistic, AntisticChartData } from '../types';
 import type { AntisticData, ChartPoint, ChartSegment } from '../types/templates';
 import { CARD_TEMPLATES, CHART_COLORS } from '../types/templates';
@@ -6,6 +7,7 @@ import { DoughnutChart, ColorfulDataChart, LineChart, BarChart } from './charts/
 import { createPerspectiveData } from './charts/chartUtils';
 import CommentsSection from './CommentsSection';
 import { useLike } from '../hooks/useLike';
+import { useAuth } from '../context/useAuth';
 import AdminActions from './AdminActions';
 import ShareMenu from './ShareMenu';
 
@@ -52,6 +54,10 @@ const AntisticCard: React.FC<Props> = ({ antistic, templateId = 'two-column-defa
     initialLikesCount: antistic.likesCount,
     initialIsLiked: antistic.isLikedByCurrentUser
   });
+  const { user } = useAuth();
+  const isOwner = user?.id === antistic.user.id;
+  const isModerator = user?.role === 'Admin' || user?.role === 'Moderator';
+  const canEdit = isOwner || isModerator;
 
   // Check if post is new (within last 48 hours)
   const isNew = new Date(antistic.createdAt).getTime() > Date.now() - 48 * 60 * 60 * 1000;
@@ -419,9 +425,17 @@ const AntisticCard: React.FC<Props> = ({ antistic, templateId = 'two-column-defa
             )}
           </div>
           
-          {/* Admin Actions */}
-          <div className="ml-auto">
-            <AdminActions 
+          <div className="flex items-center gap-2 ml-auto">
+             {canEdit && (
+                <Link 
+                  to={`/antistic/${antistic.id}/edit`}
+                  className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                  title="Edytuj"
+                >
+                  ✏️
+                </Link>
+             )}
+             <AdminActions 
               antisticId={antistic.id} 
               isHidden={!!antistic.hiddenAt}
               type="antistic"

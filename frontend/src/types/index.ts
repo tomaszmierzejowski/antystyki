@@ -15,6 +15,7 @@ export type StatisticChartData = Record<string, unknown>;
 
 export interface Antistic {
   id: string;
+  originalAntisticId?: string;
   title: string;
   reversedStatistic: string;
   sourceUrl: string;
@@ -113,6 +114,16 @@ export interface CreateAntisticRequest {
   backgroundImageKey?: string;
   templateId?: string;
   chartData?: AntisticChartData; // Chart data object
+  categoryIds: string[];
+}
+
+export interface UpdateAntisticRequest {
+  title: string;
+  reversedStatistic: string;
+  sourceUrl: string;
+  backgroundImageKey?: string;
+  templateId?: string;
+  chartData?: AntisticChartData;
   categoryIds: string[];
 }
 

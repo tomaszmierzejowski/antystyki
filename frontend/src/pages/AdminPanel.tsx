@@ -123,6 +123,8 @@ const AdminPanel: React.FC = () => {
 
         {pendingAntistics.map((antistic) => {
           const antisticChartData = antistic.chartData ?? {};
+          const isUpdateRequest = !!antistic.originalAntisticId;
+
           const chartData: Partial<AntisticData> = {
             title: antistic.title,
             description: antistic.reversedStatistic,
@@ -136,12 +138,19 @@ const AdminPanel: React.FC = () => {
           };
 
           return (
-            <div key={antistic.id} className="bg-white rounded-lg border border-gray-200 p-6">
+            <div key={antistic.id} className={`bg-white rounded-lg border p-6 ${isUpdateRequest ? 'border-amber-300 ring-2 ring-amber-100' : 'border-gray-200'}`}>
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    Podgląd karty
-                  </h3>
+                  <div className="flex items-center gap-3 mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      Podgląd karty
+                    </h3>
+                    {isUpdateRequest && (
+                        <span className="bg-amber-100 text-amber-800 text-xs font-semibold px-2.5 py-0.5 rounded border border-amber-200">
+                            EDYCJA / AKTUALIZACJA
+                        </span>
+                    )}
+                  </div>
                   <div className="max-w-md mx-auto">
                     <AntisticCard
                       antistic={antistic}
@@ -162,6 +171,18 @@ const AdminPanel: React.FC = () => {
                         <strong className="text-gray-700">Tytuł:</strong>
                         <p className="text-gray-900 mt-1">{antistic.title}</p>
                       </div>
+
+                      {isUpdateRequest && (
+                         <div className="bg-amber-50 p-2 rounded border border-amber-100 text-xs text-amber-800">
+                            <strong>To jest prośba o aktualizację</strong> istniejącego antystyku. 
+                            Zatwierdzenie spowoduje nadpisanie oryginału.
+                             <div className="mt-1">
+                                <Link to={`/antistic/${antistic.originalAntisticId}`} target="_blank" className="underline hover:text-amber-900">
+                                    Zobacz oryginał
+                                </Link>
+                             </div>
+                         </div>
+                      )}
 
                       <div>
                         <strong className="text-gray-700">Statystyka:</strong>
@@ -225,13 +246,13 @@ const AdminPanel: React.FC = () => {
                         onClick={() => handleModerate(antistic.id, true)}
                         className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors font-medium"
                       >
-                        ✅ Zatwierdź i opublikuj
+                        {isUpdateRequest ? '✅ Zatwierdź zmiany (Merge)' : '✅ Zatwierdź i opublikuj'}
                       </button>
                       <button
                         onClick={() => handleModerate(antistic.id, false)}
                         className="w-full bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors font-medium"
                       >
-                        ❌ Odrzuć
+                        {isUpdateRequest ? '❌ Odrzuć zmiany' : '❌ Odrzuć'}
                       </button>
                     </div>
                   </div>

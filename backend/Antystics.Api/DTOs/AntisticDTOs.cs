@@ -11,17 +11,21 @@ public class CreateAntisticRequest
     public List<Guid> CategoryIds { get; set; } = new();
 }
 
-public class UpdateAntisticRequest
+    public class UpdateAntisticRequest
 {
     public string Title { get; set; } = string.Empty;
     public string ReversedStatistic { get; set; } = string.Empty;
     public string SourceUrl { get; set; } = string.Empty;
+    public string? BackgroundImageKey { get; set; }
+    public string? TemplateId { get; set; }
+    public object? ChartData { get; set; } // Chart data object
     public List<Guid> CategoryIds { get; set; } = new();
 }
 
 public class AntisticDto
 {
     public Guid Id { get; set; }
+    public Guid? OriginalAntisticId { get; set; }
     public string Title { get; set; } = string.Empty;
     public string ReversedStatistic { get; set; } = string.Empty;
     public string SourceUrl { get; set; } = string.Empty;

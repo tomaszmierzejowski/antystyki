@@ -54,6 +54,34 @@ public class EmailService : IEmailService
         await SendEmailAsync(email, subject, body);
     }
 
+    public async Task SendAntisticApprovedAsync(string email, string username, string antisticTitle, string antisticId)
+    {
+        var subject = "Your Antistic has been approved! - Antystyki";
+        var link = $"https://antystyki.pl/antistic/{antisticId}";
+        var body = $@"
+            <h2>Great news, {username}!</h2>
+            <p>Your antistic ""{antisticTitle}"" has been approved and is now live.</p>
+            <p><a href='{link}'>View your Antistic</a></p>
+            <p>Share it with your friends!</p>
+        ";
+
+        await SendEmailAsync(email, subject, body);
+    }
+
+    public async Task SendAntisticRejectedAsync(string email, string username, string antisticTitle, string reason)
+    {
+        var subject = "Update on your Antistic submission - Antystyki";
+        var body = $@"
+            <h2>Hello {username},</h2>
+            <p>Thank you for submitting your antistic ""{antisticTitle}"".</p>
+            <p>Unfortunately, it was not approved for publication at this time.</p>
+            <p><strong>Reason:</strong> {reason}</p>
+            <p>You can edit your antistic and submit it again.</p>
+        ";
+
+        await SendEmailAsync(email, subject, body);
+    }
+
     public async Task SendContactFormAsync(string name, string email, string subject, string message)
     {
         var contactEmail = "antystyki@gmail.com";

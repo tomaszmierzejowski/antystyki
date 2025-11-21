@@ -155,6 +155,134 @@ public class AntisticsController : ControllerBase
         return CreatedAtAction(nameof(GetAntistic), new { id = antistic.Id }, new { id = antistic.Id });
     }
 
+    [Authorize]
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateAntistic(Guid id, [FromBody] UpdateAntisticRequest request)
+    {
+        var userId = GetCurrentUserId();
+        if (!userId.HasValue)
+        {
+            return Unauthorized();
+        }
+
+        var antistic = await _context.Antistics
+            .Include(a => a.Categories)
+            .FirstOrDefaultAsync(a => a.Id == id);
+
+        if (antistic == null)
+        {
+            return NotFound();
+        }
+
+        var isAdminOrMod = User.IsInRole("Admin") || User.IsInRole("Moderator");
+        
+        // Check permissions
+        if (antistic.UserId != userId.Value && !isAdminOrMod)
+        {
+            return Forbid();
+        }
+
+        // Logic for Admin/Moderator: Direct update
+        if (isAdminOrMod)
+        {
+            UpdateAntisticFields(antistic, request);
+            
+            // If moderator updates it, we publish it instantly
+            if (antistic.Status != ModerationStatus.Approved)
+            {
+                antistic.Status = ModerationStatus.Approved;
+                if (!antistic.PublishedAt.HasValue)
+                {
+                    antistic.PublishedAt = DateTime.UtcNow;
+                }
+                antistic.ModeratedAt = DateTime.UtcNow;
+                antistic.ModeratedByUserId = userId.Value;
+            }
+
+            await _context.SaveChangesAsync();
+            return Ok(MapToDto(antistic, false, GetFrontendBaseUrl()));
+        }
+
+        // Logic for Creator
+        if (antistic.Status == ModerationStatus.Approved)
+        {
+            // Create a DRAFT (New Antistic)
+            var draft = new Antistic
+            {
+                Title = request.Title,
+                ReversedStatistic = request.ReversedStatistic,
+                SourceUrl = request.SourceUrl,
+                ImageUrl = antistic.ImageUrl,
+                BackgroundImageKey = request.BackgroundImageKey ?? antistic.BackgroundImageKey,
+                TemplateId = request.TemplateId ?? antistic.TemplateId,
+                ChartData = request.ChartData != null ? System.Text.Json.JsonSerializer.Serialize(request.ChartData) : antistic.ChartData,
+                UserId = userId.Value,
+                Status = ModerationStatus.Pending,
+                OriginalAntisticId = antistic.Id,
+                CreatedAt = DateTime.UtcNow
+            };
+            
+            _context.Antistics.Add(draft);
+            await _context.SaveChangesAsync();
+            
+            // Add categories
+            foreach (var categoryId in request.CategoryIds)
+            {
+                _context.AntisticCategories.Add(new AntisticCategory
+                {
+                    AntisticId = draft.Id,
+                    CategoryId = categoryId
+                });
+            }
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Changes sent to moderation", draftId = draft.Id });
+        }
+        else
+        {
+            // Update existing (Pending/Rejected/Draft)
+            UpdateAntisticFields(antistic, request);
+            
+            // Reset status to Pending if it was Rejected
+            antistic.Status = ModerationStatus.Pending;
+            antistic.RejectionReason = null;
+            
+            await _context.SaveChangesAsync();
+            return Ok(MapToDto(antistic, false, GetFrontendBaseUrl()));
+        }
+    }
+
+    private void UpdateAntisticFields(Antistic antistic, UpdateAntisticRequest request)
+    {
+        antistic.Title = request.Title;
+        antistic.ReversedStatistic = request.ReversedStatistic;
+        antistic.SourceUrl = request.SourceUrl;
+        
+        if (request.BackgroundImageKey != null)
+            antistic.BackgroundImageKey = request.BackgroundImageKey;
+            
+        if (request.TemplateId != null)
+            antistic.TemplateId = request.TemplateId;
+            
+        if (request.ChartData != null)
+            antistic.ChartData = System.Text.Json.JsonSerializer.Serialize(request.ChartData);
+
+        // Update categories
+        // Remove existing
+        var existingCategories = _context.AntisticCategories.Where(c => c.AntisticId == antistic.Id);
+        _context.AntisticCategories.RemoveRange(existingCategories);
+        
+        // Add new
+        foreach (var categoryId in request.CategoryIds)
+        {
+            _context.AntisticCategories.Add(new AntisticCategory
+            {
+                AntisticId = antistic.Id,
+                CategoryId = categoryId
+            });
+        }
+    }
+
     [HttpPost("{id}/like")]
     public async Task<IActionResult> LikeAntistic(Guid id)
     {

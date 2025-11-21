@@ -11,6 +11,7 @@ import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import Contact from './pages/Contact';
 import CreateAntistic from './pages/CreateAntistic';
+import EditAntistic from './pages/EditAntistic';
 import AdminPanel from './pages/AdminPanel';
 import ButtonShowcase from './pages/ButtonShowcase';
 import TemplateShowcase from './components/TemplateShowcase';
@@ -61,6 +62,7 @@ function App() {
             <Route path="/admin/statistics" element={<WebsiteStatistics />} />
             <Route path="/admin/statistics/create" element={<CreateStatisticPage />} />
             <Route path="/create" element={<CreateAntistic />} />
+            <Route path="/antistic/:id/edit" element={<EditAntistic />} />
             <Route path="/admin" element={<AdminPanel />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/terms" element={<TermsOfService />} />

@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Antystics.Api.DTOs;
 using Antystics.Api.Utilities;
 using Antystics.Core.Entities;
+using Antystics.Core.Interfaces;
 using Antystics.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -19,12 +20,14 @@ public class AdminController : ControllerBase
     private readonly ApplicationDbContext _context;
     private readonly UserManager<User> _userManager;
     private readonly IConfiguration _configuration;
+    private readonly IEmailService _emailService;
 
-    public AdminController(ApplicationDbContext context, UserManager<User> userManager, IConfiguration configuration)
+    public AdminController(ApplicationDbContext context, UserManager<User> userManager, IConfiguration configuration, IEmailService emailService)
     {
         _context = context;
         _userManager = userManager;
         _configuration = configuration;
+        _emailService = emailService;
     }
 
     [HttpGet("antistics/pending")]
@@ -82,7 +85,11 @@ public class AdminController : ControllerBase
     [HttpPost("antistics/{id}/moderate")]
     public async Task<IActionResult> ModerateAntistic(Guid id, [FromBody] ModerateAntisticRequest request)
     {
-        var antistic = await _context.Antistics.FindAsync(id);
+        var antistic = await _context.Antistics
+            .Include(a => a.User)
+            .Include(a => a.Categories)
+            .FirstOrDefaultAsync(a => a.Id == id);
+
         if (antistic == null)
         {
             return NotFound();
@@ -94,17 +101,86 @@ public class AdminController : ControllerBase
             return Unauthorized();
         }
 
-        antistic.Status = request.Approve ? ModerationStatus.Approved : ModerationStatus.Rejected;
-        antistic.RejectionReason = request.RejectionReason;
-        antistic.ModeratedAt = DateTime.UtcNow;
-        antistic.ModeratedByUserId = userId.Value;
-
         if (request.Approve)
         {
-            antistic.PublishedAt = DateTime.UtcNow;
-        }
+            // Check if this is an update to an existing antistic
+            if (antistic.OriginalAntisticId.HasValue)
+            {
+                var original = await _context.Antistics
+                    .Include(a => a.Categories)
+                    .FirstOrDefaultAsync(a => a.Id == antistic.OriginalAntisticId.Value);
 
-        await _context.SaveChangesAsync();
+                if (original != null)
+                {
+                    // Update original with values from draft
+                    original.Title = antistic.Title;
+                    original.ReversedStatistic = antistic.ReversedStatistic;
+                    original.SourceUrl = antistic.SourceUrl;
+                    original.BackgroundImageKey = antistic.BackgroundImageKey;
+                    original.TemplateId = antistic.TemplateId;
+                    original.ChartData = antistic.ChartData;
+                    // If image was regenerated for draft, update it. If not, keep original? 
+                    // Assuming draft has valid image.
+                    if (!string.IsNullOrEmpty(antistic.ImageUrl))
+                        original.ImageUrl = antistic.ImageUrl;
+
+                    // Update categories
+                    var existingCategories = _context.AntisticCategories.Where(c => c.AntisticId == original.Id);
+                    _context.AntisticCategories.RemoveRange(existingCategories);
+                    
+                    foreach (var cat in antistic.Categories)
+                    {
+                        _context.AntisticCategories.Add(new AntisticCategory
+                        {
+                            AntisticId = original.Id,
+                            CategoryId = cat.CategoryId
+                        });
+                    }
+
+                    original.ModeratedAt = DateTime.UtcNow;
+                    original.ModeratedByUserId = userId.Value;
+
+                    // Remove the draft
+                    _context.Antistics.Remove(antistic);
+                    
+                    await _context.SaveChangesAsync();
+                    
+                    if (antistic.User?.Email != null)
+                    {
+                        await _emailService.SendAntisticApprovedAsync(antistic.User.Email, antistic.User.UserName!, original.Title, original.Id.ToString());
+                    }
+                    
+                    return Ok(new { message = "Moderation completed (Merged)" });
+                }
+            }
+
+            // Normal approval
+            antistic.Status = ModerationStatus.Approved;
+            antistic.ModeratedAt = DateTime.UtcNow;
+            antistic.ModeratedByUserId = userId.Value;
+            antistic.PublishedAt = DateTime.UtcNow;
+            
+            await _context.SaveChangesAsync();
+
+            if (antistic.User?.Email != null)
+            {
+                await _emailService.SendAntisticApprovedAsync(antistic.User.Email, antistic.User.UserName!, antistic.Title, antistic.Id.ToString());
+            }
+        }
+        else
+        {
+            antistic.Status = ModerationStatus.Rejected;
+            antistic.RejectionReason = request.RejectionReason;
+            antistic.ModeratedAt = DateTime.UtcNow;
+            antistic.ModeratedByUserId = userId.Value;
+            
+            await _context.SaveChangesAsync();
+
+            if (antistic.User?.Email != null)
+            {
+                await _emailService.SendAntisticRejectedAsync(antistic.User.Email, antistic.User.UserName!, antistic.Title, request.RejectionReason ?? "No reason provided");
+            }
+        }
 
         return Ok(new { message = "Moderation completed successfully" });
     }
@@ -319,6 +395,7 @@ public class AdminController : ControllerBase
         return new AntisticDto
         {
             Id = antistic.Id,
+            OriginalAntisticId = antistic.OriginalAntisticId,
             Title = antistic.Title,
             ReversedStatistic = antistic.ReversedStatistic,
             SourceUrl = antistic.SourceUrl,
