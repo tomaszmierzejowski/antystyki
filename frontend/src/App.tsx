@@ -44,7 +44,7 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <div className="min-h-screen" style={{ backgroundColor: '#f8f9fb' }}>
+        <div className="min-h-screen bg-background text-text-primary transition-colors duration-300">
           <Navbar />
           <AnalyticsTracker />
           <Routes>

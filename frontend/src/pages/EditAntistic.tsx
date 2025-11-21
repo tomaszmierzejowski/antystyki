@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import type { Category, Antistic } from '../types';
 import type { AntisticData } from '../types/templates';
 import api from '../config/api';
@@ -23,7 +23,6 @@ const EditAntistic: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [originalAntistic, setOriginalAntistic] = useState<Antistic | null>(null);
   
@@ -105,7 +104,7 @@ const EditAntistic: React.FC = () => {
       return;
     }
 
-    const submitLoading = isDraft ? setSaving : setLoading;
+    const submitLoading = setLoading;
     submitLoading(true);
 
     try {
@@ -147,9 +146,6 @@ const EditAntistic: React.FC = () => {
         : [...prev, categoryId]
     );
   };
-
-  // Create mock antistic for preview
-  const previewOwner = originalAntistic?.user ?? user!;
 
   const previewAntistic: Antistic = {
     ...(originalAntistic as Antistic), // Keep other fields like ID, created at etc.

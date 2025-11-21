@@ -61,13 +61,13 @@ const AntisticCard: React.FC<Props> = ({ antistic, templateId = 'two-column-defa
 
   // Check if post is new (within last 48 hours)
   const isNew = new Date(antistic.createdAt).getTime() > Date.now() - 48 * 60 * 60 * 1000;
-  
+
   // Check if post is trending (high likes in recent time)
   const isTrending = likesCount > 10 && new Date(antistic.createdAt).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000;
   // Determine template to use - prioritize backend data, then prop, then default
   const actualTemplateId = antistic.templateId || templateId || 'two-column-default';
   const template = CARD_TEMPLATES.find(t => t.id === actualTemplateId) || CARD_TEMPLATES[0];
-  
+
   // Generate chart data based on template and actual data from backend
   const getChartData = () => {
     // If custom data is provided (for preview), use it
@@ -83,7 +83,7 @@ const AntisticCard: React.FC<Props> = ({ antistic, templateId = 'two-column-defa
         source: customData.source || 'antystyki.pl'
       };
     }
-    
+
     // Use actual data from backend if available
     if (antistic.chartData) {
       const backendData = antistic.chartData as AntisticChartData;
@@ -98,11 +98,11 @@ const AntisticCard: React.FC<Props> = ({ antistic, templateId = 'two-column-defa
         source: antistic.sourceUrl || 'antystyki.pl'
       };
     }
-    
+
     // Generate template-specific data based on the template type
     const percentageMatch = antistic.reversedStatistic.match(/(\d+(?:\.\d+)?)%/);
     const percentage = percentageMatch ? parseFloat(percentageMatch[1]) : 50;
-    
+
     const baseData = {
       title: antistic.title,
       description: antistic.reversedStatistic,
@@ -121,15 +121,15 @@ const AntisticCard: React.FC<Props> = ({ antistic, templateId = 'two-column-defa
             secondaryLabel: 'Pozostałe',
             chartColor: '#6b7280'
           },
-          sourceData: { 
+          sourceData: {
             type: 'pie',
             segments: [
               { label: 'Główna kategoria', percentage: percentage, color: '#FF6A00' },
               { label: 'Pozostałe kategorie', percentage: 100 - percentage, color: '#6b7280' }
-            ] 
+            ]
           }
         };
-      
+
       case 'single-chart':
         return {
           ...baseData,
@@ -143,7 +143,7 @@ const AntisticCard: React.FC<Props> = ({ antistic, templateId = 'two-column-defa
             ]
           }
         };
-      
+
       case 'text-focused':
         return {
           ...baseData,
@@ -153,7 +153,7 @@ const AntisticCard: React.FC<Props> = ({ antistic, templateId = 'two-column-defa
             comparison: `To stanowi ${percentage}% wszystkich przypadków`
           }
         };
-      
+
       case 'comparison':
         return {
           ...baseData,
@@ -176,7 +176,7 @@ const AntisticCard: React.FC<Props> = ({ antistic, templateId = 'two-column-defa
             }
           }
         };
-      
+
       default:
         // Fallback to two-column
         return {
@@ -188,17 +188,17 @@ const AntisticCard: React.FC<Props> = ({ antistic, templateId = 'two-column-defa
             secondaryLabel: 'Pozostałe',
             chartColor: '#6b7280'
           },
-          sourceData: { 
+          sourceData: {
             type: 'pie',
             segments: [
               { label: 'Główna kategoria', percentage: percentage, color: '#FF6A00' },
               { label: 'Pozostałe kategorie', percentage: 100 - percentage, color: '#6b7280' }
-            ] 
+            ]
           }
         };
     }
   };
-  
+
   const chartData = getChartData();
 
   const canShare = antistic.status === 'Approved' && !antistic.hiddenAt && Boolean(antistic.publishedAt) && Boolean(antistic.canonicalUrl);
@@ -206,7 +206,7 @@ const AntisticCard: React.FC<Props> = ({ antistic, templateId = 'two-column-defa
     const sourceLine = antistic.sourceUrl ? `\nŹródło: ${antistic.sourceUrl}` : '';
     return `${antistic.reversedStatistic}${sourceLine}`;
   }, [antistic.reversedStatistic, antistic.sourceUrl]);
-  
+
   const normalizeChart = (chart: ChartDefinition | undefined): NormalizedChart => {
     if (!chart) {
       return {};
@@ -298,14 +298,14 @@ const AntisticCard: React.FC<Props> = ({ antistic, templateId = 'two-column-defa
   };
 
   // Generate perspective segments
-  const perspectiveSegments = chartData.perspectiveData ? 
+  const perspectiveSegments = chartData.perspectiveData ?
     createPerspectiveData(
       chartData.perspectiveData.mainPercentage,
       chartData.perspectiveData.mainLabel,
       chartData.perspectiveData.secondaryLabel,
       chartData.perspectiveData.chartColor
     ) : [];
-  
+
   // Render different templates
   const renderTemplate = () => {
     switch (template.layout) {
@@ -321,7 +321,7 @@ const AntisticCard: React.FC<Props> = ({ antistic, templateId = 'two-column-defa
         return renderTwoColumnTemplate();
     }
   };
-  
+
   const renderTwoColumnTemplate = () => (
     <>
       {/* Two-column chart section */}
@@ -344,7 +344,7 @@ const AntisticCard: React.FC<Props> = ({ antistic, templateId = 'two-column-defa
       </div>
     </>
   );
-  
+
   const renderSingleChartTemplate = () => {
     const singleChart = chartData.singleChartData;
 
@@ -359,7 +359,7 @@ const AntisticCard: React.FC<Props> = ({ antistic, templateId = 'two-column-defa
       </div>
     );
   };
-  
+
   const renderTextFocusedTemplate = () => (
     <div className="px-6 pb-6">
       <div className="text-center mb-6">
@@ -375,7 +375,7 @@ const AntisticCard: React.FC<Props> = ({ antistic, templateId = 'two-column-defa
       </div>
     </div>
   );
-  
+
   const renderComparisonTemplate = () => (
     <div className="px-6 pb-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
@@ -391,176 +391,115 @@ const AntisticCard: React.FC<Props> = ({ antistic, templateId = 'two-column-defa
             {renderChartVisualization(chartData.comparisonData?.rightChart as ChartDefinition | undefined)}
           </div>
         </div>
-      </div>
-    </div>
-  );
+        {renderTemplate()}
 
-  return (
-    <div className="bg-white rounded-2xl border border-gray-200 transition-all duration-300 overflow-hidden hover:-translate-y-1 group" 
-         style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}
-         onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.12)'}
-         onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06)'}>
-      
-      {/* Title Bar */}
-      <div className="px-6 pt-6 pb-4">
-        <div className="flex items-start justify-between mb-1">
-          <h3 className="text-xl font-bold text-gray-900 flex-1">{chartData.title}</h3>
-          
-          {/* Badges */}
-          <div className="flex gap-2 ml-4">
-            {isNew && (
-              <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full animate-pulse">
-                NEW
-              </span>
-            )}
-            {isTrending && (
-              <span className="px-2 py-1 bg-orange-100 text-orange-800 text-xs font-medium rounded-full">
-                🔥 TRENDING
-              </span>
-            )}
-            {antistic.hiddenAt && (
-              <span className="px-2 py-1 text-xs font-medium bg-red-100 text-red-700 rounded-full">
-                HIDDEN
-              </span>
-            )}
+        {/* Context paragraph */}
+        <div className="px-6 pb-6">
+          <div className="bg-background/50 border border-border-subtle rounded-lg p-4 mb-4 backdrop-blur-sm">
+            <p className="text-sm text-text-secondary leading-relaxed">
+              {chartData.description}
+            </p>
+            <p className="text-xs text-text-tertiary mt-2">
+              Źródło: {chartData.source}
+            </p>
           </div>
-          
-          <div className="flex items-center gap-2 ml-auto">
-             {canEdit && (
-                <Link 
-                  to={`/antistic/${antistic.id}/edit`}
-                  className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                  title="Edytuj"
-                >
-                  ✏️
-                </Link>
-             )}
-             <AdminActions 
-              antisticId={antistic.id} 
-              isHidden={!!antistic.hiddenAt}
-              type="antistic"
-              onAction={onAdminAction}
-            />
-          </div>
-        </div>
-        <p className="text-sm text-gray-600">
-          {template.layout === 'two-column' && chartData.perspectiveData?.mainLabel
-            ? chartData.perspectiveData.mainLabel
-            : chartData.description}
-        </p>
-      </div>
 
-      {/* Template-specific content */}
-      {renderTemplate()}
+          {/* Interaction bar */}
+          <div className="flex items-center justify-between pt-3 border-t border-border-subtle">
+            <div className="flex items-center gap-4">
+              {/* Likes */}
+              <button
+                onClick={toggleLike}
+                disabled={likeLoading}
+                className={`flex items-center gap-1.5 transition-colors group ${isLiked
+                  ? 'text-accent'
+                  : 'text-text-secondary hover:text-accent'
+                  } ${likeLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+              >
+                <span className={`text-base transition-transform ${likeLoading ? 'animate-pulse' : 'group-hover:scale-110'}`}>
+                  👍
+                </span>
+                <span className="text-sm font-medium">{likesCount}</span>
+                <span className="text-xs">{isLiked ? 'Liked' : 'Like'}</span>
+              </button>
 
-      {/* Context paragraph */}
-      <div className="px-6 pb-6">
-        <div className="bg-gray-50 rounded-lg p-4 mb-4">
-          <p className="text-sm text-gray-700 leading-relaxed">
-            {chartData.description}
-          </p>
-          <p className="text-xs text-gray-500 mt-2">
-            Źródło: {chartData.source}
-          </p>
-        </div>
+              {/* Comments */}
+              <button
+                onClick={() => setShowComments(!showComments)}
+                className={`flex items-center gap-1.5 transition-all duration-200 group ${showComments
+                  ? 'text-accent'
+                  : 'text-text-secondary hover:text-accent'
+                  }`}
+              >
+                <span className={`text-base transition-all duration-200 ${showComments ? 'rotate-12 scale-110' : 'group-hover:scale-110'}`}>
+                  💬
+                </span>
+                <div className="flex items-center gap-1">
+                  <span className="text-sm font-medium">{commentsCount}</span>
+                  <span className="text-xs font-medium">{showComments ? 'Hide' : 'Discuss'}</span>
+                </div>
+              </button>
+            </div>
 
-        {/* Interaction bar */}
-        <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-          <div className="flex items-center gap-4">
-            {/* Likes */}
-            <button 
-              onClick={toggleLike}
-              disabled={likeLoading}
-              className={`flex items-center gap-1.5 transition-colors group ${
-                isLiked 
-                  ? 'text-blue-600' 
-                  : 'text-gray-600 hover:text-blue-600'
-              } ${likeLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-            >
-              <span className={`text-base transition-transform ${likeLoading ? 'animate-pulse' : 'group-hover:scale-110'}`}>
-                👍
-              </span>
-              <span className="text-sm font-medium">{likesCount}</span>
-              <span className="text-xs">{isLiked ? 'Liked' : 'Like'}</span>
-            </button>
-
-            {/* Comments */}
-            <button 
-              onClick={() => setShowComments(!showComments)}
-              className={`flex items-center gap-1.5 transition-all duration-200 group ${
-                showComments 
-                  ? 'text-blue-600' 
-                  : 'text-gray-600 hover:text-blue-600'
-              }`}
-            >
-              <span className={`text-base transition-all duration-200 ${showComments ? 'rotate-12 scale-110' : 'group-hover:scale-110'}`}>
-                💬
-              </span>
-              <div className="flex items-center gap-1">
-                <span className="text-sm font-medium">{commentsCount}</span>
-                <span className="text-xs font-medium">{showComments ? 'Hide' : 'Discuss'}</span>
+            <div className="flex items-center gap-3">
+              {canShare && (
+                <ShareMenu
+                  canonicalUrl={antistic.canonicalUrl}
+                  entityId={antistic.id}
+                  entityType="antistic"
+                  title={antistic.title}
+                  summary={antistic.reversedStatistic}
+                  statCopyText={shareStatCopy}
+                />
+              )}
+              <div className="text-xs text-text-tertiary font-medium">
+                antystyki.pl
               </div>
-            </button>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {canShare && (
-              <ShareMenu
-                canonicalUrl={antistic.canonicalUrl}
-                entityId={antistic.id}
-                entityType="antistic"
-                title={antistic.title}
-                summary={antistic.reversedStatistic}
-                statCopyText={shareStatCopy}
-              />
-            )}
-            <div className="text-xs text-gray-300 font-medium">
-              antystyki.pl
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Categories - if needed */}
-      {antistic.categories && antistic.categories.length > 0 && (
-        <div className="px-6 pb-4 flex flex-wrap gap-2">
-          {antistic.categories.map((cat) => {
-            const label = `#${cat.namePl.replace(/\s+/g, '')}`;
+        {/* Categories - if needed */}
+        {antistic.categories && antistic.categories.length > 0 && (
+          <div className="px-6 pb-4 flex flex-wrap gap-2">
+            {antistic.categories.map((cat) => {
+              const label = `#${cat.namePl.replace(/\s+/g, '')}`;
 
-            if (onCategoryClick) {
+              if (onCategoryClick) {
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => onCategoryClick(cat.id)}
+                    className="px-3 py-1 bg-background/50 text-text-secondary text-xs font-medium rounded-full transition-colors hover:bg-background hover:text-text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-accent border border-border-subtle"
+                    title={`Pokaż więcej z kategorii ${cat.namePl}`}
+                  >
+                    {label}
+                  </button>
+                );
+              }
+
               return (
-                <button
+                <span
                   key={cat.id}
-                  type="button"
-                  onClick={() => onCategoryClick(cat.id)}
-                  className="px-3 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full transition-colors hover:bg-gray-200 hover:text-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300"
-                  title={`Pokaż więcej z kategorii ${cat.namePl}`}
+                  className="px-3 py-1 bg-background/50 text-text-secondary text-xs font-medium rounded-full border border-border-subtle"
                 >
                   {label}
-                </button>
+                </span>
               );
-            }
+            })}
+          </div>
+        )}
 
-            return (
-              <span
-                key={cat.id}
-                className="px-3 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full"
-              >
-                {label}
-              </span>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Comments Section */}
-      {showComments && (
-        <CommentsSection 
-          antisticId={antistic.id}
-          commentsCount={commentsCount}
-          onCommentsCountChange={setCommentsCount}
-        />
-      )}
+        {/* Comments Section */}
+        {showComments && (
+          <CommentsSection
+            antisticId={antistic.id}
+            commentsCount={commentsCount}
+            onCommentsCountChange={setCommentsCount}
+          />
+        )}
+      </div>
     </div>
   );
 };

@@ -10,7 +10,7 @@ import Footer from '../components/Footer';
 import CardSkeleton from '../components/CardSkeleton';
 import FilterControls from '../components/FilterControls';
 import StatisticsHub from '../components/StatisticsHub';
-import AdSenseAd from '../components/AdSenseAd';
+import AdSlot from '../components/AdSlot';
 import { trackCategoryFilter, trackEvent, trackLoadMore, trackSearch } from '../utils/analytics';
 
 /**
@@ -209,12 +209,12 @@ const Home: React.FC = () => {
       return (
         <div className="text-center py-20">
           <div className="text-6xl mb-6 opacity-50">🤔</div>
-          <h3 className="text-2xl font-semibold text-gray-900 mb-3">
+          <h3 className="text-2xl font-semibold text-text-primary mb-3">
             {searchQuery || selectedCategory
               ? 'Nie znaleziono wyników'
               : 'Jeszcze tu pusto'}
           </h3>
-          <p className="text-gray-600 text-base mb-6 max-w-md mx-auto leading-relaxed">
+          <p className="text-text-secondary text-base mb-6 max-w-md mx-auto leading-relaxed">
             {searchQuery || selectedCategory
               ? 'Spróbuj zmienić filtry lub wyszukiwane hasło.'
               : 'Bądź pierwszym, który doda antystyk.'}
@@ -242,12 +242,11 @@ const Home: React.FC = () => {
               </div>
 
               {inFeedAdSlot && index === 2 && (
-                <AdSenseAd
+                <AdSlot
                   key={`home-feed-ad-${index}`}
-                  adSlot={inFeedAdSlot}
+                  slotId={inFeedAdSlot}
                   className="my-10"
-                  adFormat="auto"
-                  fullWidthResponsive
+                  format="auto"
                 />
               )}
             </Fragment>
@@ -266,10 +265,10 @@ const Home: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#f8f9fb' }} {...swipeHandlers}>
+    <div className="min-h-screen bg-background" {...swipeHandlers}>
       <HeroSection activeView={activeView} onViewChange={handleViewChange} />
 
-      <main className="mx-auto px-6 py-8" style={{ maxWidth: '1000px' }}>
+      <main className="mx-auto px-6 py-8 max-w-[1000px]">
         {activeView === 'antistics' ? (
           <>
             <FilterControls
@@ -282,16 +281,15 @@ const Home: React.FC = () => {
             />
 
             {headerAdSlot && (
-              <AdSenseAd
+              <AdSlot
                 key="home-header-ad"
-                adSlot={headerAdSlot}
+                slotId={headerAdSlot}
                 className="mb-6"
-                adFormat="auto"
-                fullWidthResponsive
+                format="auto"
               />
             )}
 
-            <div className="flex gap-1 mb-6 bg-gray-100 p-1 rounded-lg">
+            <div className="flex gap-1 mb-6 bg-background/50 p-1 rounded-lg border border-border-subtle backdrop-blur-sm">
               {[
                 { key: 'latest', label: 'Najnowsze' },
                 { key: 'top', label: 'Najwyżej oceniane' },
@@ -300,11 +298,10 @@ const Home: React.FC = () => {
                 <button
                   key={key}
                   onClick={() => handleSortChange(key as 'latest' | 'top' | 'trending')}
-                  className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
-                    sortBy === key
-                      ? 'bg-white text-gray-900 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                  }`}
+                  className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${sortBy === key
+                      ? 'bg-card text-text-primary shadow-sm'
+                      : 'text-text-secondary hover:text-text-primary hover:bg-background/50'
+                    }`}
                   type="button"
                 >
                   {label}
