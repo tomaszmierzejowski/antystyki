@@ -425,3 +425,4 @@
 ## Changelog
 - 2025-11-12T10:35Z: Documented monitoring check to confirm admin statistics summary uses OPS-VISITOR-LOG cookieless aggregates with GA4 fallback (§5.8).
 - 2025-11-12T17:56Z: Added deployment verification for `visitor_metrics` Postgres persistence of cookieless aggregates (§5.8).
+- 2025-11-21: Updated documentation references to reflect new `/documentation/` structure. `START_HERE.md` moved to `documentation/getting-started/`.

@@ -245,7 +245,12 @@ To become the leading platform for thought-provoking, statistically-based humor 
 - **Authentication**: JWT tokens
 - **Email**: SMTP integration
 
-### 4.2 Scalability Requirements
+### 4.2 Codebase Organization & LLM Context
+- **Documentation**: Centralized in `/documentation/` directory.
+- **AI Context**: `/llm-context/` contains architectural summaries for AI assistants.
+- **Architecture**: 3-Layer (Api, Core, Infrastructure).
+
+### 4.3 Scalability Requirements
 
 #### Performance Targets
 - **Response Time**: <200ms for API calls
@@ -591,3 +596,4 @@ The roadmap provides a clear path from MVP to a profitable, scalable platform th
 - 2025-11-09: Added Feature F10 Social Login requirements and status (Google OAuth) including provider-linked identities and GDPR-compliant consent messaging; deferred Facebook integration until business registration is available.
 - 2025-11-12T10:30Z: Clarified Feature F11 data sourcing to prioritize OPS-VISITOR-LOG cookieless summaries with GA4 fallback (§3.1).
 - 2025-11-12T17:55Z: Required persistence of cookieless visitor aggregates in Postgres (`visitor_metrics`) to ensure statistics survive container restarts (§3.1).
+- 2025-11-21: Repository restructuring for LLM optimization. Added `/llm-context/` for AI assistants and consolidated documentation into `/documentation/`.
