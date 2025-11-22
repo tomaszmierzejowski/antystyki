@@ -60,7 +60,7 @@
    SMTP_PORT=587
    SMTP_USER=your-actual-email@gmail.com
    SMTP_PASSWORD=your-16-char-app-password-here
-   EMAIL_FROM_ADDRESS=noreply@antystyki.pl
+   EMAIL_FROM_ADDRESS=antystyki@gmail.com
 ```
 
 **Notes**: 
@@ -93,7 +93,7 @@
    SMTP_PORT=587
    SMTP_USER=apikey
    SMTP_PASSWORD=SG.your-actual-api-key-here
-   EMAIL_FROM_ADDRESS=noreply@antystyki.pl
+   EMAIL_FROM_ADDRESS=antystyki@gmail.com
 ```
 
 **Benefits**: 

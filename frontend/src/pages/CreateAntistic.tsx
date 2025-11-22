@@ -21,14 +21,14 @@ const CreateAntistic: React.FC = () => {
   const [chartData, setChartData] = useState<Partial<AntisticData>>({});
   const [prefillData, setPrefillData] = useState<Partial<AntisticData> | null>(null);
   const [chartPrefillKey, setChartPrefillKey] = useState<string>('initial');
-  
+
   // Basic form state
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  
+
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isAuthenticated, isAnonymous } = useAuth();
@@ -69,16 +69,16 @@ const CreateAntistic: React.FC = () => {
         const snapshot =
           parsed.statisticSnapshot
             ? {
-                ...parsed.statisticSnapshot,
-                chartData: parsed.statisticSnapshot.chartData as StatisticChartData | undefined,
-              }
+              ...parsed.statisticSnapshot,
+              chartData: parsed.statisticSnapshot.chartData as StatisticChartData | undefined,
+            }
             : {
-                title: parsed.title,
-                summary: parsed.summary,
-                description: null,
-                sourceUrl: parsed.sourceUrl,
-                chartData: parsed.chartData as StatisticChartData | undefined,
-              };
+              title: parsed.title,
+              summary: parsed.summary,
+              description: null,
+              sourceUrl: parsed.sourceUrl,
+              chartData: parsed.chartData as StatisticChartData | undefined,
+            };
 
         const antisticData: Partial<AntisticData> = parsed.antisticData
           ?? buildAntisticPrefillFromSnapshot(snapshot);
@@ -121,7 +121,7 @@ const CreateAntistic: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent, isDraft: boolean = false) => {
     e.preventDefault();
     setError('');
-    
+
     if (!chartData.title) {
       setError('Tytuł jest wymagany');
       return;
@@ -147,13 +147,13 @@ const CreateAntistic: React.FC = () => {
         isAnonymous: isAnonymous,
         userId: user.id,
       };
-      
+
       await api.post('/antistics', payload);
-      
+
       // Track successful creation
       const categoryName = categories.find(c => selectedCategories.includes(c.id))?.namePl;
       trackAntisticCreate(categoryName, selectedTemplate !== 'two-column-default');
-      
+
       if (isDraft) {
         // Show success message for draft
         setError('');
@@ -183,7 +183,7 @@ const CreateAntistic: React.FC = () => {
     {
       id: 'preview-user',
       username: 'Ty',
-      email: 'user@antystyki.pl',
+      email: 'antystyki@gmail.com',
       role: 'User' as const,
       createdAt: new Date().toISOString(),
     };
@@ -239,7 +239,7 @@ const CreateAntistic: React.FC = () => {
     <div className="min-h-screen" style={{ backgroundColor: '#f8f9fb' }}>
       <div className="max-w-7xl mx-auto px-6 py-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">Stwórz Antystykę</h1>
-        
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Form */}
           <div className="space-y-6">
@@ -276,11 +276,10 @@ const CreateAntistic: React.FC = () => {
                     key={category.id}
                     type="button"
                     onClick={() => toggleCategory(category.id)}
-                    className={`px-3 py-1 rounded-full text-sm transition-all ${
-                      selectedCategories.includes(category.id)
+                    className={`px-3 py-1 rounded-full text-sm transition-all ${selectedCategories.includes(category.id)
                         ? 'bg-gray-900 text-white'
                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
+                      }`}
                   >
                     {category.namePl}
                   </button>
@@ -292,7 +291,7 @@ const CreateAntistic: React.FC = () => {
             {isAnonymous && (
               <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
                 <p className="text-sm text-blue-800">
-                  <strong>Tryb anonimowy:</strong> Tworzysz antystyk jako użytkownik anonimowy. 
+                  <strong>Tryb anonimowy:</strong> Tworzysz antystyk jako użytkownik anonimowy.
                   Możesz zalogować się lub zarejestrować, aby śledzić status swoich antystyków.
                 </p>
               </div>
@@ -301,7 +300,7 @@ const CreateAntistic: React.FC = () => {
             {/* Warning */}
             <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
               <p className="text-sm text-yellow-800">
-                <strong>Uwaga:</strong> Twój antystyk zostanie wysłany do moderacji. 
+                <strong>Uwaga:</strong> Twój antystyk zostanie wysłany do moderacji.
                 Po zatwierdzeniu będzie widoczny dla innych użytkowników.
               </p>
             </div>
@@ -346,7 +345,7 @@ const CreateAntistic: React.FC = () => {
                   customData={chartData}
                 />
               </div>
-              
+
               {/* Preview Info */}
               <div className="mt-4 text-sm text-gray-600">
                 <p><strong>Szablon:</strong> {CARD_TEMPLATES.find(t => t.id === selectedTemplate)?.name}</p>

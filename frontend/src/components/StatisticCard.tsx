@@ -641,51 +641,56 @@ const StatisticCard: React.FC<StatisticCardProps> = ({ statistic, onVote, onConv
   }, [statistic.description, statistic.sourceCitation, statistic.sourceUrl, statistic.summary]);
 
   return (
-    <article className="glass-card rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-medium">
+    <article
+      className="bg-white rounded-2xl border border-gray-200 transition-all duration-300 overflow-hidden hover:-translate-y-1 group"
+      style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}
+      onMouseEnter={(e) => (e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.12)')}
+      onMouseLeave={(e) => (e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06)')}
+    >
       <div className="p-6 space-y-5">
         <header className="space-y-2">
-          <div className="flex items-center gap-3 text-xs uppercase tracking-wide text-text-secondary">
-            <span className="px-3 py-1 bg-primary-50 text-primary-700 rounded-full font-medium">Statystyka</span>
-            <span className="text-text-tertiary">{new Date(statistic.createdAt).toLocaleDateString('pl-PL')}</span>
+          <div className="flex items-center gap-3 text-xs uppercase tracking-wide text-gray-500">
+            <span className="px-3 py-1 bg-orange-50 text-orange-700 rounded-full font-medium">Statystyka</span>
+            <span className="text-gray-400">{new Date(statistic.createdAt).toLocaleDateString('pl-PL')}</span>
             {statistic.convertedAntisticId && (
               <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[11px] font-medium">
                 Przekształcona w antystyk
               </span>
             )}
           </div>
-          <h2 className="text-2xl font-bold text-text-primary tracking-tight">{statistic.title}</h2>
-          <p className="text-text-secondary leading-relaxed text-lg">{statistic.summary}</p>
+          <h2 className="text-2xl font-bold text-gray-900 tracking-tight">{statistic.title}</h2>
+          <p className="text-gray-600 leading-relaxed text-lg">{statistic.summary}</p>
         </header>
 
         {statistic.description && (
-          <p className="text-sm text-text-secondary leading-6 bg-background/50 border border-border-subtle rounded-lg p-4 backdrop-blur-sm">
+          <p className="text-sm text-gray-600 leading-6 bg-gray-50 border border-gray-100 rounded-lg p-4">
             {statistic.description}
           </p>
         )}
 
-        <div className="flex flex-wrap gap-4 text-sm text-text-secondary">
+        <div className="flex flex-wrap gap-4 text-sm text-gray-500">
           <div>
-            <span className="font-medium text-text-primary">Źródło:&nbsp;</span>
+            <span className="font-medium text-gray-900">Źródło:&nbsp;</span>
             <a
               href={statistic.sourceUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-accent hover:text-accent-hover transition-colors break-all font-medium"
+              className="text-orange-600 hover:text-orange-700 transition-colors break-all font-medium"
             >
               {statistic.sourceCitation || statistic.sourceUrl}
             </a>
           </div>
-          <div className="text-text-tertiary">
-            Dodane przez <span className="font-medium text-text-secondary">{statistic.createdBy.username}</span>
+          <div className="text-gray-400">
+            Dodane przez <span className="font-medium text-gray-600">{statistic.createdBy.username}</span>
           </div>
-          <div className="text-text-tertiary">Wyświetlenia: {statistic.viewsCount}</div>
+          <div className="text-gray-400">Wyświetlenia: {statistic.viewsCount}</div>
         </div>
 
         {visualizationContent && (
-          <section className="bg-background/30 border border-border-subtle rounded-xl p-4 space-y-4 backdrop-blur-sm">
-            <div className="flex items-center justify-between text-xs uppercase tracking-wide text-text-tertiary">
-              <span className="font-semibold text-text-secondary">Podgląd danych</span>
-              <span className="text-text-tertiary">{visualizationLabel}</span>
+          <section className="bg-gray-50 border border-gray-100 rounded-xl p-4 space-y-4">
+            <div className="flex items-center justify-between text-xs uppercase tracking-wide text-gray-400">
+              <span className="font-semibold text-gray-500">Podgląd danych</span>
+              <span className="text-gray-400">{visualizationLabel}</span>
             </div>
             {visualizationContent}
           </section>
@@ -693,28 +698,28 @@ const StatisticCard: React.FC<StatisticCardProps> = ({ statistic, onVote, onConv
 
         <section className="space-y-3">
           <div className="flex items-center justify-between text-sm">
-            <span className="font-medium text-text-primary">Poziom zaufania</span>
-            <span className="text-text-secondary">
+            <span className="font-medium text-gray-900">Poziom zaufania</span>
+            <span className="text-gray-500">
               {totalSignals === 0 ? 'Brak głosów zaufania' : `${trustPercent}% wiarygodne · ${fakePercent}% wątpliwe`}
             </span>
           </div>
-          <div className="w-full h-3 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden flex">
+          <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden flex">
             <div className="bg-emerald-500" style={{ width: `${trustPercent}%` }} aria-hidden></div>
             <div className="bg-rose-400" style={{ width: `${fakePercent}%` }} aria-hidden></div>
           </div>
-          <p className="text-xs text-text-tertiary">
+          <p className="text-xs text-gray-400">
             Głosy zaufania i „fake” zostaną w pełni aktywowane w kolejnej fazie społecznościowej.
           </p>
         </section>
 
-        <footer className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-border-subtle">
+        <footer className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-gray-100">
           <div className="flex items-center gap-2">
             <button
               onClick={() => handleVote('Like')}
               disabled={isBusy}
               className={`flex items-center gap-2 px-4 py-2 rounded-full border transition-all duration-200 ${statistic.hasLiked
                 ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm'
-                : 'text-text-secondary border-border-subtle hover:border-emerald-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20'
+                : 'text-gray-500 border-gray-200 hover:border-emerald-400 hover:text-emerald-600 hover:bg-emerald-50'
                 } ${isBusy ? 'opacity-60 cursor-not-allowed' : ''}`}
             >
               <span>👍</span>
@@ -725,7 +730,7 @@ const StatisticCard: React.FC<StatisticCardProps> = ({ statistic, onVote, onConv
               disabled={isBusy}
               className={`flex items-center gap-2 px-4 py-2 rounded-full border transition-all duration-200 ${statistic.hasDisliked
                 ? 'bg-rose-500 text-white border-rose-500 shadow-sm'
-                : 'text-text-secondary border-border-subtle hover:border-rose-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20'
+                : 'text-gray-500 border-gray-200 hover:border-rose-400 hover:text-rose-600 hover:bg-rose-50'
                 } ${isBusy ? 'opacity-60 cursor-not-allowed' : ''}`}
             >
               <span>👎</span>
@@ -748,8 +753,8 @@ const StatisticCard: React.FC<StatisticCardProps> = ({ statistic, onVote, onConv
               onClick={() => onConvert?.(statistic)}
               disabled={!onConvert}
               className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full transition-all duration-200 ${onConvert
-                ? 'text-white bg-accent hover:bg-accent-hover shadow-sm hover:shadow-md'
-                : 'text-gray-400 bg-gray-100 dark:bg-gray-800 cursor-not-allowed'
+                ? 'text-white bg-orange-600 hover:bg-orange-700 shadow-sm hover:shadow-md'
+                : 'text-gray-400 bg-gray-100 cursor-not-allowed'
                 }`}
               type="button"
             >

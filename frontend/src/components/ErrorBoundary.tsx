@@ -56,7 +56,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
               Odśwież stronę
             </button>
             <p className="text-sm text-gray-500">
-              Jeśli problem się powtarza, napisz do nas: kontakt@antystyki.pl
+              Jeśli problem się powtarza, napisz do nas: antystyki@gmail.com
             </p>
           </div>
         </div>

@@ -20,21 +20,19 @@ const PrivacyPolicy = () => {
             <div className="flex gap-2">
               <button
                 onClick={() => setLanguage('pl')}
-                className={`px-4 py-2 rounded ${
-                  language === 'pl'
+                className={`px-4 py-2 rounded ${language === 'pl'
                     ? 'bg-blue-600 text-white'
                     : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                }`}
+                  }`}
               >
                 Polski
               </button>
               <button
                 onClick={() => setLanguage('en')}
-                className={`px-4 py-2 rounded ${
-                  language === 'en'
+                className={`px-4 py-2 rounded ${language === 'en'
                     ? 'bg-blue-600 text-white'
                     : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                }`}
+                  }`}
               >
                 English
               </button>
@@ -44,8 +42,8 @@ const PrivacyPolicy = () => {
             {language === 'pl' ? 'Polityka Prywatności' : 'Privacy Policy'}
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
-            {language === 'pl' 
-              ? 'Ostatnia aktualizacja: 8 listopada 2025' 
+            {language === 'pl'
+              ? 'Ostatnia aktualizacja: 8 listopada 2025'
               : 'Last updated: November 8, 2025'}
           </p>
         </div>
@@ -69,13 +67,13 @@ const PolishPrivacyPolicy = () => (
   <>
     <h2>1. Wprowadzenie</h2>
     <p>
-      Niniejsza Polityka Prywatności opisuje, w jaki sposób Antystyki ("my", "nas", "nasz") 
-      zbiera, wykorzystuje, przechowuje i chroni Twoje dane osobowe podczas korzystania z 
+      Niniejsza Polityka Prywatności opisuje, w jaki sposób Antystyki ("my", "nas", "nasz")
+      zbiera, wykorzystuje, przechowuje i chroni Twoje dane osobowe podczas korzystania z
       naszej platformy internetowej (dalej: "Serwis").
     </p>
     <p>
-      Zobowiązujemy się do ochrony Twojej prywatności zgodnie z Rozporządzeniem Parlamentu 
-      Europejskiego i Rady (UE) 2016/679 z dnia 27 kwietnia 2016 r. w sprawie ochrony osób 
+      Zobowiązujemy się do ochrony Twojej prywatności zgodnie z Rozporządzeniem Parlamentu
+      Europejskiego i Rady (UE) 2016/679 z dnia 27 kwietnia 2016 r. w sprawie ochrony osób
       fizycznych w związku z przetwarzaniem danych osobowych (RODO/GDPR).
     </p>
 
@@ -83,12 +81,12 @@ const PolishPrivacyPolicy = () => (
     <p>
       <strong>Administrator danych osobowych:</strong><br />
       Antystyki<br />
-      Email kontaktowy: privacy@antystyki.pl<br />
+      Email kontaktowy: antystyki@gmail.com<br />
       W sprawach związanych z ochroną danych osobowych prosimy o kontakt pod powyższym adresem.
     </p>
 
     <h2>3. Jakie Dane Zbieramy</h2>
-    
+
     <h3>3.1 Dane Podawane Bezpośrednio</h3>
     <p>Podczas rejestracji i korzystania z Serwisu zbieramy:</p>
     <ul>
@@ -108,8 +106,8 @@ const PolishPrivacyPolicy = () => (
 
     <h3>3.3 Dane NIE Zbierane</h3>
     <p>
-      <strong>Nie zbieramy danych wrażliwych</strong> (pochodzenie rasowe lub etniczne, przekonania 
-      polityczne, religijne, dane o zdrowiu, orientacji seksualnej) chyba że Użytkownik dobrowolnie 
+      <strong>Nie zbieramy danych wrażliwych</strong> (pochodzenie rasowe lub etniczne, przekonania
+      polityczne, religijne, dane o zdrowiu, orientacji seksualnej) chyba że Użytkownik dobrowolnie
       umieści je w publicznej treści.
     </p>
 
@@ -156,7 +154,7 @@ const PolishPrivacyPolicy = () => (
     </ul>
 
     <h2>6. Udostępnianie Danych</h2>
-    
+
     <h3>6.1 Kiedy Udostępniamy Dane</h3>
     <p>Twoje dane osobowe mogą być udostępniane:</p>
     <ul>
@@ -173,7 +171,7 @@ const PolishPrivacyPolicy = () => (
     </ul>
 
     <h2>7. Pliki Cookies</h2>
-    
+
     <h3>7.1 Czym są Cookies</h3>
     <p>
       Cookies to małe pliki tekstowe zapisywane na Twoim urządzeniu przez przeglądarkę internetową.
@@ -214,10 +212,10 @@ const PolishPrivacyPolicy = () => (
 
     <h3>7.3 Google Analytics 4</h3>
     <p>
-      Używamy Google Analytics 4 do analizy ruchu na stronie i zrozumienia zachowań użytkowników. 
+      Używamy Google Analytics 4 do analizy ruchu na stronie i zrozumienia zachowań użytkowników.
       To pomaga nam ulepszyć Serwis i dostosować go do Twoich potrzeb.
     </p>
-    
+
     <h4>Jakie dane zbiera Google Analytics:</h4>
     <ul>
       <li>Informacje o odwiedzonych stronach i czasie wizyty</li>
@@ -226,7 +224,7 @@ const PolishPrivacyPolicy = () => (
       <li>Źródło ruchu (np. wyszukiwarka, link bezpośredni)</li>
       <li>Interakcje z elementami strony (kliknięcia, polubienia, komentarze)</li>
     </ul>
-    
+
     <h4>Dane NIE zbierane przez Google Analytics:</h4>
     <ul>
       <li>Pełny adres IP (jest anonimizowany)</li>
@@ -234,14 +232,14 @@ const PolishPrivacyPolicy = () => (
       <li>Treść komentarzy lub utworzonych antystyków</li>
       <li>Dane osobowe umożliwiające Twoją identyfikację</li>
     </ul>
-    
+
     <h4>Twoja kontrola:</h4>
     <ul>
       <li><strong>Zgoda:</strong> Przed rozpoczęciem śledzenia pytamy o zgodę przez banner cookies</li>
       <li><strong>Opt-out:</strong> Możesz wycofać zgodę w każdej chwili przez ustawienia przeglądarki</li>
       <li><strong>Google Opt-out:</strong> Zainstaluj wtyczkę: <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener">Google Analytics Opt-out Browser Add-on</a></li>
     </ul>
-    
+
     <p>
       <strong>Podstawa prawna:</strong> Zgoda (Art. 6(1)(a) GDPR)<br />
       <strong>Okres przechowywania:</strong> 26 miesięcy (ustawienie Google Analytics)<br />
@@ -250,7 +248,7 @@ const PolishPrivacyPolicy = () => (
 
     <h3>7.4 Zarządzanie Cookies</h3>
     <p>
-      Możesz zarządzać cookies w ustawieniach przeglądarki. Blokada wszystkich cookies może 
+      Możesz zarządzać cookies w ustawieniach przeglądarki. Blokada wszystkich cookies może
       wpłynąć na funkcjonalność Serwisu.
     </p>
 
@@ -277,12 +275,12 @@ const PolishPrivacyPolicy = () => (
 
     <h3>8.1 Jak Skorzystać z Praw</h3>
     <p>
-      Aby skorzystać z powyższych praw, wyślij email na: <strong>privacy@antystyki.pl</strong><br />
+      Aby skorzystać z powyższych praw, wyślij email na: <strong>antystyki@gmail.com</strong><br />
       Odpowiemy w ciągu <strong>30 dni</strong> zgodnie z wymogami GDPR.
     </p>
 
     <h2>9. Przechowywanie Danych</h2>
-    
+
     <h3>9.1 Okres Przechowywania</h3>
     <ul>
       <li><strong>Konto aktywne:</strong> Dopóki nie usuniesz konta</li>
@@ -315,32 +313,32 @@ const PolishPrivacyPolicy = () => (
 
     <h2>11. Użytkownicy Poniżej 16 Roku Życia</h2>
     <p>
-      Serwis nie jest przeznaczony dla osób poniżej 16 roku życia. Nie zbieramy świadomie 
-      danych osobowych dzieci bez zgody rodziców/opiekunów. Jeśli dowiesz się, że Twoje 
+      Serwis nie jest przeznaczony dla osób poniżej 16 roku życia. Nie zbieramy świadomie
+      danych osobowych dzieci bez zgody rodziców/opiekunów. Jeśli dowiesz się, że Twoje
       dziecko przekazało nam dane bez zgody, skontaktuj się z nami.
     </p>
 
     <h2>12. Międzynarodowe Transfery Danych</h2>
     <p>
-      Twoje dane są przechowywane na serwerach w Europejskim Obszarze Gospodarczym (EOG). 
-      Jeśli korzystamy z dostawców spoza EOG (np. Google Analytics), stosujemy standardowe 
+      Twoje dane są przechowywane na serwerach w Europejskim Obszarze Gospodarczym (EOG).
+      Jeśli korzystamy z dostawców spoza EOG (np. Google Analytics), stosujemy standardowe
       klauzule umowne zatwierdzone przez Komisję Europejską.
     </p>
 
     <h2>13. Zmiany w Polityce Prywatności</h2>
     <p>
-      Możemy okresowo aktualizować niniejszą Politykę Prywatności. O istotnych zmianach 
-      powiadomimy Cię przez email lub powiadomienie w Serwisie. Kontynuując korzystanie 
+      Możemy okresowo aktualizować niniejszą Politykę Prywatności. O istotnych zmianach
+      powiadomimy Cię przez email lub powiadomienie w Serwisie. Kontynuując korzystanie
       z Serwisu po zmianach, akceptujesz zaktualizowaną politykę.
     </p>
 
     <h2>14. Kontakt</h2>
     <p>
-      W razie pytań dotyczących niniejszej Polityki Prywatności lub przetwarzania danych, 
+      W razie pytań dotyczących niniejszej Polityki Prywatności lub przetwarzania danych,
       skontaktuj się z nami:
     </p>
     <ul>
-      <li><strong>Email:</strong> privacy@antystyki.pl</li>
+      <li><strong>Email:</strong> antystyki@gmail.com</li>
       <li><strong>Czas odpowiedzi:</strong> Do 30 dni</li>
     </ul>
 
@@ -369,12 +367,12 @@ const EnglishPrivacyPolicy = () => (
   <>
     <h2>1. Introduction</h2>
     <p>
-      This Privacy Policy describes how Antystyki ("we", "us", "our") collects, uses, 
+      This Privacy Policy describes how Antystyki ("we", "us", "our") collects, uses,
       stores, and protects your personal data when using our web platform (the "Service").
     </p>
     <p>
-      We are committed to protecting your privacy in accordance with the General Data 
-      Protection Regulation (GDPR) - Regulation (EU) 2016/679 of the European Parliament 
+      We are committed to protecting your privacy in accordance with the General Data
+      Protection Regulation (GDPR) - Regulation (EU) 2016/679 of the European Parliament
       and of the Council.
     </p>
 
@@ -382,12 +380,12 @@ const EnglishPrivacyPolicy = () => (
     <p>
       <strong>Data Controller:</strong><br />
       Antystyki<br />
-      Contact email: privacy@antystyki.pl<br />
+      Contact email: antystyki@gmail.com<br />
       For data protection matters, please contact us at the above address.
     </p>
 
     <h2>3. What Data We Collect</h2>
-    
+
     <h3>3.1 Data You Provide Directly</h3>
     <p>When registering and using the Service, we collect:</p>
     <ul>
@@ -407,8 +405,8 @@ const EnglishPrivacyPolicy = () => (
 
     <h3>3.3 Data NOT Collected</h3>
     <p>
-      <strong>We do not collect sensitive data</strong> (racial or ethnic origin, political 
-      opinions, religious beliefs, health data, sexual orientation) unless a User voluntarily 
+      <strong>We do not collect sensitive data</strong> (racial or ethnic origin, political
+      opinions, religious beliefs, health data, sexual orientation) unless a User voluntarily
       includes it in public content.
     </p>
 
@@ -455,7 +453,7 @@ const EnglishPrivacyPolicy = () => (
     </ul>
 
     <h2>6. Data Sharing</h2>
-    
+
     <h3>6.1 When We Share Data</h3>
     <p>Your personal data may be shared with:</p>
     <ul>
@@ -472,7 +470,7 @@ const EnglishPrivacyPolicy = () => (
     </ul>
 
     <h2>7. Cookies</h2>
-    
+
     <h3>7.1 What Are Cookies</h3>
     <p>
       Cookies are small text files stored on your device by your web browser.
@@ -513,10 +511,10 @@ const EnglishPrivacyPolicy = () => (
 
     <h3>7.3 Google Analytics 4</h3>
     <p>
-      We use Google Analytics 4 to analyze website traffic and understand user behavior. 
+      We use Google Analytics 4 to analyze website traffic and understand user behavior.
       This helps us improve the Service and tailor it to your needs.
     </p>
-    
+
     <h4>What data Google Analytics collects:</h4>
     <ul>
       <li>Information about visited pages and visit duration</li>
@@ -525,7 +523,7 @@ const EnglishPrivacyPolicy = () => (
       <li>Traffic source (e.g., search engine, direct link)</li>
       <li>Interactions with page elements (clicks, likes, comments)</li>
     </ul>
-    
+
     <h4>Data NOT collected by Google Analytics:</h4>
     <ul>
       <li>Full IP address (it is anonymized)</li>
@@ -533,14 +531,14 @@ const EnglishPrivacyPolicy = () => (
       <li>Content of comments or created antistics</li>
       <li>Personal data enabling your identification</li>
     </ul>
-    
+
     <h4>Your control:</h4>
     <ul>
       <li><strong>Consent:</strong> We ask for consent through a cookie banner before tracking begins</li>
       <li><strong>Opt-out:</strong> You can withdraw consent anytime through browser settings</li>
       <li><strong>Google Opt-out:</strong> Install plugin: <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener">Google Analytics Opt-out Browser Add-on</a></li>
     </ul>
-    
+
     <p>
       <strong>Legal basis:</strong> Consent (Art. 6(1)(a) GDPR)<br />
       <strong>Retention period:</strong> 26 months (Google Analytics setting)<br />
@@ -549,7 +547,7 @@ const EnglishPrivacyPolicy = () => (
 
     <h3>7.4 Managing Cookies</h3>
     <p>
-      You can manage cookies in your browser settings. Blocking all cookies may affect 
+      You can manage cookies in your browser settings. Blocking all cookies may affect
       Service functionality.
     </p>
 
@@ -576,12 +574,12 @@ const EnglishPrivacyPolicy = () => (
 
     <h3>8.1 How to Exercise Your Rights</h3>
     <p>
-      To exercise the above rights, send an email to: <strong>privacy@antystyki.pl</strong><br />
+      To exercise the above rights, send an email to: <strong>antystyki@gmail.com</strong><br />
       We will respond within <strong>30 days</strong> as required by GDPR.
     </p>
 
     <h2>9. Data Retention</h2>
-    
+
     <h3>9.1 Retention Period</h3>
     <ul>
       <li><strong>Active account:</strong> Until you delete your account</li>
@@ -614,22 +612,22 @@ const EnglishPrivacyPolicy = () => (
 
     <h2>11. Users Under 16</h2>
     <p>
-      The Service is not intended for persons under 16 years of age. We do not knowingly 
-      collect personal data from children without parental/guardian consent. If you learn 
+      The Service is not intended for persons under 16 years of age. We do not knowingly
+      collect personal data from children without parental/guardian consent. If you learn
       that your child has provided us with data without consent, please contact us.
     </p>
 
     <h2>12. International Data Transfers</h2>
     <p>
-      Your data is stored on servers in the European Economic Area (EEA). If we use 
-      providers outside the EEA (e.g., Google Analytics), we use standard contractual 
+      Your data is stored on servers in the European Economic Area (EEA). If we use
+      providers outside the EEA (e.g., Google Analytics), we use standard contractual
       clauses approved by the European Commission.
     </p>
 
     <h2>13. Changes to Privacy Policy</h2>
     <p>
-      We may periodically update this Privacy Policy. We will notify you of significant 
-      changes by email or notification in the Service. By continuing to use the Service 
+      We may periodically update this Privacy Policy. We will notify you of significant
+      changes by email or notification in the Service. By continuing to use the Service
       after changes, you accept the updated policy.
     </p>
 
@@ -638,7 +636,7 @@ const EnglishPrivacyPolicy = () => (
       If you have questions about this Privacy Policy or data processing, contact us:
     </p>
     <ul>
-      <li><strong>Email:</strong> privacy@antystyki.pl</li>
+      <li><strong>Email:</strong> antystyki@gmail.com</li>
       <li><strong>Response time:</strong> Up to 30 days</li>
     </ul>
 

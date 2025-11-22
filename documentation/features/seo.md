@@ -611,7 +611,7 @@ New: https://YOUR_SERVER_IP
 "contactPoint": {
   "@type": "ContactPoint",
   "contactType": "Customer Support",
-  "email": "contact@antystyki.pl"
+  "email": "antystyki@gmail.com"
 }
 
 // Update to real email:

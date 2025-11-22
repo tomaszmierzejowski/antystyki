@@ -31,7 +31,7 @@ services:
       - Email__SmtpPort=${SMTP_PORT:-587}
       - Email__SmtpUser=${SMTP_USER}
       - Email__SmtpPassword=${SMTP_PASSWORD}
-      - Email__FromAddress=${EMAIL_FROM_ADDRESS:-noreply@antystyki.pl}
+      - Email__FromAddress=${EMAIL_FROM_ADDRESS:-antystyki@gmail.com}
       - Email__FromName=${EMAIL_FROM_NAME:-Antystyki}
       - Authentication__Google__ClientId=${GOOGLE_CLIENT_ID:-}
       - Authentication__Google__ClientSecret=${GOOGLE_CLIENT_SECRET:-}

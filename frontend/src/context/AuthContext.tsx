@@ -59,11 +59,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const anonymousUser: User = {
       id: `anon_${Date.now()}`,
       username: 'Anonimowy',
-      email: 'anonymous@antystyki.pl',
+      email: 'antystyki@gmail.com',
       role: 'User',
       createdAt: new Date().toISOString()
     };
-    
+
     setUser(anonymousUser);
     setIsAnonymous(true);
   };

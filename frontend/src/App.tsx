@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import Navbar from './components/Navbar';
+import WelcomeBanner from './components/WelcomeBanner';
 import CookieConsent from './components/CookieConsent';
 import Home from './pages/Home';
 import Login from './pages/Login';
@@ -45,6 +46,7 @@ function App() {
     <Router>
       <AuthProvider>
         <div className="min-h-screen bg-background text-text-primary transition-colors duration-300">
+          <WelcomeBanner />
           <Navbar />
           <AnalyticsTracker />
           <Routes>

@@ -33,7 +33,7 @@ const EXAMPLE_ANTISTIC: Antistic = {
   user: {
     id: 'user-1',
     username: 'antystyk_creator',
-    email: 'creator@antystyki.pl',
+    email: 'antystyki@gmail.com',
     role: 'User',
     createdAt: new Date().toISOString()
   },
@@ -69,7 +69,7 @@ const EXAMPLE_DATA: Record<string, Partial<AntisticData>> = {
       ]
     }
   },
-  
+
   'single-chart': {
     title: 'Emisje CO₂ - szczegółowy podział',
     description: 'Energia dominuje w emisjach, ale transport nie jest głównym winowajcą.',
@@ -85,7 +85,7 @@ const EXAMPLE_DATA: Record<string, Partial<AntisticData>> = {
       ]
     }
   },
-  
+
   'text-focused': {
     title: '84% emisji CO₂ to inne sektory niż transport',
     description: 'Podczas gdy debaty klimatyczne często koncentrują się na transporcie, większość emisji pochodzi z innych sektorów.',
@@ -98,7 +98,7 @@ const EXAMPLE_DATA: Record<string, Partial<AntisticData>> = {
       chartColor: '#6b7280'
     }
   },
-  
+
   'comparison': {
     title: 'Zmiany w emisjach - przed i po',
     description: 'Porównanie emisji CO₂ przed i po wprowadzeniu nowych regulacji.',
@@ -138,8 +138,8 @@ const TemplateShowcase: React.FC = () => {
   const [selectedTemplate, setSelectedTemplate] = useState('two-column-default');
   const [customData, setCustomData] = useState<Partial<AntisticData>>({});
 
-  const currentData = customData && Object.keys(customData).length > 0 
-    ? customData 
+  const currentData = customData && Object.keys(customData).length > 0
+    ? customData
     : EXAMPLE_DATA[selectedTemplate] || {};
 
   return (
@@ -198,10 +198,10 @@ const TemplateShowcase: React.FC = () => {
               <p><strong>Layout:</strong> {EXAMPLE_DATA[selectedTemplate] ? 'Z przykładowymi danymi' : 'Z niestandardowymi danymi'}</p>
               <p><strong>Wykresy:</strong> {
                 selectedTemplate === 'two-column-default' ? 'Dwa wykresy (perspektywa + źródło)' :
-                selectedTemplate === 'single-chart' ? 'Jeden wykres' :
-                selectedTemplate === 'text-focused' ? 'Tekst z wyróżnioną statystyką' :
-                selectedTemplate === 'comparison' ? 'Dwa wykresy porównawcze' :
-                'Nieznany'
+                  selectedTemplate === 'single-chart' ? 'Jeden wykres' :
+                    selectedTemplate === 'text-focused' ? 'Tekst z wyróżnioną statystyką' :
+                      selectedTemplate === 'comparison' ? 'Dwa wykresy porównawcze' :
+                        'Nieznany'
               }</p>
             </div>
           </div>

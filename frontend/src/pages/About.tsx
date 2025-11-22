@@ -83,7 +83,7 @@ const AboutPage: React.FC = () => {
               </li>
               <li>
                 <a
-                  href="mailto:kontakt@antystyki.pl"
+                  href="mailto:antystyki@gmail.com"
                   className="hover:underline"
                 >
                   💌 Napisz do moderatorów

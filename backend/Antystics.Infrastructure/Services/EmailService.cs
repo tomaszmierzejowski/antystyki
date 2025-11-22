@@ -107,7 +107,7 @@ public class EmailService : IEmailService
         var message = new MimeMessage();
         message.From.Add(new MailboxAddress(
             _configuration["Email:FromName"] ?? "Antystyki",
-            _configuration["Email:FromAddress"] ?? "noreply@antystyki.pl"
+            _configuration["Email:FromAddress"] ?? "antystyki@gmail.com"
         ));
         message.To.Add(new MailboxAddress("", toEmail));
         message.Subject = subject;

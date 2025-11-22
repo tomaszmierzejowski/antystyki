@@ -20,21 +20,19 @@ const TermsOfService = () => {
             <div className="flex gap-2">
               <button
                 onClick={() => setLanguage('pl')}
-                className={`px-4 py-2 rounded ${
-                  language === 'pl'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                }`}
+                className={`px-4 py-2 rounded ${language === 'pl'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                  }`}
               >
                 Polski
               </button>
               <button
                 onClick={() => setLanguage('en')}
-                className={`px-4 py-2 rounded ${
-                  language === 'en'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                }`}
+                className={`px-4 py-2 rounded ${language === 'en'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                  }`}
               >
                 English
               </button>
@@ -44,8 +42,8 @@ const TermsOfService = () => {
             {language === 'pl' ? 'Regulamin Serwisu' : 'Terms of Service'}
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
-            {language === 'pl' 
-              ? 'Ostatnia aktualizacja: 15 października 2025' 
+            {language === 'pl'
+              ? 'Ostatnia aktualizacja: 15 października 2025'
               : 'Last updated: October 15, 2025'}
           </p>
         </div>
@@ -63,8 +61,8 @@ const PolishTermsOfService = () => (
   <>
     <h2>1. Postanowienia Ogólne</h2>
     <p>
-      Niniejszy Regulamin określa zasady korzystania z platformy Antystyki (dalej: "Serwis"), 
-      prowadzonej pod adresem antystyki.pl. Korzystając z Serwisu, akceptujesz niniejszy 
+      Niniejszy Regulamin określa zasady korzystania z platformy Antystyki (dalej: "Serwis"),
+      prowadzonej pod adresem antystyki.pl. Korzystając z Serwisu, akceptujesz niniejszy
       Regulamin w całości.
     </p>
 
@@ -82,7 +80,7 @@ const PolishTermsOfService = () => (
       "Pokazać ludziom, że rzeczy nie są tylko czarne lub białe. Świat to wszystkie odcienie szarości."
     </p>
     <p>
-      Antystyki to platforma edukacyjno-humorystyczna, która poprzez inteligentną interpretację 
+      Antystyki to platforma edukacyjno-humorystyczna, która poprzez inteligentną interpretację
       statystyk ma na celu:
     </p>
     <ul>
@@ -150,7 +148,7 @@ const PolishTermsOfService = () => (
       <strong>Twoje prawa:</strong> Zachowujesz pełne prawa autorskie do tworzonych treści.
     </p>
     <p>
-      <strong>Licencja dla Serwisu:</strong> Publikując treści, udzielasz Serwisowi niewyłącznej, 
+      <strong>Licencja dla Serwisu:</strong> Publikując treści, udzielasz Serwisowi niewyłącznej,
       bezpłatnej, nieograniczonej terytorialnie licencji na:
     </p>
     <ul>
@@ -176,7 +174,7 @@ const PolishTermsOfService = () => (
 
     <h3>5.2 Czas Moderacji</h3>
     <p>
-      Staramy się zrealizować moderację w ciągu <strong>24-48 godzin</strong>. 
+      Staramy się zrealizować moderację w ciągu <strong>24-48 godzin</strong>.
       W przypadku większego ruchu czas może się wydłużyć.
     </p>
 
@@ -209,7 +207,7 @@ const PolishTermsOfService = () => (
 
     <h3>7.1 Treści Serwisu</h3>
     <p>
-      Wszystkie elementy Serwisu (logo, układ graficzny, kod źródłowy, nazwa, znaki towarowe) 
+      Wszystkie elementy Serwisu (logo, układ graficzny, kod źródłowy, nazwa, znaki towarowe)
       są własnością Antystyki i podlegają ochronie prawnej.
     </p>
 
@@ -240,7 +238,7 @@ const PolishTermsOfService = () => (
 
     <h3>8.2 Doświadczenie Bez Reklam</h3>
     <p>
-      Użytkownicy wspierający Serwis poprzez "Buy Me a Coffee" otrzymują dostęp bez reklam 
+      Użytkownicy wspierający Serwis poprzez "Buy Me a Coffee" otrzymują dostęp bez reklam
       jako podziękowanie za wsparcie.
     </p>
 
@@ -248,7 +246,7 @@ const PolishTermsOfService = () => (
 
     <h3>9.1 Wyłączenie Odpowiedzialności za Treści</h3>
     <p>
-      Serwis pełni rolę platformy udostępniającej treści tworzone przez użytkowników. 
+      Serwis pełni rolę platformy udostępniającej treści tworzone przez użytkowników.
       Nie ponosimy odpowiedzialności za:
     </p>
     <ul>
@@ -269,7 +267,7 @@ const PolishTermsOfService = () => (
 
     <h3>9.3 Siła Wyższa</h3>
     <p>
-      Nie ponosimy odpowiedzialności za niedostępność Serwisu spowodowaną siłą wyższą 
+      Nie ponosimy odpowiedzialności za niedostępność Serwisu spowodowaną siłą wyższą
       (awarie serwerów, ataki DDoS, klęski żywiołowe, zmiany prawne).
     </p>
 
@@ -287,8 +285,8 @@ const PolishTermsOfService = () => (
 
     <h3>10.2 Odwołania</h3>
     <p>
-      Możesz odwołać się od decyzji moderacyjnej wysyłając email na: 
-      <strong>appeals@antystyki.pl</strong>
+      Możesz odwołać się od decyzji moderacyjnej wysyłając email na:
+      <strong>antystyki@gmail.com</strong>
     </p>
 
     <h2>11. Zmiana i Zakończenie Usług</h2>
@@ -305,13 +303,13 @@ const PolishTermsOfService = () => (
 
     <h3>11.2 Usunięcie Konta</h3>
     <p>
-      Możesz w każdej chwili usunąć swoje konto w ustawieniach. Dane osobowe zostaną 
+      Możesz w każdej chwili usunąć swoje konto w ustawieniach. Dane osobowe zostaną
       usunięte zgodnie z Polityką Prywatności.
     </p>
 
     <h2>12. Ochrona Danych Osobowych</h2>
     <p>
-      Przetwarzanie danych osobowych odbywa się zgodnie z <strong>Polityką Prywatności</strong>, 
+      Przetwarzanie danych osobowych odbywa się zgodnie z <strong>Polityką Prywatności</strong>,
       która stanowi integralną część niniejszego Regulaminu.
     </p>
     <p>
@@ -328,36 +326,36 @@ const PolishTermsOfService = () => (
 
     <h3>13.1 Prawo Właściwe</h3>
     <p>
-      Niniejszy Regulamin podlega prawu polskiemu. W przypadku sporu właściwy jest sąd 
+      Niniejszy Regulamin podlega prawu polskiemu. W przypadku sporu właściwy jest sąd
       właściwy dla siedziby Administratora.
     </p>
 
     <h3>13.2 Konsumenci</h3>
     <p>
-      Jeśli jesteś konsumentem w rozumieniu prawa polskiego, przysługują Ci dodatkowe prawa 
+      Jeśli jesteś konsumentem w rozumieniu prawa polskiego, przysługują Ci dodatkowe prawa
       wynikające z przepisów o ochronie konsumentów.
     </p>
 
     <h3>13.3 Rozstrzyganie Sporów</h3>
     <p>
-      Zachęcamy do rozwiązywania sporów polubownie. Możesz skorzystać z platformy ODR 
+      Zachęcamy do rozwiązywania sporów polubownie. Możesz skorzystać z platformy ODR
       (Online Dispute Resolution): <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noopener noreferrer">https://ec.europa.eu/consumers/odr</a>
     </p>
 
     <h3>13.4 Rozdzielność Postanowień</h3>
     <p>
-      Jeśli jakiekolwiek postanowienie Regulaminu zostanie uznane za nieważne, pozostałe 
+      Jeśli jakiekolwiek postanowienie Regulaminu zostanie uznane za nieważne, pozostałe
       postanowienia pozostają w mocy.
     </p>
 
     <h2>14. Kontakt</h2>
     <p>W sprawach związanych z Regulaminem:</p>
     <ul>
-      <li><strong>Ogólne pytania:</strong> contact@antystyki.pl</li>
-      <li><strong>Moderacja i zgłoszenia:</strong> moderation@antystyki.pl</li>
-      <li><strong>Odwołania od decyzji:</strong> appeals@antystyki.pl</li>
-      <li><strong>Ochrona danych:</strong> privacy@antystyki.pl</li>
-      <li><strong>Zgłoszenia prawne (DMCA, naruszenia):</strong> legal@antystyki.pl</li>
+      <li><strong>Ogólne pytania:</strong> antystyki@gmail.com</li>
+      <li><strong>Moderacja i zgłoszenia:</strong> antystyki@gmail.com</li>
+      <li><strong>Odwołania od decyzji:</strong> antystyki@gmail.com</li>
+      <li><strong>Ochrona danych:</strong> antystyki@gmail.com</li>
+      <li><strong>Zgłoszenia prawne (DMCA, naruszenia):</strong> antystyki@gmail.com</li>
     </ul>
 
     <h2>15. Postanowienia Końcowe</h2>
@@ -384,7 +382,7 @@ const EnglishTermsOfService = () => (
   <>
     <h2>1. General Provisions</h2>
     <p>
-      These Terms of Service govern the use of the Antystyki platform (the "Service"), 
+      These Terms of Service govern the use of the Antystyki platform (the "Service"),
       operated at antystyki.pl. By using the Service, you accept these Terms in their entirety.
     </p>
 
@@ -402,7 +400,7 @@ const EnglishTermsOfService = () => (
       "Antystyki turns real stats into witty gray-area stories that help our community think deeper before they share."
     </p>
     <p>
-      Antystyki is an educational-humor platform that through intelligent interpretation 
+      Antystyki is an educational-humor platform that through intelligent interpretation
       of statistics aims to:
     </p>
     <ul>
@@ -470,7 +468,7 @@ const EnglishTermsOfService = () => (
       <strong>Your rights:</strong> You retain full copyright to created content.
     </p>
     <p>
-      <strong>License to Service:</strong> By publishing content, you grant the Service a non-exclusive, 
+      <strong>License to Service:</strong> By publishing content, you grant the Service a non-exclusive,
       royalty-free, worldwide license to:
     </p>
     <ul>
@@ -496,7 +494,7 @@ const EnglishTermsOfService = () => (
 
     <h3>5.2 Moderation Time</h3>
     <p>
-      We aim to complete moderation within <strong>24-48 hours</strong>. 
+      We aim to complete moderation within <strong>24-48 hours</strong>.
       During high traffic, time may be extended.
     </p>
 
@@ -529,7 +527,7 @@ const EnglishTermsOfService = () => (
 
     <h3>7.1 Service Content</h3>
     <p>
-      All Service elements (logo, graphic layout, source code, name, trademarks) 
+      All Service elements (logo, graphic layout, source code, name, trademarks)
       are property of Antystyki and are legally protected.
     </p>
 
@@ -560,7 +558,7 @@ const EnglishTermsOfService = () => (
 
     <h3>8.2 Ad-Free Experience</h3>
     <p>
-      Users supporting the Service through "Buy Me a Coffee" receive ad-free access 
+      Users supporting the Service through "Buy Me a Coffee" receive ad-free access
       as a thank you for their support.
     </p>
 
@@ -568,7 +566,7 @@ const EnglishTermsOfService = () => (
 
     <h3>9.1 Disclaimer of Content Liability</h3>
     <p>
-      Service acts as a platform providing user-generated content. 
+      Service acts as a platform providing user-generated content.
       We are not responsible for:
     </p>
     <ul>
@@ -589,7 +587,7 @@ const EnglishTermsOfService = () => (
 
     <h3>9.3 Force Majeure</h3>
     <p>
-      We are not liable for Service unavailability caused by force majeure 
+      We are not liable for Service unavailability caused by force majeure
       (server failures, DDoS attacks, natural disasters, legal changes).
     </p>
 
@@ -607,8 +605,8 @@ const EnglishTermsOfService = () => (
 
     <h3>10.2 Appeals</h3>
     <p>
-      You can appeal moderation decisions by emailing: 
-      <strong>appeals@antystyki.pl</strong>
+      You can appeal moderation decisions by emailing:
+      <strong>antystyki@gmail.com</strong>
     </p>
 
     <h2>11. Service Changes and Termination</h2>
@@ -625,13 +623,13 @@ const EnglishTermsOfService = () => (
 
     <h3>11.2 Account Deletion</h3>
     <p>
-      You can delete your account at any time in settings. Personal data will be 
+      You can delete your account at any time in settings. Personal data will be
       deleted according to Privacy Policy.
     </p>
 
     <h2>12. Personal Data Protection</h2>
     <p>
-      Personal data processing is governed by the <strong>Privacy Policy</strong>, 
+      Personal data processing is governed by the <strong>Privacy Policy</strong>,
       which is an integral part of these Terms.
     </p>
     <p>
@@ -648,19 +646,19 @@ const EnglishTermsOfService = () => (
 
     <h3>13.1 Applicable Law</h3>
     <p>
-      These Terms are governed by Polish law. In case of dispute, the court with 
+      These Terms are governed by Polish law. In case of dispute, the court with
       jurisdiction over Administrator's seat applies.
     </p>
 
     <h3>13.2 Consumers</h3>
     <p>
-      If you are a consumer under Polish law, you have additional rights under 
+      If you are a consumer under Polish law, you have additional rights under
       consumer protection regulations.
     </p>
 
     <h3>13.3 Dispute Resolution</h3>
     <p>
-      We encourage amicable dispute resolution. You can use the ODR platform 
+      We encourage amicable dispute resolution. You can use the ODR platform
       (Online Dispute Resolution): <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noopener noreferrer">https://ec.europa.eu/consumers/odr</a>
     </p>
 
@@ -672,11 +670,11 @@ const EnglishTermsOfService = () => (
     <h2>14. Contact</h2>
     <p>For matters related to Terms:</p>
     <ul>
-      <li><strong>General inquiries:</strong> contact@antystyki.pl</li>
-      <li><strong>Moderation and reports:</strong> moderation@antystyki.pl</li>
-      <li><strong>Appeals:</strong> appeals@antystyki.pl</li>
-      <li><strong>Data protection:</strong> privacy@antystyki.pl</li>
-      <li><strong>Legal reports (DMCA, violations):</strong> legal@antystyki.pl</li>
+      <li><strong>General inquiries:</strong> antystyki@gmail.com</li>
+      <li><strong>Moderation and reports:</strong> antystyki@gmail.com</li>
+      <li><strong>Appeals:</strong> antystyki@gmail.com</li>
+      <li><strong>Data protection:</strong> antystyki@gmail.com</li>
+      <li><strong>Legal reports (DMCA, violations):</strong> antystyki@gmail.com</li>
     </ul>
 
     <h2>15. Final Provisions</h2>

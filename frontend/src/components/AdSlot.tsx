@@ -38,7 +38,7 @@ const AdSlot: React.FC<AdSlotProps> = ({ slotId, format = 'auto', className = ''
             <ins
                 className="adsbygoogle"
                 style={{ display: 'block' }}
-                data-ad-client="ca-pub-YOUR_PUBLISHER_ID" // TODO: Replace with actual ID
+                data-ad-client={import.meta.env.VITE_ADSENSE_PUBLISHER_ID || "ca-pub-YOUR_PUBLISHER_ID"}
                 data-ad-slot={slotId}
                 data-ad-format={format}
                 data-full-width-responsive="true"

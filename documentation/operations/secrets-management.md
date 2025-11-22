@@ -93,7 +93,7 @@ SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=your-email@gmail.com
 SMTP_PASSWORD=your-gmail-app-password
-EMAIL_FROM_ADDRESS=noreply@antystyki.pl
+EMAIL_FROM_ADDRESS=antystyki@gmail.com
 EMAIL_FROM_NAME=Antystyki
 
 # CORS
