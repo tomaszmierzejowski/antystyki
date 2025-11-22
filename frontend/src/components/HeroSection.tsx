@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 
 type HomeView = 'antistics' | 'statistics';
 
@@ -25,21 +26,42 @@ const HeroSection: React.FC<HeroSectionProps> = ({ activeView, onViewChange }) =
       : 'Odkrywaj odcienie prawdy. Zatrzymaj polaryzację społeczną.';
 
   return (
-    <section className="bg-gradient-to-b from-background to-background py-4 md:py-6 px-6 border-b border-border-subtle">
+    <section className="relative py-8 md:py-12 px-6 border-b border-border-subtle overflow-hidden">
+      {/* Background Elements */}
+      <div className="absolute inset-0 -z-10 overflow-hidden">
+        <div className="absolute top-0 left-1/4 w-64 h-64 bg-accent/5 rounded-full blur-3xl animate-blob"></div>
+        <div className="absolute bottom-0 right-1/4 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl animate-blob animation-delay-2000"></div>
+      </div>
+
       <div className="mx-auto text-center max-w-[1000px]">
         {/* Main Heading - Very compact */}
-        <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-text-primary mb-2 md:mb-3 leading-tight tracking-tight">
-          Świat nie jest czarno-biały
-        </h1>
+        <motion.h1
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-text-primary mb-3 md:mb-4 leading-tight tracking-tight font-display"
+        >
+          Świat nie jest <span className="text-transparent bg-clip-text bg-gradient-to-r from-gray-800 to-gray-500 dark:from-gray-100 dark:to-gray-400">czarno-biały</span>
+        </motion.h1>
 
         {/* Subtext - Minimal */}
-        <p className="text-xs md:text-sm text-text-secondary mb-4 md:mb-5 max-w-xl mx-auto">
+        <motion.p
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
+          className="text-sm md:text-base text-text-secondary mb-6 md:mb-8 max-w-xl mx-auto leading-relaxed"
+        >
           {subheadingCopy}
-        </p>
+        </motion.p>
 
         {/* Toggle + Primary CTA */}
-        <div className="flex flex-col items-center justify-center gap-3 md:flex-row md:gap-4">
-          <div className="flex items-center bg-background border border-border-subtle rounded-full p-1 shadow-sm backdrop-blur-sm">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
+          className="flex flex-col items-center justify-center gap-4 md:flex-row md:gap-6"
+        >
+          <div className="flex items-center bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 rounded-full p-1 shadow-sm backdrop-blur-sm">
             {([
               { key: 'antistics', label: 'Antystyki' },
               { key: 'statistics', label: 'Statystyki' },
@@ -48,9 +70,9 @@ const HeroSection: React.FC<HeroSectionProps> = ({ activeView, onViewChange }) =
                 key={key}
                 type="button"
                 onClick={() => onViewChange(key)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${activeView === key
-                    ? 'bg-dark text-white shadow'
-                    : 'text-text-secondary hover:text-text-primary'
+                className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-300 ${activeView === key
+                  ? 'bg-dark text-white shadow-md transform scale-105'
+                  : 'text-text-secondary hover:text-text-primary hover:bg-black/5 dark:hover:bg-white/5'
                   }`}
                 aria-pressed={activeView === key}
                 aria-label={`Przełącz na widok ${label.toLowerCase()}`}
@@ -62,11 +84,11 @@ const HeroSection: React.FC<HeroSectionProps> = ({ activeView, onViewChange }) =
 
           <Link
             to="/create"
-            className="inline-flex items-center justify-center px-5 md:px-6 py-2 text-white font-medium rounded-full transition-all hover:shadow-md text-sm bg-accent hover:bg-accent-hover shadow-sm"
+            className="inline-flex items-center justify-center px-6 py-2.5 text-white font-semibold rounded-full transition-all hover:shadow-lg hover:-translate-y-0.5 text-sm bg-accent hover:bg-accent-hover shadow-md shadow-accent/20"
           >
             Dodaj Antystykę
           </Link>
-        </div>
+        </motion.div>
       </div>
     </section>
   );
