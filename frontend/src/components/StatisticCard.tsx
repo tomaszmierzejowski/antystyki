@@ -649,9 +649,9 @@ const StatisticCard: React.FC<StatisticCardProps> = ({ statistic, onVote, onConv
     >
       <div className="p-6 space-y-5">
         <header className="space-y-2">
-          <div className="flex items-center gap-3 text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-            <span className="px-3 py-1 bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-full font-medium">Statystyka</span>
-            <span className="text-gray-400 dark:text-gray-500">{new Date(statistic.createdAt).toLocaleDateString('pl-PL')}</span>
+          <div className="flex items-center gap-3 text-xs uppercase tracking-wide text-gray-500 dark:text-gray-300">
+            <span className="px-3 py-1 bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-200 rounded-full font-medium">Statystyka</span>
+            <span className="text-gray-400 dark:text-gray-400">{new Date(statistic.createdAt).toLocaleDateString('pl-PL')}</span>
             {statistic.convertedAntisticId && (
               <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[11px] font-medium">
                 Przekształcona w antystyk
@@ -659,18 +659,18 @@ const StatisticCard: React.FC<StatisticCardProps> = ({ statistic, onVote, onConv
             )}
           </div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">{statistic.title}</h2>
-          <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-lg">{statistic.summary}</p>
+          <p className="text-gray-600 dark:text-gray-200 leading-relaxed text-lg">{statistic.summary}</p>
         </header>
 
         {statistic.description && (
-          <p className="text-sm text-gray-600 dark:text-gray-400 leading-6 bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-600 rounded-lg p-4">
+          <p className="text-sm text-gray-600 dark:text-gray-200 leading-6 bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-600 rounded-lg p-4">
             {statistic.description}
           </p>
         )}
 
-        <div className="flex flex-wrap gap-4 text-sm text-gray-500 dark:text-gray-400">
+        <div className="flex flex-wrap gap-4 text-sm text-gray-500 dark:text-gray-300">
           <div>
-            <span className="font-medium text-gray-900 dark:text-gray-200">Źródło:&nbsp;</span>
+            <span className="font-medium text-gray-900 dark:text-gray-100">Źródło:&nbsp;</span>
             <a
               href={statistic.sourceUrl}
               target="_blank"
@@ -680,17 +680,17 @@ const StatisticCard: React.FC<StatisticCardProps> = ({ statistic, onVote, onConv
               {statistic.sourceCitation || statistic.sourceUrl}
             </a>
           </div>
-          <div className="text-gray-400 dark:text-gray-500">
-            Dodane przez <span className="font-medium text-gray-600 dark:text-gray-300">{statistic.createdBy.username}</span>
+          <div className="text-gray-400 dark:text-gray-400">
+            Dodane przez <span className="font-medium text-gray-600 dark:text-gray-100">{statistic.createdBy.username}</span>
           </div>
-          <div className="text-gray-400 dark:text-gray-500">Wyświetlenia: {statistic.viewsCount}</div>
+          <div className="text-gray-400 dark:text-gray-400">Wyświetlenia: {statistic.viewsCount}</div>
         </div>
 
         {visualizationContent && (
           <section className="bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-600 rounded-xl p-4 space-y-4">
-            <div className="flex items-center justify-between text-xs uppercase tracking-wide text-gray-400 dark:text-gray-500">
-              <span className="font-semibold text-gray-500 dark:text-gray-400">Podgląd danych</span>
-              <span className="text-gray-400 dark:text-gray-500">{visualizationLabel}</span>
+            <div className="flex items-center justify-between text-xs uppercase tracking-wide text-gray-400 dark:text-gray-300">
+              <span className="font-semibold text-gray-500 dark:text-gray-200">Podgląd danych</span>
+              <span className="text-gray-400 dark:text-gray-300">{visualizationLabel}</span>
             </div>
             {visualizationContent}
           </section>
@@ -698,8 +698,8 @@ const StatisticCard: React.FC<StatisticCardProps> = ({ statistic, onVote, onConv
 
         <section className="space-y-3">
           <div className="flex items-center justify-between text-sm">
-            <span className="font-medium text-gray-900 dark:text-gray-200">Poziom zaufania</span>
-            <span className="text-gray-500 dark:text-gray-400">
+            <span className="font-medium text-gray-900 dark:text-gray-100">Poziom zaufania</span>
+            <span className="text-gray-500 dark:text-gray-300">
               {totalSignals === 0 ? 'Brak głosów zaufania' : `${trustPercent}% wiarygodne · ${fakePercent}% wątpliwe`}
             </span>
           </div>
@@ -707,7 +707,7 @@ const StatisticCard: React.FC<StatisticCardProps> = ({ statistic, onVote, onConv
             <div className="bg-emerald-500" style={{ width: `${trustPercent}%` }} aria-hidden></div>
             <div className="bg-rose-400" style={{ width: `${fakePercent}%` }} aria-hidden></div>
           </div>
-          <p className="text-xs text-gray-400 dark:text-gray-500">
+          <p className="text-xs text-gray-400 dark:text-gray-400">
             Głosy zaufania i „fake” zostaną w pełni aktywowane w kolejnej fazie społecznościowej.
           </p>
         </section>
@@ -719,7 +719,7 @@ const StatisticCard: React.FC<StatisticCardProps> = ({ statistic, onVote, onConv
               disabled={isBusy}
               className={`flex items-center gap-2 px-4 py-2 rounded-full border transition-all duration-200 ${statistic.hasLiked
                 ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm'
-                : 'text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:border-emerald-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20'
+                : 'text-gray-500 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-emerald-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20'
                 } ${isBusy ? 'opacity-60 cursor-not-allowed' : ''}`}
             >
               <span>👍</span>
@@ -730,7 +730,7 @@ const StatisticCard: React.FC<StatisticCardProps> = ({ statistic, onVote, onConv
               disabled={isBusy}
               className={`flex items-center gap-2 px-4 py-2 rounded-full border transition-all duration-200 ${statistic.hasDisliked
                 ? 'bg-rose-500 text-white border-rose-500 shadow-sm'
-                : 'text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:border-rose-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20'
+                : 'text-gray-500 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-rose-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20'
                 } ${isBusy ? 'opacity-60 cursor-not-allowed' : ''}`}
             >
               <span>👎</span>
