@@ -409,7 +409,7 @@ const AntisticCard: React.FC<Props> = ({
 
   return (
     <div
-      className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 transition-all duration-300 overflow-hidden hover:-translate-y-1 group"
+      className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-600 transition-all duration-300 overflow-hidden hover:-translate-y-1 group"
       style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}
       onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.12)')}
       onMouseLeave={e => (e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06)')}
@@ -459,13 +459,13 @@ const AntisticCard: React.FC<Props> = ({
 
       {/* Context paragraph */}
       <div className="px-6 pb-6">
-        <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 mb-4 border border-gray-100 dark:border-gray-700">
+        <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 mb-4 border border-gray-100 dark:border-gray-600">
           <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{chartData.description}</p>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Źródło: {chartData.source}</p>
         </div>
 
         {/* Interaction bar */}
-        <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-700">
+        <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-600">
           <div className="flex items-center gap-4">
             {/* Likes */}
             <button

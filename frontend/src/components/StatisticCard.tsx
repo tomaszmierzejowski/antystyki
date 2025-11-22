@@ -642,7 +642,7 @@ const StatisticCard: React.FC<StatisticCardProps> = ({ statistic, onVote, onConv
 
   return (
     <article
-      className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 transition-all duration-300 overflow-hidden hover:-translate-y-1 group"
+      className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-600 transition-all duration-300 overflow-hidden hover:-translate-y-1 group"
       style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}
       onMouseEnter={(e) => (e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.12)')}
       onMouseLeave={(e) => (e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06)')}
@@ -663,7 +663,7 @@ const StatisticCard: React.FC<StatisticCardProps> = ({ statistic, onVote, onConv
         </header>
 
         {statistic.description && (
-          <p className="text-sm text-gray-600 dark:text-gray-400 leading-6 bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-700 rounded-lg p-4">
+          <p className="text-sm text-gray-600 dark:text-gray-400 leading-6 bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-600 rounded-lg p-4">
             {statistic.description}
           </p>
         )}
@@ -687,7 +687,7 @@ const StatisticCard: React.FC<StatisticCardProps> = ({ statistic, onVote, onConv
         </div>
 
         {visualizationContent && (
-          <section className="bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-700 rounded-xl p-4 space-y-4">
+          <section className="bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-600 rounded-xl p-4 space-y-4">
             <div className="flex items-center justify-between text-xs uppercase tracking-wide text-gray-400 dark:text-gray-500">
               <span className="font-semibold text-gray-500 dark:text-gray-400">Podgląd danych</span>
               <span className="text-gray-400 dark:text-gray-500">{visualizationLabel}</span>
@@ -712,7 +712,7 @@ const StatisticCard: React.FC<StatisticCardProps> = ({ statistic, onVote, onConv
           </p>
         </section>
 
-        <footer className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+        <footer className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-gray-100 dark:border-gray-600">
           <div className="flex items-center gap-2">
             <button
               onClick={() => handleVote('Like')}

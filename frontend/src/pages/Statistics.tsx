@@ -11,7 +11,7 @@ const StatisticsPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8f9fb] dark:bg-gray-900">
+    <div className="min-h-screen bg-[#f8f9fb] dark:bg-gray-950">
       <div className="max-w-6xl mx-auto px-6 py-10">
         <StatisticsHub variant="standalone" onNavigateToCreator={handleNavigateToCreator} />
       </div>
