@@ -88,7 +88,7 @@ const EditAntistic: React.FC = () => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent, isDraft: boolean = false) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!id) return;
     
@@ -237,7 +237,7 @@ const EditAntistic: React.FC = () => {
             {/* Action Buttons */}
             <div className="flex gap-4">
               <button
-                onClick={(e) => handleSubmit(e, false)}
+                onClick={(e) => handleSubmit(e)}
                 disabled={loading || !chartData.title}
                 className="flex-1 px-4 py-2 text-white rounded-lg disabled:opacity-50 transition-all"
                 style={{ backgroundColor: '#FF6A00' }}
