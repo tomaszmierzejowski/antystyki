@@ -181,26 +181,25 @@ const StatisticsHub: React.FC<StatisticsHubProps> = ({
         <span className="text-xs uppercase tracking-[0.3em] text-gray-400">
           {variant === 'embedded' ? 'Baza społeczności' : 'Wspólna baza danych'}
         </span>
-        <h1 className={`font-bold text-gray-900 ${variant === 'embedded' ? 'text-2xl md:text-3xl' : 'text-4xl'}`}>
+        <h1 className={`font-bold text-gray-900 dark:text-white ${variant === 'embedded' ? 'text-2xl md:text-3xl' : 'text-4xl'}`}>
           Statystyki do przerobienia na antystyki
         </h1>
-        <p className={`text-gray-600 ${variant === 'embedded' ? 'text-base max-w-2xl' : 'text-lg max-w-3xl'}`}>
+        <p className={`text-gray-600 dark:text-gray-300 ${variant === 'embedded' ? 'text-base max-w-2xl' : 'text-lg max-w-3xl'}`}>
           Przeglądaj wiarygodne dane, które nasi twórcy i moderatorzy wyselekcjonowali do dalszej obróbki. Głosuj,
           dziel się zaufaniem i przekształcaj je w ironiczne historie, które zmieniają czarno-białe myślenie.
         </p>
       </header>
 
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex gap-2 bg-white border border-gray-200 rounded-full p-1 shadow-sm">
+        <div className="flex gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full p-1 shadow-sm">
           {activeSortOptions.map((option) => (
             <button
               key={option}
               onClick={() => setSort(option)}
-              className={`px-4 py-2 text-sm font-medium rounded-full transition-colors ${
-                sort === option
-                  ? 'bg-gray-900 text-white shadow'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
+              className={`px-4 py-2 text-sm font-medium rounded-full transition-colors ${sort === option
+                  ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                }`}
               type="button"
             >
               {sortLabels[option]}
@@ -210,7 +209,7 @@ const StatisticsHub: React.FC<StatisticsHubProps> = ({
 
         <button
           onClick={() => loadStatistics(true)}
-          className="text-sm text-gray-500 hover:text-gray-800 underline-offset-4 hover:underline"
+          className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 underline-offset-4 hover:underline"
           type="button"
         >
           Odśwież
@@ -228,10 +227,10 @@ const StatisticsHub: React.FC<StatisticsHubProps> = ({
           <div className="animate-pulse text-gray-500">Ładuję statystyki...</div>
         </div>
       ) : statistics.length === 0 ? (
-        <div className="bg-white border border-dashed border-gray-300 rounded-2xl py-20 text-center space-y-3">
+        <div className="bg-white dark:bg-gray-800 border border-dashed border-gray-300 dark:border-gray-700 rounded-2xl py-20 text-center space-y-3">
           <div className="text-6xl">📊</div>
-          <h2 className="text-xl font-semibold text-gray-900">Jeszcze nie ma żadnych statystyk</h2>
-          <p className="text-gray-600 max-w-lg mx-auto">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Jeszcze nie ma żadnych statystyk</h2>
+          <p className="text-gray-600 dark:text-gray-400 max-w-lg mx-auto">
             Moderatorzy właśnie zbierają pierwsze dane. Zajrzyj później lub zaproponuj własną statystykę wśród społeczności.
           </p>
         </div>
@@ -254,9 +253,8 @@ const StatisticsHub: React.FC<StatisticsHubProps> = ({
           <button
             onClick={() => loadStatistics(false)}
             disabled={loadingMore}
-            className={`px-6 py-3 text-sm font-medium rounded-full border border-gray-300 bg-white hover:border-gray-500 transition-colors ${
-              loadingMore ? 'opacity-60 cursor-not-allowed' : ''
-            }`}
+            className={`px-6 py-3 text-sm font-medium rounded-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:border-gray-500 dark:hover:border-gray-400 transition-colors ${loadingMore ? 'opacity-60 cursor-not-allowed' : ''
+              }`}
             type="button"
           >
             {loadingMore ? 'Ładowanie...' : 'Pokaż więcej statystyk'}

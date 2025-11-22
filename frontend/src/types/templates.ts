@@ -28,10 +28,10 @@ export interface AntisticData {
   title: string;
   description: string;
   source: string;
-  
+
   // Template-specific data
   templateId: string;
-  
+
   // Two-column template data
   perspectiveData?: {
     mainPercentage: number;
@@ -40,14 +40,14 @@ export interface AntisticData {
     secondaryLabel: string;
     chartColor: string;
   };
-  
+
   sourceData?: {
     type?: 'pie' | 'bar' | 'line';
     segments?: ChartSegment[];
     points?: ChartPoint[];
     unit?: string;
   };
-  
+
   // Single chart template data
   singleChartData?: {
     title: string;
@@ -56,14 +56,14 @@ export interface AntisticData {
     points?: ChartPoint[];
     unit?: string;
   };
-  
+
   // Text-focused template data
   textData?: {
     mainStatistic: string;
     context: string;
     comparison?: string;
   };
-  
+
   // Comparison template data
   comparisonData?: {
     leftChart: {
@@ -125,7 +125,7 @@ export const CHART_COLORS = [
   '#8b5cf6', // Purple
   '#ec4899', // Pink
   '#6b7280', // Gray
-  '#1f2937', // Dark gray
+  '#06b6d4', // Cyan
   '#f59e0b', // Amber
 ];
 

@@ -12,16 +12,26 @@ interface LogoProps {
  */
 const Logo: React.FC<LogoProps> = ({ size = 32, className = '', alt = 'Antystyki logo' }) => {
   return (
-    <img
-      src="/brand-logo.svg"
-      alt={alt}
-      width={size}
-      height={size}
-      className={className}
-      style={{ width: size, height: size, display: 'inline-block' }}
-      loading="eager"
-      decoding="async"
-    />
+    <div className={`relative inline-block ${className}`} style={{ width: size, height: size }}>
+      <img
+        src="/brand-logo.svg"
+        alt={alt}
+        width={size}
+        height={size}
+        className="dark:hidden w-full h-full object-contain"
+        loading="eager"
+        decoding="async"
+      />
+      <img
+        src="/brand-logo-dark.svg"
+        alt={alt}
+        width={size}
+        height={size}
+        className="hidden dark:block w-full h-full object-contain"
+        loading="eager"
+        decoding="async"
+      />
+    </div>
   );
 };
 

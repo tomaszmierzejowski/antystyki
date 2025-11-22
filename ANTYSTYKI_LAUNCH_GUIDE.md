@@ -174,6 +174,7 @@
 - [ ] Create production `.env` files
 - [ ] Enable HTTPS enforcement
 - [ ] Update CORS for production domain
+- [x] **DEV-CORS-2025-11-22**: Ensure localhost QA mirrors production by whitelisting Vite fallback ports 5174-5177 in `backend/Antystics.Api/Program.cs` so `Statystyki` hub workflows (`STAT-HOME-TOGGLE`, `STAT-FILTER-REFINE`, F11 analytics) can hit `/api/statistics` without blockers.
 - [ ] Add security headers middleware
 - [ ] Test all security changes locally
 
@@ -426,3 +427,4 @@
 - 2025-11-12T10:35Z: Documented monitoring check to confirm admin statistics summary uses OPS-VISITOR-LOG cookieless aggregates with GA4 fallback (§5.8).
 - 2025-11-12T17:56Z: Added deployment verification for `visitor_metrics` Postgres persistence of cookieless aggregates (§5.8).
 - 2025-11-21: Updated documentation references to reflect new `/documentation/` structure. `START_HERE.md` moved to `documentation/getting-started/`.
+- 2025-11-22T10:35Z: Captured DEV-CORS-2025-11-22 in §5.1 to keep localhost QA aligned with `Statystyki` launch requirements by whitelisting Vite fallback ports (5173-5177).

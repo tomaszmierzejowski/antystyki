@@ -172,6 +172,10 @@ builder.Services.AddCors(options =>
         var allowedOrigins = new List<string> 
         { 
             "http://localhost:5173",  // Vite dev server
+            "http://localhost:5174",  // Alternate Vite dev port
+            "http://localhost:5175",
+            "http://localhost:5176",
+            "http://localhost:5177",
             "http://localhost:3000"   // Alternative dev port
         };
 

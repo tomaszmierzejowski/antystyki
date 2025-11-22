@@ -480,6 +480,7 @@ To become the leading platform for thought-provoking, statistically-based humor 
 #### Week 1: Security & Infrastructure
 - [ ] Remove hardcoded secrets and implement environment variables
 - [ ] Enable HTTPS enforcement and security headers
+- [x] **Bugfix DEV-CORS-2025-11-22**: Expand local Vite origin whitelist to include fallback ports 5174-5177 so the `Statystyki` hub (`STAT-HOME-TOGGLE`, `STAT-FILTER-REFINE`, `F11`) can call `/api/statistics` during QA without CORS failures; dependency: `backend/Antystics.Api/Program.cs` CORS policy.
 - [ ] Implement CAPTCHA protection
 - [ ] Configure production email service
 - [ ] Deploy to production server with SSL
@@ -597,3 +598,4 @@ The roadmap provides a clear path from MVP to a profitable, scalable platform th
 - 2025-11-12T10:30Z: Clarified Feature F11 data sourcing to prioritize OPS-VISITOR-LOG cookieless summaries with GA4 fallback (§3.1).
 - 2025-11-12T17:55Z: Required persistence of cookieless visitor aggregates in Postgres (`visitor_metrics`) to ensure statistics survive container restarts (§3.1).
 - 2025-11-21: Repository restructuring for LLM optimization. Added `/llm-context/` for AI assistants and consolidated documentation into `/documentation/`.
+- 2025-11-22T10:30Z: Logged bugfix DEV-CORS-2025-11-22 in §10.1 to document expanded local CORS whitelist (ports 5173-5177) supporting `STAT-HOME-TOGGLE`, `STAT-FILTER-REFINE`, and F11 QA cycles.
