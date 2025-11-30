@@ -21,8 +21,8 @@ const PrivacyPolicy = () => {
               <button
                 onClick={() => setLanguage('pl')}
                 className={`px-4 py-2 rounded ${language === 'pl'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
                   }`}
               >
                 Polski
@@ -30,8 +30,8 @@ const PrivacyPolicy = () => {
               <button
                 onClick={() => setLanguage('en')}
                 className={`px-4 py-2 rounded ${language === 'en'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
                   }`}
               >
                 English
@@ -256,9 +256,28 @@ const PolishPrivacyPolicy = () => (
     <p>
       Dla celów statystycznych przechowujemy anonimowe liczniki odwiedzin generowane na serwerze.
       Identyfikator wizyty powstaje z jednorazowego skrótu (HMAC) adresu IP i przeglądarki danego dnia,
-      dzięki czemu nie przechowujemy informacji pozwalających na identyfikację użytkownika.
+      Dzięki temu nie przechowujemy informacji pozwalających na identyfikację użytkownika.
       Dane zagregowane (liczba odsłon i unikalnych odwiedzających) są przechowywane maksymalnie 60 dni.
     </p>
+
+    <h3>7.6 Google AdSense</h3>
+    <p>
+      Współpracujemy z Google AdSense, aby wyświetlać reklamy w naszym Serwisie. Google używa plików cookie
+      do wyświetlania reklam na podstawie Twoich poprzednich odwiedzin w naszej witrynie lub w innych witrynach.
+    </p>
+    <ul>
+      <li>
+        Pliki cookie do wyświetlania reklam umożliwiają firmie Google i jej partnerom wyświetlanie użytkownikom
+        konkretnych reklam na podstawie ich odwiedzin w Twojej witrynie i/lub w innych witrynach internetowych.
+      </li>
+      <li>
+        Użytkownicy mogą zrezygnować ze spersonalizowanych reklam w <a href="https://www.google.com/settings/ads" target="_blank" rel="noopener">Ustawieniach reklam</a>.
+      </li>
+      <li>
+        Alternatywnie, użytkownicy mogą zrezygnować z wykorzystywania plików cookie innych firm do wyświetlania
+        spersonalizowanych reklam, odwiedzając stronę <a href="https://www.aboutads.info" target="_blank" rel="noopener">www.aboutads.info</a>.
+      </li>
+    </ul>
 
     <h2>8. Twoje Prawa (GDPR)</h2>
     <p>Zgodnie z GDPR masz prawo do:</p>
@@ -554,10 +573,28 @@ const EnglishPrivacyPolicy = () => (
     <h4>7.5 Cookieless visitor counters</h4>
     <p>
       For statistical purposes we maintain anonymous server-side visit counters. Each visit receives
-      a daily HMAC hash of the IP address and browser, which prevents us from identifying a person while
       still allowing unique visitor counts. Aggregated data (page views and unique visitors) is retained
       for a maximum of 60 days.
     </p>
+
+    <h3>7.6 Google AdSense</h3>
+    <p>
+      We partner with Google AdSense to display ads on our Service. Third party vendors, including Google,
+      use cookies to serve ads based on a user's prior visits to your website or other websites.
+    </p>
+    <ul>
+      <li>
+        Google's use of advertising cookies enables it and its partners to serve ads to your users based
+        on their visit to your sites and/or other sites on the Internet.
+      </li>
+      <li>
+        Users may opt out of personalized advertising by visiting <a href="https://www.google.com/settings/ads" target="_blank" rel="noopener">Ads Settings</a>.
+      </li>
+      <li>
+        Alternatively, users can opt out of a third-party vendor's use of cookies for personalized
+        advertising by visiting <a href="https://www.aboutads.info" target="_blank" rel="noopener">www.aboutads.info</a>.
+      </li>
+    </ul>
 
     <h2>8. Your Rights (GDPR)</h2>
     <p>Under GDPR, you have the right to:</p>
