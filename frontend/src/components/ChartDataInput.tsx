@@ -392,7 +392,7 @@ const ChartDataInput: React.FC<Props> = ({ templateId, onDataChange, className =
     onChange: (mode: ChartMode) => void
   ) => (
     <div className="space-y-2">
-      <h3 className="text-lg font-semibold text-gray-900">{label}</h3>
+      <h3 className="text-lg font-semibold text-text-primary">{label}</h3>
       <div className="flex flex-wrap gap-2">
         {(['pie', 'bar', 'line'] as ChartMode[]).map((mode) => (
           <button
@@ -401,8 +401,8 @@ const ChartDataInput: React.FC<Props> = ({ templateId, onDataChange, className =
             onClick={() => onChange(mode)}
             className={`px-4 py-2 rounded-full border text-sm font-medium transition-colors ${
               currentMode === mode
-                ? 'bg-gray-900 text-white border-gray-900'
-                : 'border-gray-200 text-gray-600 hover:text-gray-900'
+                ? 'bg-slate-800 dark:bg-slate-600 text-white border-slate-800 dark:border-slate-600'
+                : 'border-[var(--border-color)] text-text-secondary hover:text-text-primary'
             }`}
           >
             {mode === 'pie' ? 'Wykres kołowy' : mode === 'bar' ? 'Wykres słupkowy' : 'Wykres liniowy'}
@@ -419,7 +419,7 @@ const ChartDataInput: React.FC<Props> = ({ templateId, onDataChange, className =
   ) =>
     mode === 'pie' ? null : (
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-text-secondary mb-1">
           Jednostka (opcjonalnie)
         </label>
         <input
@@ -427,7 +427,7 @@ const ChartDataInput: React.FC<Props> = ({ templateId, onDataChange, className =
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="np. % / mln / pkt"
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
+          className="w-full px-3 py-2 border border-[var(--border-color)] rounded-lg bg-card text-text-primary placeholder:text-text-secondary/50 focus:ring-2 focus:ring-accent focus:border-accent"
         />
       </div>
     );
@@ -440,7 +440,7 @@ const ChartDataInput: React.FC<Props> = ({ templateId, onDataChange, className =
   ) => (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900">{heading}</h3>
+        <h3 className="text-lg font-semibold text-text-primary">{heading}</h3>
         <button
           type="button"
           onClick={() => addSegment(field)}
@@ -451,7 +451,7 @@ const ChartDataInput: React.FC<Props> = ({ templateId, onDataChange, className =
       </div>
 
       {formData[field].length === 0 && emptyMessage ? (
-        <p className="text-sm text-gray-500">{emptyMessage}</p>
+        <p className="text-sm text-text-secondary">{emptyMessage}</p>
       ) : (
         <div className="space-y-3">
           {formData[field].map((segment, index) => {
@@ -461,14 +461,14 @@ const ChartDataInput: React.FC<Props> = ({ templateId, onDataChange, className =
             return (
               <div
                 key={`${field}-${index}`}
-                className="grid grid-cols-1 gap-3 p-3 border border-gray-200 rounded-lg md:grid-cols-[2fr,1fr,auto]"
+                className="grid grid-cols-1 gap-3 p-3 border border-[var(--border-color)] rounded-lg md:grid-cols-[2fr,1fr,auto]"
               >
                 <input
                   type="text"
                   value={segment.label}
                   onChange={(e) => updateSegmentField(field, index, 'label', e.target.value)}
                   placeholder="Nazwa kategorii"
-                  className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-accent focus:border-accent"
+                  className="w-full px-2 py-1 border border-[var(--border-color)] rounded text-sm bg-card text-text-primary placeholder:text-text-secondary/50 focus:ring-1 focus:ring-accent focus:border-accent"
                 />
 
                 <input
@@ -477,7 +477,7 @@ const ChartDataInput: React.FC<Props> = ({ templateId, onDataChange, className =
                   value={segment.percentage === '' ? '' : segment.percentage}
                   onChange={(e) => updateSegmentField(field, index, 'percentage', e.target.value)}
                   placeholder={mode === 'pie' ? 'Procent' : 'Wartość'}
-                  className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-accent focus:border-accent"
+                  className="w-full px-2 py-1 border border-[var(--border-color)] rounded text-sm bg-card text-text-primary placeholder:text-text-secondary/50 focus:ring-1 focus:ring-accent focus:border-accent"
                 />
 
                 <div className="flex items-center gap-2">
@@ -500,7 +500,7 @@ const ChartDataInput: React.FC<Props> = ({ templateId, onDataChange, className =
                         };
                       })
                     }
-                    className="h-9 w-12 cursor-pointer rounded border border-gray-300 bg-white"
+                    className="h-9 w-12 cursor-pointer rounded border border-[var(--border-color)] bg-card"
                     title="Wybierz kolor segmentu"
                   />
                   <button
@@ -521,7 +521,7 @@ const ChartDataInput: React.FC<Props> = ({ templateId, onDataChange, className =
                         };
                       })
                     }
-                    className="text-xs text-gray-500 hover:text-gray-700 transition"
+                    className="text-xs text-text-secondary hover:text-text-primary transition"
                     disabled={segment.color === null}
                   >
                     Domyślny
@@ -531,7 +531,7 @@ const ChartDataInput: React.FC<Props> = ({ templateId, onDataChange, className =
                     <button
                       type="button"
                       onClick={() => removeSegment(field, index)}
-                      className="text-red-500 hover:text-red-700 text-sm"
+                      className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-sm"
                     >
                       ✕
                     </button>
@@ -544,7 +544,7 @@ const ChartDataInput: React.FC<Props> = ({ templateId, onDataChange, className =
       )}
 
       {mode === 'pie' && (
-        <div className="text-sm text-gray-600">
+        <div className="text-sm text-text-secondary">
           {(() => {
             const total = formData[field].reduce(
               (sum, seg) => sum + (typeof seg.percentage === 'number' ? seg.percentage : 0),
@@ -555,7 +555,7 @@ const ChartDataInput: React.FC<Props> = ({ templateId, onDataChange, className =
               <>
                 Suma: {total.toFixed(1)}%
                 {Math.abs(total - 100) > 0.5 && (
-                  <span className="text-red-500 ml-2">
+                  <span className="text-red-500 dark:text-red-400 ml-2">
                     (Dla wykresu kołowego suma powinna wynosić 100%)
                   </span>
                 )}
@@ -566,8 +566,8 @@ const ChartDataInput: React.FC<Props> = ({ templateId, onDataChange, className =
       )}
 
       {mode !== 'pie' && (
-        <div className="text-xs text-gray-400 space-y-1">
-          <p>Możesz wybrać własne kolory dla wykresów. Kliknij „Domyślny”, aby przywrócić automatyczny dobór.</p>
+        <div className="text-xs text-text-secondary/70 space-y-1">
+          <p>Możesz wybrać własne kolory dla wykresów. Kliknij „Domyślny", aby przywrócić automatyczny dobór.</p>
           <p>Pozostaw pole puste, aby dodać wartość później.</p>
         </div>
       )}
@@ -577,49 +577,49 @@ const ChartDataInput: React.FC<Props> = ({ templateId, onDataChange, className =
   return (
     <div className={`space-y-6 ${className}`}>
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-900">Informacje podstawowe</h3>
+        <h3 className="text-lg font-semibold text-text-primary">Informacje podstawowe</h3>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Tytuł antystyki</label>
+          <label className="block text-sm font-medium text-text-secondary mb-1">Tytuł antystyki</label>
           <input
             type="text"
             value={formData.title}
             onChange={(e) => updateFormData({ title: e.target.value })}
             placeholder="np. Wypadki drogowe – kto naprawdę je powoduje?"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
+            className="w-full px-3 py-2 border border-[var(--border-color)] rounded-lg bg-card text-text-primary placeholder:text-text-secondary/50 focus:ring-2 focus:ring-accent focus:border-accent"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Opis kontekstu</label>
+          <label className="block text-sm font-medium text-text-secondary mb-1">Opis kontekstu</label>
           <textarea
             value={formData.description}
             onChange={(e) => updateFormData({ description: e.target.value })}
             placeholder="Wyjaśnij kontekst i znaczenie tej statystyki..."
             rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
+            className="w-full px-3 py-2 border border-[var(--border-color)] rounded-lg bg-card text-text-primary placeholder:text-text-secondary/50 focus:ring-2 focus:ring-accent focus:border-accent"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Źródło danych</label>
+          <label className="block text-sm font-medium text-text-secondary mb-1">Źródło danych</label>
           <input
             type="text"
             value={formData.source}
             onChange={(e) => updateFormData({ source: e.target.value })}
             placeholder="np. WHO Global Status Report"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
+            className="w-full px-3 py-2 border border-[var(--border-color)] rounded-lg bg-card text-text-primary placeholder:text-text-secondary/50 focus:ring-2 focus:ring-accent focus:border-accent"
           />
         </div>
       </div>
 
       {(templateId === 'two-column-default' || templateId === 'text-focused' || templateId === 'comparison') && (
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-900">Perspektywa antystyki</h3>
+          <h3 className="text-lg font-semibold text-text-primary">Perspektywa antystyki</h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Główny procent</label>
+              <label className="block text-sm font-medium text-text-secondary mb-1">Główny procent</label>
               <input
                 type="number"
                 min="0"
@@ -633,30 +633,30 @@ const ChartDataInput: React.FC<Props> = ({ templateId, onDataChange, className =
                       typeof nextValue === 'number' && !Number.isNaN(nextValue) ? nextValue : '',
                   });
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
+                className="w-full px-3 py-2 border border-[var(--border-color)] rounded-lg bg-card text-text-primary focus:ring-2 focus:ring-accent focus:border-accent"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Opis głównej statystyki</label>
+              <label className="block text-sm font-medium text-text-secondary mb-1">Opis głównej statystyki</label>
               <input
                 type="text"
                 value={formData.mainLabel}
                 onChange={(e) => updateFormData({ mainLabel: e.target.value })}
                 placeholder="np. powoduje trzeźwy kierowca"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
+                className="w-full px-3 py-2 border border-[var(--border-color)] rounded-lg bg-card text-text-primary placeholder:text-text-secondary/50 focus:ring-2 focus:ring-accent focus:border-accent"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Opis pozostałej części</label>
+            <label className="block text-sm font-medium text-text-secondary mb-1">Opis pozostałej części</label>
             <input
               type="text"
               value={formData.secondaryLabel}
               onChange={(e) => updateFormData({ secondaryLabel: e.target.value })}
               placeholder="np. Jazda po chodniku"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
+              className="w-full px-3 py-2 border border-[var(--border-color)] rounded-lg bg-card text-text-primary placeholder:text-text-secondary/50 focus:ring-2 focus:ring-accent focus:border-accent"
             />
           </div>
         </div>
@@ -709,7 +709,7 @@ const ChartDataInput: React.FC<Props> = ({ templateId, onDataChange, className =
             {renderUnitInput(formData.comparisonRightMode, formData.comparisonRightUnit, (next) =>
               updateFormData({ comparisonRightUnit: next })
             )}
-            <p className="text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-lg p-4">
+            <p className="text-sm text-text-secondary bg-background border border-[var(--border-color)] rounded-lg p-4">
               Wykres po prawej stronie bazuje na danych perspektywy (główna wartość vs. pozostałe).
               Zmieniaj procent i opisy w sekcji perspektywy, aby dostosować wykres.
             </p>

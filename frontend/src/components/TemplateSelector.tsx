@@ -21,10 +21,10 @@ const TemplateSelector: React.FC<Props> = ({
   return (
     <div className={`space-y-4 ${className}`}>
       <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+        <h3 className="text-lg font-semibold text-text-primary mb-2">
           Wybierz szablon karty
         </h3>
-        <p className="text-sm text-gray-600 mb-4">
+        <p className="text-sm text-text-secondary mb-4">
           Każdy szablon oferuje inny sposób prezentacji danych i perspektywy.
         </p>
       </div>
@@ -37,7 +37,7 @@ const TemplateSelector: React.FC<Props> = ({
             className={`p-4 rounded-lg border-2 transition-all text-left ${
               selectedTemplate === template.id
                 ? 'border-accent bg-accent/5'
-                : 'border-gray-200 hover:border-gray-300 bg-white'
+                : 'border-[var(--border-color)] hover:border-text-secondary bg-card'
             }`}
           >
             <div className="flex items-start gap-3">
@@ -46,20 +46,20 @@ const TemplateSelector: React.FC<Props> = ({
               
               {/* Template Info */}
               <div className="flex-1">
-                <h4 className="font-semibold text-gray-900 mb-1">
+                <h4 className="font-semibold text-text-primary mb-1">
                   {template.name}
                 </h4>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-text-secondary">
                   {template.description}
                 </p>
                 
                 {/* Layout Badge */}
                 <div className="mt-2">
                   <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
-                    template.layout === 'two-column' ? 'bg-blue-100 text-blue-800' :
-                    template.layout === 'single-chart' ? 'bg-green-100 text-green-800' :
-                    template.layout === 'text-focused' ? 'bg-purple-100 text-purple-800' :
-                    'bg-orange-100 text-orange-800'
+                    template.layout === 'two-column' ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300' :
+                    template.layout === 'single-chart' ? 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300' :
+                    template.layout === 'text-focused' ? 'bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-300' :
+                    'bg-orange-100 dark:bg-orange-900/50 text-orange-800 dark:text-orange-300'
                   }`}>
                     {template.layout === 'two-column' && 'Dwa wykresy'}
                     {template.layout === 'single-chart' && 'Jeden wykres'}
@@ -84,11 +84,11 @@ const TemplateSelector: React.FC<Props> = ({
 
       {/* Template Preview */}
       {selectedTemplate && (
-        <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-          <h4 className="font-medium text-gray-900 mb-2">
+        <div className="mt-6 p-4 bg-background rounded-lg border border-[var(--border-color)]">
+          <h4 className="font-medium text-text-primary mb-2">
             Podgląd szablonu
           </h4>
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-text-secondary">
             {renderTemplatePreview(selectedTemplate)}
           </div>
         </div>
