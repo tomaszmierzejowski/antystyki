@@ -143,82 +143,84 @@ const TemplateShowcase: React.FC = () => {
     : EXAMPLE_DATA[selectedTemplate] || {};
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
-      <div className="text-center">
-        <h1 className="text-3xl font-bold text-gray-900 mb-4">
-          Szablony kart Antystyków
-        </h1>
-        <p className="text-lg text-gray-600">
-          Wybierz szablon i dostosuj dane, aby stworzyć idealną kartę
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Left Column - Controls */}
-        <div className="space-y-6">
-          {/* Template Selector */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <TemplateSelector
-              selectedTemplate={selectedTemplate}
-              onTemplateSelect={setSelectedTemplate}
-            />
-          </div>
-
-          {/* Data Input */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <ChartDataInput
-              templateId={selectedTemplate}
-              onDataChange={setCustomData}
-            />
-          </div>
+    <div className="min-h-screen bg-background">
+      <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-text-primary mb-4">
+            Szablony kart Antystyków
+          </h1>
+          <p className="text-lg text-text-secondary">
+            Wybierz szablon i dostosuj dane, aby stworzyć idealną kartę
+          </p>
         </div>
 
-        {/* Right Column - Preview */}
-        <div className="space-y-6">
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Podgląd karty
-            </h3>
-            <div className="max-w-md mx-auto">
-              <AntisticCard
-                antistic={EXAMPLE_ANTISTIC}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Left Column - Controls */}
+          <div className="space-y-6">
+            {/* Template Selector */}
+            <div className="bg-card rounded-lg border border-[var(--border-color)] p-6">
+              <TemplateSelector
+                selectedTemplate={selectedTemplate}
+                onTemplateSelect={setSelectedTemplate}
+              />
+            </div>
+
+            {/* Data Input */}
+            <div className="bg-card rounded-lg border border-[var(--border-color)] p-6">
+              <ChartDataInput
                 templateId={selectedTemplate}
-                customData={currentData}
+                onDataChange={setCustomData}
               />
             </div>
           </div>
 
-          {/* Template Info */}
-          <div className="bg-gray-50 rounded-lg p-4">
-            <h4 className="font-medium text-gray-900 mb-2">
-              Informacje o szablonie
-            </h4>
-            <div className="text-sm text-gray-600 space-y-1">
-              <p><strong>ID:</strong> {selectedTemplate}</p>
-              <p><strong>Layout:</strong> {EXAMPLE_DATA[selectedTemplate] ? 'Z przykładowymi danymi' : 'Z niestandardowymi danymi'}</p>
-              <p><strong>Wykresy:</strong> {
-                selectedTemplate === 'two-column-default' ? 'Dwa wykresy (perspektywa + źródło)' :
-                  selectedTemplate === 'single-chart' ? 'Jeden wykres' :
-                    selectedTemplate === 'text-focused' ? 'Tekst z wyróżnioną statystyką' :
-                      selectedTemplate === 'comparison' ? 'Dwa wykresy porównawcze' :
-                        'Nieznany'
-              }</p>
+          {/* Right Column - Preview */}
+          <div className="space-y-6">
+            <div className="bg-card rounded-lg border border-[var(--border-color)] p-6">
+              <h3 className="text-lg font-semibold text-text-primary mb-4">
+                Podgląd karty
+              </h3>
+              <div className="max-w-md mx-auto">
+                <AntisticCard
+                  antistic={EXAMPLE_ANTISTIC}
+                  templateId={selectedTemplate}
+                  customData={currentData}
+                />
+              </div>
+            </div>
+
+            {/* Template Info */}
+            <div className="bg-background rounded-lg border border-[var(--border-color)] p-4">
+              <h4 className="font-medium text-text-primary mb-2">
+                Informacje o szablonie
+              </h4>
+              <div className="text-sm text-text-secondary space-y-1">
+                <p><strong>ID:</strong> {selectedTemplate}</p>
+                <p><strong>Layout:</strong> {EXAMPLE_DATA[selectedTemplate] ? 'Z przykładowymi danymi' : 'Z niestandardowymi danymi'}</p>
+                <p><strong>Wykresy:</strong> {
+                  selectedTemplate === 'two-column-default' ? 'Dwa wykresy (perspektywa + źródło)' :
+                    selectedTemplate === 'single-chart' ? 'Jeden wykres' :
+                      selectedTemplate === 'text-focused' ? 'Tekst z wyróżnioną statystyką' :
+                        selectedTemplate === 'comparison' ? 'Dwa wykresy porównawcze' :
+                          'Nieznany'
+                }</p>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Usage Instructions */}
-      <div className="bg-blue-50 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-blue-900 mb-3">
-          Jak używać systemu szablonów
-        </h3>
-        <div className="text-blue-800 space-y-2 text-sm">
-          <p>1. <strong>Wybierz szablon</strong> - Kliknij na jeden z dostępnych szablonów</p>
-          <p>2. <strong>Wprowadź dane</strong> - Uzupełnij pola w sekcji "Dane źródłowe"</p>
-          <p>3. <strong>Podgląd</strong> - Zobacz jak będzie wyglądać Twoja karta</p>
-          <p>4. <strong>Dostosuj</strong> - Zmieniaj wartości i obserwuj zmiany w czasie rzeczywistym</p>
-          <p>5. <strong>Zapisz</strong> - Gdy jesteś zadowolony, zapisz antystykę</p>
+        {/* Usage Instructions */}
+        <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-700 p-6">
+          <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-200 mb-3">
+            Jak używać systemu szablonów
+          </h3>
+          <div className="text-blue-800 dark:text-blue-300 space-y-2 text-sm">
+            <p>1. <strong>Wybierz szablon</strong> - Kliknij na jeden z dostępnych szablonów</p>
+            <p>2. <strong>Wprowadź dane</strong> - Uzupełnij pola w sekcji "Dane źródłowe"</p>
+            <p>3. <strong>Podgląd</strong> - Zobacz jak będzie wyglądać Twoja karta</p>
+            <p>4. <strong>Dostosuj</strong> - Zmieniaj wartości i obserwuj zmiany w czasie rzeczywistym</p>
+            <p>5. <strong>Zapisz</strong> - Gdy jesteś zadowolony, zapisz antystykę</p>
+          </div>
         </div>
       </div>
     </div>

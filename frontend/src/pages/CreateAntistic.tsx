@@ -209,23 +209,23 @@ const CreateAntistic: React.FC = () => {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-[#f8f9fb]">
+      <div className="min-h-screen bg-background">
         <div className="mx-auto max-w-3xl px-6 py-16 text-center">
-          <h1 className="text-3xl font-bold text-gray-900 sm:text-4xl">Stwórz Antystykę</h1>
-          <p className="mt-4 text-gray-600 sm:text-lg">
+          <h1 className="text-3xl font-bold text-text-primary sm:text-4xl">Stwórz Antystykę</h1>
+          <p className="mt-4 text-text-secondary sm:text-lg">
             Aby tworzyć antystyki, zaloguj się lub załóż konto. Dzięki temu będziesz mógł śledzić status swoich zgłoszeń
             i wracać do szkiców.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
               to="/login"
-              className="inline-flex items-center justify-center rounded-lg bg-gray-900 px-5 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-gray-800"
+              className="inline-flex items-center justify-center rounded-lg bg-slate-800 dark:bg-slate-700 px-5 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-700 dark:hover:bg-slate-600"
             >
               Zaloguj się
             </Link>
             <Link
               to="/register"
-              className="inline-flex items-center justify-center rounded-lg border border-gray-300 px-5 py-2 text-sm font-medium text-gray-700 transition hover:border-gray-400 hover:text-gray-900"
+              className="inline-flex items-center justify-center rounded-lg border border-[var(--border-color)] px-5 py-2 text-sm font-medium text-text-secondary transition hover:border-text-primary hover:text-text-primary"
             >
               Załóż konto
             </Link>
@@ -236,21 +236,21 @@ const CreateAntistic: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#f8f9fb' }}>
+    <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-6 py-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Stwórz Antystykę</h1>
+        <h1 className="text-3xl font-bold text-text-primary mb-8">Stwórz Antystykę</h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Form */}
           <div className="space-y-6">
             {error && (
-              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg">
+              <div className="bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg">
                 {error}
               </div>
             )}
 
             {/* Template Selection */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <div className="bg-card rounded-lg border border-[var(--border-color)] p-6">
               <TemplateSelector
                 selectedTemplate={selectedTemplate}
                 onTemplateSelect={setSelectedTemplate}
@@ -258,7 +258,7 @@ const CreateAntistic: React.FC = () => {
             </div>
 
             {/* Chart Data Input */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <div className="bg-card rounded-lg border border-[var(--border-color)] p-6">
               <ChartDataInput
                 key={chartPrefillKey}
                 templateId={selectedTemplate}
@@ -268,8 +268,8 @@ const CreateAntistic: React.FC = () => {
             </div>
 
             {/* Categories */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Kategorie</h3>
+            <div className="bg-card rounded-lg border border-[var(--border-color)] p-6">
+              <h3 className="text-lg font-semibold text-text-primary mb-4">Kategorie</h3>
               <div className="flex flex-wrap gap-2">
                 {categories.map((category) => (
                   <button
@@ -277,8 +277,8 @@ const CreateAntistic: React.FC = () => {
                     type="button"
                     onClick={() => toggleCategory(category.id)}
                     className={`px-3 py-1 rounded-full text-sm transition-all ${selectedCategories.includes(category.id)
-                        ? 'bg-gray-900 text-white'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        ? 'bg-slate-800 dark:bg-slate-600 text-white'
+                        : 'bg-background text-text-secondary hover:bg-[var(--border-color)]'
                       }`}
                   >
                     {category.namePl}
@@ -289,8 +289,8 @@ const CreateAntistic: React.FC = () => {
 
             {/* Anonymous User Notice */}
             {isAnonymous && (
-              <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
-                <p className="text-sm text-blue-800">
+              <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 p-4 rounded-lg">
+                <p className="text-sm text-blue-800 dark:text-blue-300">
                   <strong>Tryb anonimowy:</strong> Tworzysz antystyk jako użytkownik anonimowy.
                   Możesz zalogować się lub zarejestrować, aby śledzić status swoich antystyków.
                 </p>
@@ -298,8 +298,8 @@ const CreateAntistic: React.FC = () => {
             )}
 
             {/* Warning */}
-            <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
-              <p className="text-sm text-yellow-800">
+            <div className="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 p-4 rounded-lg">
+              <p className="text-sm text-yellow-800 dark:text-yellow-300">
                 <strong>Uwaga:</strong> Twój antystyk zostanie wysłany do moderacji.
                 Po zatwierdzeniu będzie widoczny dla innych użytkowników.
               </p>
@@ -310,7 +310,7 @@ const CreateAntistic: React.FC = () => {
               <button
                 onClick={(e) => handleSubmit(e, true)}
                 disabled={saving || !chartData.title}
-                className="flex-1 px-4 py-2 border-2 border-gray-300 text-gray-700 rounded-lg hover:border-gray-400 hover:text-gray-900 disabled:opacity-50 transition-all"
+                className="flex-1 px-4 py-2 border-2 border-[var(--border-color)] text-text-secondary rounded-lg hover:border-text-primary hover:text-text-primary disabled:opacity-50 transition-all"
               >
                 {saving ? 'Zapisywanie...' : 'Zapisz szkic'}
               </button>
@@ -327,7 +327,7 @@ const CreateAntistic: React.FC = () => {
               <button
                 type="button"
                 onClick={() => navigate('/')}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all"
+                className="px-4 py-2 border border-[var(--border-color)] text-text-secondary rounded-lg hover:bg-card transition-all"
               >
                 Anuluj
               </button>
@@ -336,8 +336,8 @@ const CreateAntistic: React.FC = () => {
 
           {/* Live Preview */}
           <div className="lg:sticky lg:top-8 h-fit">
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Podgląd</h2>
+            <div className="bg-card rounded-lg border border-[var(--border-color)] p-6">
+              <h2 className="text-xl font-bold text-text-primary mb-4">Podgląd</h2>
               <div className="max-w-md mx-auto">
                 <AntisticCard
                   antistic={previewAntistic}
@@ -347,7 +347,7 @@ const CreateAntistic: React.FC = () => {
               </div>
 
               {/* Preview Info */}
-              <div className="mt-4 text-sm text-gray-600">
+              <div className="mt-4 text-sm text-text-secondary">
                 <p><strong>Szablon:</strong> {CARD_TEMPLATES.find(t => t.id === selectedTemplate)?.name}</p>
                 <p><strong>Kategorie:</strong> {selectedCategories.length > 0 ? selectedCategories.length : 'Brak'}</p>
                 <p><strong>Status:</strong> {chartData.title ? 'Gotowy do wysłania' : 'Wypełnij dane'}</p>
