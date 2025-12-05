@@ -10,5 +10,11 @@ export interface AuthContextType {
   isAuthenticated: boolean;
   isAnonymous: boolean;
   createAnonymousUser: () => void;
+  /** Whether the user's session has expired (token invalid) */
+  sessionExpired: boolean;
+  /** Call this when a 401 error is received to show re-login modal */
+  onSessionExpired: () => void;
+  /** Call this after successful re-login to clear the expired state */
+  clearSessionExpired: () => void;
 }
 

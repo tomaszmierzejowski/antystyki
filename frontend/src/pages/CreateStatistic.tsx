@@ -3,6 +3,8 @@ import { Navigate, useNavigate } from 'react-router-dom';
 import { createStatistic, type CreateStatisticPayload } from '../api/statistics';
 import { useAuth } from '../context/useAuth';
 import { parseApiError } from '../utils/apiError';
+import { useSessionValidator } from '../hooks/useSessionValidator';
+import ReLoginModal from '../components/ReLoginModal';
 
 type ChartMode = 'pie' | 'bar' | 'line';
 
@@ -20,7 +22,10 @@ const createDefaultPoints = (): DataPoint[] => DEFAULT_POINTS.map((point) => ({ 
 
 const CreateStatisticPage: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, sessionExpired } = useAuth();
+  
+  // Validate session when user returns to the tab
+  useSessionValidator();
 
   const [title, setTitle] = useState('');
   const [summary, setSummary] = useState('');
@@ -158,8 +163,11 @@ const CreateStatisticPage: React.FC = () => {
         navigate('/admin', { replace: true, state: { tab: 'statistics' } });
       }, 800);
     } catch (submitError: unknown) {
-      const { messages } = parseApiError(submitError);
-      setError(messages[0] ?? 'Nie udało się zapisać statystyki. Spróbuj ponownie.');
+      const { status, messages } = parseApiError(submitError);
+      // Don't show error if it's a session expiration (modal will handle it)
+      if (status !== 401) {
+        setError(messages[0] ?? 'Nie udało się zapisać statystyki. Spróbuj ponownie.');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -173,6 +181,19 @@ const CreateStatisticPage: React.FC = () => {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#f8f9fb' }}>
+      {/* Session Expired Modal */}
+      <ReLoginModal
+        isOpen={sessionExpired}
+        onSuccess={() => {
+          // User re-authenticated, they can now try submitting again
+          setError(null);
+        }}
+        onCancel={() => {
+          // User chose to cancel - redirect to home
+          navigate('/', { replace: true });
+        }}
+      />
+
       <div className="max-w-4xl mx-auto px-6 py-10 space-y-8">
         <header className="space-y-2">
           <h1 className="text-3xl font-bold text-gray-900">Dodaj statystykę</h1>

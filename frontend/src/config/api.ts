@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { emitSessionExpired, hasSessionExpiredListeners } from '../utils/sessionEvents';
 
 // In production, use relative URL since nginx proxies /api to backend
 // In development, use VITE_API_URL from env or default to localhost
@@ -32,15 +33,22 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      // Don't redirect to login if we're already on login page, create page, or if user is anonymous
+      // Don't clear token here - let the session expired handler decide
       const isAnonymous = localStorage.getItem('isAnonymous') === 'true';
-      const isOnCreatePage = window.location.pathname === '/create';
       const isOnLoginPage = window.location.pathname === '/login';
       const isOnRegisterPage = window.location.pathname === '/register';
+      const isValidationRequest = error.config?.url?.includes('/auth/validate');
       
-      if (!isAnonymous && !isOnCreatePage && !isOnLoginPage && !isOnRegisterPage) {
-        window.location.href = '/login';
+      // Skip handling for login/register pages and validation requests
+      if (!isAnonymous && !isOnLoginPage && !isOnRegisterPage && !isValidationRequest) {
+        // If there are listeners (components showing re-login modal), emit event
+        // Otherwise, fall back to redirect behavior
+        if (hasSessionExpiredListeners()) {
+          emitSessionExpired();
+        } else {
+          localStorage.removeItem('token');
+          window.location.href = '/login';
+        }
       }
     }
     return Promise.reject(error);

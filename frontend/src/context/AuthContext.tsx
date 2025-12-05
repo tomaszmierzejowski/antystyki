@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import type { User, LoginRequest, RegisterRequest, LoginResponse, SocialLoginRequest } from '../types';
 import api from '../config/api';
 import { AuthContext } from './authContextValue';
+import { onSessionExpired as subscribeToSessionExpired } from '../utils/sessionEvents';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAnonymous, setIsAnonymous] = useState(false);
+  const [sessionExpired, setSessionExpired] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -32,13 +34,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(false);
   }, []);
 
+  // Listen for session expired events from the API interceptor
+  useEffect(() => {
+    const unsubscribe = subscribeToSessionExpired(() => {
+      setSessionExpired(true);
+    });
+    return unsubscribe;
+  }, []);
+
   const persistAuthResponse = (response: LoginResponse) => {
     localStorage.setItem('token', response.token);
     localStorage.setItem('user', JSON.stringify(response.user));
     setUser(response.user);
     setIsAnonymous(false);
+    setSessionExpired(false);
     localStorage.removeItem('isAnonymous');
   };
+
+  const onSessionExpired = useCallback(() => {
+    setSessionExpired(true);
+  }, []);
+
+  const clearSessionExpired = useCallback(() => {
+    setSessionExpired(false);
+  }, []);
 
   const login = async (credentials: LoginRequest) => {
     const response = await api.post<LoginResponse>('/auth/login', credentials);
@@ -74,6 +93,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('isAnonymous');
     setUser(null);
     setIsAnonymous(false);
+    setSessionExpired(false);
   };
 
   const isLoggedIn = !!user && !isAnonymous;
@@ -90,6 +110,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAuthenticated: isLoggedIn,
         isAnonymous,
         createAnonymousUser,
+        sessionExpired,
+        onSessionExpired,
+        clearSessionExpired,
       }}
     >
       {children}

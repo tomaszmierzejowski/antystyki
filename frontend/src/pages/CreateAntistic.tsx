@@ -13,7 +13,9 @@ import {
   trackCreateFormOpen
 } from '../utils/analytics';
 import { buildAntisticPrefillFromSnapshot } from '../utils/statisticPrefill';
-import { getPrimaryErrorMessage } from '../utils/apiError';
+import { getPrimaryErrorMessage, parseApiError } from '../utils/apiError';
+import { useSessionValidator } from '../hooks/useSessionValidator';
+import ReLoginModal from '../components/ReLoginModal';
 
 const CreateAntistic: React.FC = () => {
   // Template system state
@@ -32,7 +34,10 @@ const CreateAntistic: React.FC = () => {
 
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, isAuthenticated, isAnonymous } = useAuth();
+  const { user, isAuthenticated, isAnonymous, sessionExpired } = useAuth();
+  
+  // Validate session when user returns to the tab
+  useSessionValidator();
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -169,8 +174,12 @@ const CreateAntistic: React.FC = () => {
         navigate('/');
       }
     } catch (error: unknown) {
-      const errorMessage = getPrimaryErrorMessage(error, 'Błąd podczas zapisywania antystyku');
-      setError(errorMessage);
+      const { status } = parseApiError(error);
+      // Don't show error if it's a session expiration (modal will handle it)
+      if (status !== 401) {
+        const errorMessage = getPrimaryErrorMessage(error, 'Błąd podczas zapisywania antystyku');
+        setError(errorMessage);
+      }
     } finally {
       submitLoading(false);
     }
@@ -244,6 +253,19 @@ const CreateAntistic: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Session Expired Modal */}
+      <ReLoginModal
+        isOpen={sessionExpired}
+        onSuccess={() => {
+          // User re-authenticated, they can now try submitting again
+          setError('');
+        }}
+        onCancel={() => {
+          // User chose to cancel - redirect to home
+          navigate('/', { replace: true });
+        }}
+      />
+
       <div className="max-w-7xl mx-auto px-6 py-8">
         <h1 className="text-3xl font-bold text-text-primary mb-8">Stwórz Antystykę</h1>
 

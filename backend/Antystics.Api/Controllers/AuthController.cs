@@ -494,6 +494,14 @@ public class AuthController : ControllerBase
         return Ok(new { message = "Password reset successfully" });
     }
 
+    [HttpGet("validate")]
+    [Microsoft.AspNetCore.Authorization.Authorize]
+    public IActionResult ValidateToken()
+    {
+        // If we reach here, the JWT token is valid (middleware validated it)
+        return Ok(new { valid = true });
+    }
+
     [HttpPost("resend-verification-email")]
     public async Task<IActionResult> ResendVerificationEmail([FromBody] ResendVerificationEmailRequest request)
     {
