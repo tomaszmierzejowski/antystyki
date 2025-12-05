@@ -38,6 +38,9 @@ const baseAuthValue: AuthContextType = {
   isAuthenticated: true,
   isAnonymous: false,
   createAnonymousUser: () => {},
+  sessionExpired: false,
+  onSessionExpired: () => {},
+  clearSessionExpired: () => {},
 };
 
 describe('WebsiteStatistics page', () => {

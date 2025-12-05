@@ -164,6 +164,7 @@ const ReLoginModal: React.FC<ReLoginModalProps> = ({
 
                 <div className="mt-4">
                   <SocialLoginButtons
+                    mode="login"
                     onSuccess={handleSocialLoginSuccess}
                     onError={(err) => setError(err)}
                   />
