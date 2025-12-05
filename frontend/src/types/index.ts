@@ -33,6 +33,8 @@ export interface Antistic {
   createdAt: string;
   publishedAt?: string;
   hiddenAt?: string;
+  sourceStatisticId?: string;
+  sourceStatisticSlug?: string;
   user: User;
   categories: Category[];
 }
@@ -115,6 +117,7 @@ export interface CreateAntisticRequest {
   templateId?: string;
   chartData?: AntisticChartData; // Chart data object
   categoryIds: string[];
+  sourceStatisticId?: string;
 }
 
 export interface UpdateAntisticRequest {

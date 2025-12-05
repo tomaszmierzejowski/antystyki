@@ -9,6 +9,7 @@ public class CreateAntisticRequest
     public string? TemplateId { get; set; }
     public object? ChartData { get; set; } // Chart data object
     public List<Guid> CategoryIds { get; set; } = new();
+    public Guid? SourceStatisticId { get; set; }
 }
 
     public class UpdateAntisticRequest
@@ -42,6 +43,8 @@ public class AntisticDto
     public DateTime CreatedAt { get; set; }
     public DateTime? PublishedAt { get; set; }
     public DateTime? HiddenAt { get; set; }
+    public Guid? SourceStatisticId { get; set; }
+    public string? SourceStatisticSlug { get; set; }
     public UserDto User { get; set; } = null!;
     public List<CategoryDto> Categories { get; set; } = new();
 }

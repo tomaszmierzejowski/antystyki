@@ -21,6 +21,7 @@ const CreateAntistic: React.FC = () => {
   const [chartData, setChartData] = useState<Partial<AntisticData>>({});
   const [prefillData, setPrefillData] = useState<Partial<AntisticData> | null>(null);
   const [chartPrefillKey, setChartPrefillKey] = useState<string>('initial');
+  const [sourceStatisticId, setSourceStatisticId] = useState<string | null>(null);
 
   // Basic form state
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -93,6 +94,11 @@ const CreateAntistic: React.FC = () => {
           ...(antisticData ?? {}),
           templateId: templateFromData,
         }));
+        
+        // Store the source statistic ID for linking
+        if (parsed.statisticId) {
+          setSourceStatisticId(parsed.statisticId);
+        }
       } catch (error) {
         console.warn('Nie udało się odczytać danych statystyki do wstępnego wypełnienia', error);
       }
@@ -146,6 +152,7 @@ const CreateAntistic: React.FC = () => {
         isDraft: isDraft,
         isAnonymous: isAnonymous,
         userId: user.id,
+        sourceStatisticId: sourceStatisticId || undefined,
       };
 
       await api.post('/antistics', payload);

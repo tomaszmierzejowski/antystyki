@@ -22,6 +22,7 @@ public class Antistic
     public DateTime? HiddenAt { get; set; }
     public Guid? HiddenByUserId { get; set; }
     public Guid? OriginalAntisticId { get; set; }
+    public Guid? SourceStatisticId { get; set; }
     
     // Foreign keys
     public Guid UserId { get; set; }
@@ -32,6 +33,7 @@ public class Antistic
     public virtual User? ModeratedBy { get; set; }
     public virtual User? HiddenBy { get; set; }
     public virtual Antistic? OriginalAntistic { get; set; }
+    public virtual Statistic? SourceStatistic { get; set; }
     public virtual ICollection<AntisticLike> Likes { get; set; } = new List<AntisticLike>();
     public virtual ICollection<AntisticReport> Reports { get; set; } = new List<AntisticReport>();
     public virtual ICollection<AntisticComment> Comments { get; set; } = new List<AntisticComment>();

@@ -37,6 +37,7 @@ public class AdminController : ControllerBase
             .Include(a => a.User)
             .Include(a => a.Categories)
             .ThenInclude(ac => ac.Category)
+            .Include(a => a.SourceStatistic)
             .Where(a => a.Status == ModerationStatus.Pending)
             .OrderBy(a => a.CreatedAt);
 
@@ -88,6 +89,7 @@ public class AdminController : ControllerBase
         var antistic = await _context.Antistics
             .Include(a => a.User)
             .Include(a => a.Categories)
+            .Include(a => a.SourceStatistic)
             .FirstOrDefaultAsync(a => a.Id == id);
 
         if (antistic == null)
@@ -409,6 +411,10 @@ public class AdminController : ControllerBase
             ViewsCount = antistic.ViewsCount,
             CreatedAt = antistic.CreatedAt,
             PublishedAt = antistic.PublishedAt,
+            SourceStatisticId = antistic.SourceStatisticId,
+            SourceStatisticSlug = antistic.SourceStatistic != null 
+                ? UrlBuilder.GenerateSlug(antistic.SourceStatistic.Title, "statystyka") 
+                : null,
             User = new UserDto
             {
                 Id = antistic.User.Id,

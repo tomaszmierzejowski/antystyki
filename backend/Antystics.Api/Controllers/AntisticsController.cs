@@ -37,6 +37,7 @@ public class AntisticsController : ControllerBase
             .Include(a => a.User)
             .Include(a => a.Categories)
             .ThenInclude(ac => ac.Category)
+            .Include(a => a.SourceStatistic)
             .Where(a => a.Status == ModerationStatus.Approved);
 
         // Check if user is admin/moderator to see hidden content
@@ -94,6 +95,7 @@ public class AntisticsController : ControllerBase
             .Include(a => a.User)
             .Include(a => a.Categories)
             .ThenInclude(ac => ac.Category)
+            .Include(a => a.SourceStatistic)
             .FirstOrDefaultAsync(a => a.Id == id && a.Status == ModerationStatus.Approved);
 
         if (antistic == null)
@@ -135,7 +137,8 @@ public class AntisticsController : ControllerBase
             TemplateId = request.TemplateId,
             ChartData = request.ChartData != null ? System.Text.Json.JsonSerializer.Serialize(request.ChartData) : null,
             UserId = userId.Value,
-            Status = ModerationStatus.Pending
+            Status = ModerationStatus.Pending,
+            SourceStatisticId = request.SourceStatisticId
         };
 
         _context.Antistics.Add(antistic);
@@ -633,6 +636,10 @@ public class AntisticsController : ControllerBase
             HiddenAt = antistic.HiddenAt,
             CreatedAt = antistic.CreatedAt,
             PublishedAt = antistic.PublishedAt,
+            SourceStatisticId = antistic.SourceStatisticId,
+            SourceStatisticSlug = antistic.SourceStatistic != null 
+                ? UrlBuilder.GenerateSlug(antistic.SourceStatistic.Title, "statystyka") 
+                : null,
             User = new UserDto
             {
                 Id = antistic.User.Id,

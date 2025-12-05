@@ -465,8 +465,26 @@ const AntisticCard: React.FC<Props> = ({
         <div className="bg-gray-50 dark:bg-black/20 rounded-xl p-4 mb-4 border border-gray-100 dark:border-white/5">
           <p className="text-sm text-text-primary leading-relaxed">{chartData.description}</p>
           <p className="text-xs text-text-secondary mt-2 flex items-center gap-1">
-            <span>Source:</span>
-            <span className="font-medium truncate max-w-[300px]">{chartData.source}</span>
+            <span>Źródło:</span>
+            {antistic.sourceStatisticId && antistic.sourceStatisticSlug ? (
+              <Link 
+                to={`/statystyki/${antistic.sourceStatisticSlug}`}
+                className="font-medium text-orange-600 hover:text-orange-700 hover:underline truncate max-w-[300px] transition-colors"
+              >
+                antystyki.pl
+              </Link>
+            ) : chartData.source?.startsWith('http') ? (
+              <a 
+                href={chartData.source}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-orange-600 hover:text-orange-700 hover:underline truncate max-w-[300px] transition-colors"
+              >
+                {chartData.source}
+              </a>
+            ) : (
+              <span className="font-medium truncate max-w-[300px]">{chartData.source}</span>
+            )}
           </p>
         </div>
 

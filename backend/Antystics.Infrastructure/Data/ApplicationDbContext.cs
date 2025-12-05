@@ -66,6 +66,12 @@ public class ApplicationDbContext : IdentityDbContext<User, IdentityRole<Guid>, 
                 .HasForeignKey(e => e.HiddenByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // SourceStatistic relationship (for antistics created from internal statistics)
+            entity.HasOne(e => e.SourceStatistic)
+                .WithMany()
+                .HasForeignKey(e => e.SourceStatisticId)
+                .OnDelete(DeleteBehavior.SetNull);
+
             entity.HasIndex(e => e.Status);
             entity.HasIndex(e => e.PublishedAt);
             entity.HasIndex(e => e.UserId);
