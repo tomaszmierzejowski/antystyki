@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { Antistic, AntisticChartData } from '../types';
 import type { AntisticData, ChartPoint, ChartSegment } from '../types/templates';
 import { CARD_TEMPLATES, CHART_COLORS } from '../types/templates';
-import { DoughnutChart, ColorfulDataChart, LineChart, BarChart } from './charts/ChartGenerator';
+import { ColorfulDataChart, LineChart, BarChart } from './charts/ChartGenerator';
 import { createPerspectiveData } from './charts/chartUtils';
 import CommentsSection from './CommentsSection';
 import { useLike } from '../hooks/useLike';
@@ -77,12 +77,21 @@ const AntisticCard: React.FC<Props> = ({
   const actualTemplateId = antistic.templateId || templateId || 'two-column-default';
   const template = CARD_TEMPLATES.find(t => t.id === actualTemplateId) || CARD_TEMPLATES[0];
 
+  const normalizePerspective = (p?: AntisticData['perspectiveData']) => {
+    if (!p) return undefined;
+    return {
+      ...p,
+      type: p.type ?? 'pie',
+      unit: p.unit ?? (p.type && p.type !== 'pie' ? '' : undefined),
+    };
+  };
+
   // Generate chart data based on template and actual data from backend
-  const getChartData = () => {
+  const getChartData = (): Partial<AntisticData> => {
     // If custom data is provided (for preview), use it
     if (customData) {
       return {
-        perspectiveData: customData.perspectiveData,
+        perspectiveData: normalizePerspective(customData.perspectiveData),
         sourceData: customData.sourceData,
         singleChartData: customData.singleChartData,
         textData: customData.textData,
@@ -97,7 +106,7 @@ const AntisticCard: React.FC<Props> = ({
     if (antistic.chartData) {
       const backendData = antistic.chartData as AntisticChartData;
       return {
-        perspectiveData: backendData.perspectiveData,
+        perspectiveData: normalizePerspective(backendData.perspectiveData),
         sourceData: backendData.sourceData as AntisticData['sourceData'],
         singleChartData: backendData.singleChartData as AntisticData['singleChartData'],
         textData: backendData.textData,
@@ -128,7 +137,8 @@ const AntisticCard: React.FC<Props> = ({
             mainLabel: antistic.reversedStatistic,
             secondaryPercentage: 100 - percentage,
             secondaryLabel: 'Pozostałe',
-            chartColor: '#6b7280'
+            chartColor: '#6b7280',
+            type: 'pie',
           },
           sourceData: {
             type: 'pie',
@@ -195,7 +205,8 @@ const AntisticCard: React.FC<Props> = ({
             mainLabel: antistic.reversedStatistic,
             secondaryPercentage: 100 - percentage,
             secondaryLabel: 'Pozostałe',
-            chartColor: '#6b7280'
+            chartColor: '#6b7280',
+            type: 'pie',
           },
           sourceData: {
             type: 'pie',
@@ -331,15 +342,31 @@ const AntisticCard: React.FC<Props> = ({
     }
   };
 
-  const renderTwoColumnTemplate = () => (
+  const renderTwoColumnTemplate = () => {
+    const perspectivePoints = perspectiveSegments.map((segment) => ({
+      label: segment.label,
+      value: segment.percentage,
+    }));
+
+    // Construct chart definition for perspective data
+    const perspectiveChartDefinition = {
+      type: chartData.perspectiveData?.type || 'pie',
+      segments: perspectiveSegments,
+      points: perspectivePoints,
+      unit: chartData.perspectiveData?.unit,
+    } as ChartDefinition;
+
+    return (
     <>
       {/* Two-column chart section */}
       <div className="px-6 pb-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
           {/* Left Column: Perspektywa Antystyki */}
-          <div className="flex flex-col items-center">
+          <div className="flex flex-col items-center w-full">
             <h4 className="text-sm font-semibold text-text-secondary mb-4 uppercase tracking-wider">Perspektywa Antystyki</h4>
-            <DoughnutChart segments={perspectiveSegments} />
+            <div className="w-full">
+              {renderChartVisualization(perspectiveChartDefinition)}
+            </div>
           </div>
 
           {/* Right Column: Dane źródłowe */}
@@ -353,6 +380,7 @@ const AntisticCard: React.FC<Props> = ({
       </div>
     </>
   );
+  };
 
   const renderSingleChartTemplate = () => {
     const singleChart = chartData.singleChartData;
@@ -451,9 +479,7 @@ const AntisticCard: React.FC<Props> = ({
           </div>
         </div>
         <p className="text-sm text-text-secondary">
-          {template.layout === 'two-column' && chartData.perspectiveData?.mainLabel
-            ? chartData.perspectiveData.mainLabel
-            : chartData.description}
+          {chartData.description}
         </p>
       </div>
 
@@ -463,8 +489,7 @@ const AntisticCard: React.FC<Props> = ({
       {/* Context paragraph */}
       <div className="px-6 pb-6">
         <div className="bg-gray-50 dark:bg-black/20 rounded-xl p-4 mb-4 border border-gray-100 dark:border-white/5">
-          <p className="text-sm text-text-primary leading-relaxed">{chartData.description}</p>
-          <p className="text-xs text-text-secondary mt-2 flex items-center gap-1">
+          <p className="text-xs text-text-secondary flex items-center gap-1">
             <span>Źródło:</span>
             {antistic.sourceStatisticId && antistic.sourceStatisticSlug ? (
               <Link 

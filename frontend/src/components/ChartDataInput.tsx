@@ -81,6 +81,8 @@ interface FormState {
   mainPercentage: number | '';
   mainLabel: string;
   secondaryLabel: string;
+  perspectiveChartMode: ChartMode;
+  perspectiveUnit: string;
   sourceSegments: Segment[];
   sourceChartMode: ChartMode;
   sourceUnit: string;
@@ -129,6 +131,9 @@ const buildInitialState = (initialData?: Partial<AntisticData> | null): FormStat
     ?? (initialData?.comparisonData?.leftChart?.points?.length ? 'bar' : 'pie');
   const comparisonRightType = (initialData?.comparisonData?.rightChart?.type as ChartMode | undefined)
     ?? (initialData?.comparisonData?.rightChart?.points?.length ? 'bar' : 'pie');
+  
+  const perspectiveChartType = (perspective?.type as ChartMode | undefined) ?? 'pie';
+  const perspectiveUnit = perspective?.unit ?? '';
 
   return {
     title: initialData?.title ?? '',
@@ -137,6 +142,8 @@ const buildInitialState = (initialData?: Partial<AntisticData> | null): FormStat
     mainPercentage: perspective?.mainPercentage ?? 65,
     mainLabel: stripPercentagePrefix(perspective?.mainLabel) || 'głównej wartości',
     secondaryLabel: perspective?.secondaryLabel ?? 'Pozostałe',
+    perspectiveChartMode: perspectiveChartType,
+    perspectiveUnit: perspectiveUnit,
     sourceSegments,
     sourceChartMode: sourceChartType,
     sourceUnit: initialData?.sourceData?.unit ?? '',
@@ -208,6 +215,8 @@ const ChartDataInput: React.FC<Props> = ({ templateId, onDataChange, className =
             secondaryPercentage: Math.max(0, 100 - mainPercentage),
             secondaryLabel: data.secondaryLabel,
             chartColor: '#6b7280',
+            type: data.perspectiveChartMode,
+            unit: data.perspectiveUnit || undefined,
           },
           sourceData: buildChartPayload(
             data.sourceChartMode,
@@ -616,6 +625,17 @@ const ChartDataInput: React.FC<Props> = ({ templateId, onDataChange, className =
       {(templateId === 'two-column-default' || templateId === 'text-focused' || templateId === 'comparison') && (
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-text-primary">Perspektywa antystyki</h3>
+          
+          {templateId === 'two-column-default' && (
+             <>
+                {renderChartModeSelector('Wizualizacja perspektywy', formData.perspectiveChartMode, (mode) =>
+                   updateFormData({ perspectiveChartMode: mode })
+                )}
+                {renderUnitInput(formData.perspectiveChartMode, formData.perspectiveUnit, (next) =>
+                   updateFormData({ perspectiveUnit: next })
+                )}
+             </>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>

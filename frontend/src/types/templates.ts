@@ -39,6 +39,8 @@ export interface AntisticData {
     secondaryPercentage: number;
     secondaryLabel: string;
     chartColor: string;
+    type?: 'pie' | 'bar' | 'line';
+    unit?: string;
   };
 
   sourceData?: {
