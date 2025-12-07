@@ -362,7 +362,10 @@ const AntisticCard: React.FC<Props> = ({
       <div className="px-6 pb-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
           {/* Left Column: Perspektywa Antystyki */}
-          <div className="flex flex-col items-center w-full">
+          <div className="flex flex-col items-center w-full gap-3">
+            <h3 className="text-xl font-bold text-text-primary text-center leading-tight font-display">
+              {chartData.title}
+            </h3>
             <h4 className="text-sm font-semibold text-text-secondary mb-4 uppercase tracking-wider">Perspektywa Antystyki</h4>
             <div className="w-full">
               {renderChartVisualization(perspectiveChartDefinition)}
@@ -370,8 +373,11 @@ const AntisticCard: React.FC<Props> = ({
           </div>
 
           {/* Right Column: Dane źródłowe */}
-          <div className="flex flex-col items-center w-full">
+          <div className="flex flex-col items-center w-full gap-3">
             <h4 className="text-sm font-semibold text-text-secondary mb-4 uppercase tracking-wider">Dane źródłowe</h4>
+            <p className="text-sm text-text-secondary text-center w-full">
+              {chartData.description}
+            </p>
             <div className="w-full">
               {renderChartVisualization(chartData.sourceData as ChartDefinition | undefined)}
             </div>
@@ -448,7 +454,9 @@ const AntisticCard: React.FC<Props> = ({
       {/* Title Bar */}
       <div className="px-6 pt-6 pb-4">
         <div className="flex items-start justify-between mb-1">
-          <h3 className="text-xl font-bold text-text-primary flex-1 font-display leading-tight">{chartData.title}</h3>
+          {template.layout !== 'two-column' && (
+            <h3 className="text-xl font-bold text-text-primary flex-1 font-display leading-tight">{chartData.title}</h3>
+          )}
 
           {/* Badges */}
           <div className="flex gap-2 ml-4">
@@ -478,9 +486,11 @@ const AntisticCard: React.FC<Props> = ({
             <AdminActions antisticId={antistic.id} isHidden={!!antistic.hiddenAt} type="antistic" onAction={onAdminAction} />
           </div>
         </div>
-        <p className="text-sm text-text-secondary">
-          {chartData.description}
-        </p>
+        {template.layout !== 'two-column' && (
+          <p className="text-sm text-text-secondary">
+            {chartData.description}
+          </p>
+        )}
       </div>
 
       {/* Template-specific content */}
