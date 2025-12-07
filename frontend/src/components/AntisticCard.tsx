@@ -323,7 +323,8 @@ const AntisticCard: React.FC<Props> = ({
       chartData.perspectiveData.mainPercentage,
       chartData.perspectiveData.mainLabel,
       chartData.perspectiveData.secondaryLabel,
-      chartData.perspectiveData.chartColor
+      chartData.perspectiveData.mainColor || chartData.perspectiveData.chartColor, // Fallback to chartColor (old main)
+      chartData.perspectiveData.secondaryColor || '#6b7280' // Default fallback for secondary if not set
     ) : [];
 
   // Render different templates

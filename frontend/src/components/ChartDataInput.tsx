@@ -83,6 +83,8 @@ interface FormState {
   secondaryLabel: string;
   perspectiveChartMode: ChartMode;
   perspectiveUnit: string;
+  perspectiveMainColor: string | null;
+  perspectiveSecondaryColor: string | null;
   sourceSegments: Segment[];
   sourceChartMode: ChartMode;
   sourceUnit: string;
@@ -134,6 +136,8 @@ const buildInitialState = (initialData?: Partial<AntisticData> | null): FormStat
   
   const perspectiveChartType = (perspective?.type as ChartMode | undefined) ?? 'pie';
   const perspectiveUnit = perspective?.unit ?? '';
+  const perspectiveMainColor = perspective?.mainColor ?? null;
+  const perspectiveSecondaryColor = perspective?.secondaryColor ?? null;
 
   return {
     title: initialData?.title ?? '',
@@ -144,6 +148,8 @@ const buildInitialState = (initialData?: Partial<AntisticData> | null): FormStat
     secondaryLabel: perspective?.secondaryLabel ?? 'Pozostałe',
     perspectiveChartMode: perspectiveChartType,
     perspectiveUnit: perspectiveUnit,
+    perspectiveMainColor,
+    perspectiveSecondaryColor,
     sourceSegments,
     sourceChartMode: sourceChartType,
     sourceUnit: initialData?.sourceData?.unit ?? '',
@@ -217,6 +223,8 @@ const ChartDataInput: React.FC<Props> = ({ templateId, onDataChange, className =
             chartColor: '#6b7280',
             type: data.perspectiveChartMode,
             unit: data.perspectiveUnit || undefined,
+            mainColor: data.perspectiveMainColor || undefined,
+            secondaryColor: data.perspectiveSecondaryColor || undefined,
           },
           sourceData: buildChartPayload(
             data.sourceChartMode,
@@ -659,25 +667,43 @@ const ChartDataInput: React.FC<Props> = ({ templateId, onDataChange, className =
 
             <div>
               <label className="block text-sm font-medium text-text-secondary mb-1">Opis głównej statystyki</label>
-              <input
-                type="text"
-                value={formData.mainLabel}
-                onChange={(e) => updateFormData({ mainLabel: e.target.value })}
-                placeholder="np. powoduje trzeźwy kierowca"
-                className="w-full px-3 py-2 border border-[var(--border-color)] rounded-lg bg-card text-text-primary placeholder:text-text-secondary/50 focus:ring-2 focus:ring-accent focus:border-accent"
-              />
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={formData.mainLabel}
+                  onChange={(e) => updateFormData({ mainLabel: e.target.value })}
+                  placeholder="np. powoduje trzeźwy kierowca"
+                  className="w-full px-3 py-2 border border-[var(--border-color)] rounded-lg bg-card text-text-primary placeholder:text-text-secondary/50 focus:ring-2 focus:ring-accent focus:border-accent"
+                />
+                <input
+                  type="color"
+                  value={formData.perspectiveMainColor ?? '#6b7280'} // Default fallback for color picker
+                  onChange={(e) => updateFormData({ perspectiveMainColor: e.target.value })}
+                  className="h-10 w-12 cursor-pointer rounded border border-[var(--border-color)] bg-card"
+                  title="Wybierz kolor głównego segmentu"
+                />
+              </div>
             </div>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-text-secondary mb-1">Opis pozostałej części</label>
-            <input
-              type="text"
-              value={formData.secondaryLabel}
-              onChange={(e) => updateFormData({ secondaryLabel: e.target.value })}
-              placeholder="np. Jazda po chodniku"
-              className="w-full px-3 py-2 border border-[var(--border-color)] rounded-lg bg-card text-text-primary placeholder:text-text-secondary/50 focus:ring-2 focus:ring-accent focus:border-accent"
-            />
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={formData.secondaryLabel}
+                onChange={(e) => updateFormData({ secondaryLabel: e.target.value })}
+                placeholder="np. Jazda po chodniku"
+                className="w-full px-3 py-2 border border-[var(--border-color)] rounded-lg bg-card text-text-primary placeholder:text-text-secondary/50 focus:ring-2 focus:ring-accent focus:border-accent"
+              />
+              <input
+                type="color"
+                value={formData.perspectiveSecondaryColor ?? '#6b7280'}
+                onChange={(e) => updateFormData({ perspectiveSecondaryColor: e.target.value })}
+                className="h-10 w-12 cursor-pointer rounded border border-[var(--border-color)] bg-card"
+                title="Wybierz kolor drugiego segmentu"
+              />
+            </div>
           </div>
         </div>
       )}

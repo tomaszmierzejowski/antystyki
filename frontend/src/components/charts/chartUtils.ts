@@ -14,7 +14,8 @@ export const createPerspectiveData = (
   mainPercentage: number,
   mainLabel: string,
   secondaryLabel: string = 'Pozostałe',
-  color: string = '#6b7280'
+  color: string = '#6b7280',
+  secondaryColor: string = '#e5e7eb'
 ): ChartSegment[] => [
   {
     label: mainLabel,
@@ -24,7 +25,7 @@ export const createPerspectiveData = (
   {
     label: secondaryLabel,
     percentage: Math.max(0, 100 - mainPercentage),
-    color: '#e5e7eb',
+    color: secondaryColor,
   },
 ];
 

@@ -41,6 +41,8 @@ export interface AntisticData {
     chartColor: string;
     type?: 'pie' | 'bar' | 'line';
     unit?: string;
+    mainColor?: string;
+    secondaryColor?: string;
   };
 
   sourceData?: {
