@@ -95,7 +95,7 @@ export const DoughnutChart: React.FC<DoughnutChartProps> = ({
         initial={{ opacity: 0, y: 5 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.8 }}
-        className="mt-3 text-xs text-text-secondary text-center max-w-[180px] font-medium"
+        className="mt-3 text-xs text-text-secondary text-center max-w-[280px] font-medium break-words"
       >
         {mainSegment.label}
       </motion.p>
@@ -153,25 +153,25 @@ export const ColorfulDataChart: React.FC<ColorfulChartProps> = ({
 
       {/* Legend */}
       {showLegend && (
-        <div className="mt-4 space-y-2 w-full max-w-[200px]">
+        <div className="mt-4 space-y-2 w-full max-w-[280px]">
           {segments.map((segment, index) => (
             <motion.div
               key={index}
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.3, delay: 0.5 + index * 0.1 }}
-              className="flex items-center justify-between text-xs"
+              className="flex items-start justify-between text-xs gap-2"
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-start gap-2 flex-1 min-w-0">
                 <div
-                  className="w-3 h-3 rounded-full shadow-sm"
+                  className="w-3 h-3 rounded-full shadow-sm flex-shrink-0 mt-0.5"
                   style={{ backgroundColor: segment.color }}
                 ></div>
-                <span className="text-text-secondary font-medium truncate max-w-[120px]" title={segment.label}>
+                <span className="text-text-secondary font-medium break-words" title={segment.label}>
                   {segment.label}
                 </span>
               </div>
-              <span className="font-bold text-text-primary">{segment.percentage}%</span>
+              <span className="font-bold text-text-primary whitespace-nowrap flex-shrink-0 ml-2">{segment.percentage}%</span>
             </motion.div>
           ))}
         </div>
@@ -194,11 +194,11 @@ export const BarChart: React.FC<{
     <div className="space-y-3 w-full">
       {items.map((item, index) => (
         <div key={index} className="space-y-1.5">
-          <div className="flex items-center justify-between text-xs text-text-secondary">
-            <span className="truncate pr-2 font-medium" title={item.label}>
+          <div className="flex items-start justify-between text-xs text-text-secondary gap-2">
+            <span className="pr-2 font-medium break-words flex-1 min-w-0" title={item.label}>
               {item.label}
             </span>
-            <span className="font-bold text-text-primary whitespace-nowrap">
+            <span className="font-bold text-text-primary whitespace-nowrap flex-shrink-0">
               {item.displayValue}
             </span>
           </div>
