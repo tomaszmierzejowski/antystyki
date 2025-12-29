@@ -169,7 +169,10 @@ public class AntisticsController : ControllerBase
         }
 
         var antistic = await _context.Antistics
+            .Include(a => a.User)
+            .Include(a => a.SourceStatistic)
             .Include(a => a.Categories)
+                .ThenInclude(ac => ac.Category)
             .FirstOrDefaultAsync(a => a.Id == id);
 
         if (antistic == null)
@@ -640,21 +643,31 @@ public class AntisticsController : ControllerBase
             SourceStatisticSlug = antistic.SourceStatistic != null 
                 ? UrlBuilder.GenerateSlug(antistic.SourceStatistic.Title, "statystyka") 
                 : null,
-            User = new UserDto
+            User = antistic.User != null ? new UserDto
             {
                 Id = antistic.User.Id,
-                Email = antistic.User.Email!,
-                Username = antistic.User.UserName!,
+                Email = antistic.User.Email ?? string.Empty,
+                Username = antistic.User.UserName ?? string.Empty,
                 Role = antistic.User.Role.ToString(),
                 CreatedAt = antistic.User.CreatedAt
-            },
-            Categories = antistic.Categories.Select(ac => new CategoryDto
+            } : new UserDto
             {
-                Id = ac.Category.Id,
-                NamePl = ac.Category.NamePl,
-                NameEn = ac.Category.NameEn,
-                Slug = ac.Category.Slug
-            }).ToList()
+                Id = Guid.Empty,
+                Email = string.Empty,
+                Username = "Unknown",
+                Role = "User",
+                CreatedAt = DateTime.UtcNow
+            },
+            Categories = antistic.Categories?
+                .Where(ac => ac.Category != null)
+                .Select(ac => new CategoryDto
+                {
+                    Id = ac.Category!.Id,
+                    NamePl = ac.Category.NamePl,
+                    NameEn = ac.Category.NameEn,
+                    Slug = ac.Category.Slug
+                })
+                .ToList() ?? new List<CategoryDto>()
         };
     }
 
