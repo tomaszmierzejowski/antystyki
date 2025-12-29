@@ -3,15 +3,17 @@ import { useAuth } from '../context/useAuth';
 import adminApi from '../api/admin';
 
 interface AdminActionsProps {
-  antisticId: string;
+  antisticId?: string;
+  statisticId?: string;
   commentId?: string;
   isHidden?: boolean;
   onAction?: () => void;
-  type: 'antistic' | 'comment';
+  type: 'antistic' | 'statistic' | 'comment';
 }
 
 const AdminActions: React.FC<AdminActionsProps> = ({ 
   antisticId, 
+  statisticId,
   commentId, 
   isHidden = false, 
   onAction,
@@ -30,11 +32,17 @@ const AdminActions: React.FC<AdminActionsProps> = ({
     
     setIsLoading(true);
     try {
-      if (type === 'antistic') {
+      if (type === 'antistic' && antisticId) {
         if (isHidden) {
           await adminApi.unhideAntistic(antisticId);
         } else {
           await adminApi.hideAntistic(antisticId);
+        }
+      } else if (type === 'statistic' && statisticId) {
+        if (isHidden) {
+          await adminApi.unhideStatistic(statisticId);
+        } else {
+          await adminApi.hideStatistic(statisticId);
         }
       }
       onAction?.();
@@ -51,9 +59,11 @@ const AdminActions: React.FC<AdminActionsProps> = ({
     
     setIsLoading(true);
     try {
-      if (type === 'antistic') {
+      if (type === 'antistic' && antisticId) {
         await adminApi.deleteAntistic(antisticId);
-      } else if (type === 'comment' && commentId) {
+      } else if (type === 'statistic' && statisticId) {
+        await adminApi.deleteStatistic(statisticId);
+      } else if (type === 'comment' && commentId && antisticId) {
         await adminApi.deleteComment(antisticId, commentId);
       }
       onAction?.();
@@ -65,7 +75,7 @@ const AdminActions: React.FC<AdminActionsProps> = ({
     }
   };
 
-  if (type === 'antistic') {
+  if (type === 'antistic' || type === 'statistic') {
     return (
       <div className="flex items-center gap-2">
         <button

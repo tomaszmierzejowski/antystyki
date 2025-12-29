@@ -275,6 +275,7 @@ public class StatisticsController : ControllerBase
             CreatedAt = statistic.CreatedAt,
             PublishedAt = statistic.PublishedAt,
             ModeratedAt = statistic.ModeratedAt,
+            HiddenAt = statistic.HiddenAt,
             CreatedByUserId = statistic.CreatedByUserId,
             ConvertedAntisticId = statistic.ConvertedAntisticId,
             CreatedBy = new UserDto
@@ -302,6 +303,74 @@ public class StatisticsController : ControllerBase
         }
 
         return "https://antystyki.pl";
+    }
+
+    [Authorize(Roles = "Admin,Moderator")]
+    [HttpPost("{id}/hide")]
+    public async Task<IActionResult> HideStatistic(Guid id)
+    {
+        var userId = GetCurrentUserId();
+        if (!userId.HasValue)
+        {
+            return Unauthorized();
+        }
+
+        var statistic = await _context.Statistics.FindAsync(id);
+        if (statistic == null)
+        {
+            return NotFound();
+        }
+
+        statistic.HiddenAt = DateTime.UtcNow;
+        statistic.HiddenByUserId = userId.Value;
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Statistic hidden successfully" });
+    }
+
+    [Authorize(Roles = "Admin,Moderator")]
+    [HttpPost("{id}/unhide")]
+    public async Task<IActionResult> UnhideStatistic(Guid id)
+    {
+        var userId = GetCurrentUserId();
+        if (!userId.HasValue)
+        {
+            return Unauthorized();
+        }
+
+        var statistic = await _context.Statistics.FindAsync(id);
+        if (statistic == null)
+        {
+            return NotFound();
+        }
+
+        statistic.HiddenAt = null;
+        statistic.HiddenByUserId = null;
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Statistic unhidden successfully" });
+    }
+
+    [Authorize(Roles = "Admin,Moderator")]
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteStatistic(Guid id)
+    {
+        var userId = GetCurrentUserId();
+        if (!userId.HasValue)
+        {
+            return Unauthorized();
+        }
+
+        var statistic = await _context.Statistics.FindAsync(id);
+        if (statistic == null)
+        {
+            return NotFound();
+        }
+
+        _context.Statistics.Remove(statistic);
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Statistic deleted successfully" });
     }
 
     private Guid? GetCurrentUserId()

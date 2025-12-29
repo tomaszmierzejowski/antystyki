@@ -1,10 +1,13 @@
 import React, { useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import type { Statistic } from '../types';
 import type { AntisticData, AntisticTemplate } from '../types/templates';
 import { CARD_TEMPLATES, CHART_COLORS } from '../types/templates';
 import { BarChart, DoughnutChart, ColorfulDataChart, LineChart } from './charts/ChartGenerator';
 import { createPerspectiveData, generateSegmentsFromData } from './charts/chartUtils';
 import ShareMenu from './ShareMenu';
+import AdminActions from './AdminActions';
+import { useAuth } from '../context/useAuth';
 
 type ChartMode = 'pie' | 'bar' | 'line';
 
@@ -62,6 +65,7 @@ interface StatisticCardProps {
   statistic: Statistic;
   onVote: (statisticId: string, voteType: 'Like' | 'Dislike', remove: boolean) => Promise<void>;
   onConvert?: (statistic: Statistic) => void;
+  onAdminAction?: () => void;
   isBusy?: boolean;
 }
 
@@ -607,7 +611,12 @@ const renderVisualization = (template: AntisticTemplate, chartData: AntisticData
   }
 };
 
-const StatisticCard: React.FC<StatisticCardProps> = ({ statistic, onVote, onConvert, isBusy = false }) => {
+const StatisticCard: React.FC<StatisticCardProps> = ({ statistic, onVote, onConvert, onAdminAction, isBusy = false }) => {
+  const { user } = useAuth();
+  const isOwner = user?.id === statistic.createdByUserId;
+  const isModerator = user?.role === 'Admin' || user?.role === 'Moderator';
+  const canEdit = isOwner || isModerator;
+
   const totalSignals = Math.max(0, statistic.trustPoints) + Math.max(0, statistic.fakePoints);
   const trustPercent = totalSignals > 0 ? Math.round((Math.max(0, statistic.trustPoints) / totalSignals) * 100) : 0;
   const fakePercent = totalSignals > 0 ? Math.max(0, 100 - trustPercent) : 0;
@@ -649,14 +658,31 @@ const StatisticCard: React.FC<StatisticCardProps> = ({ statistic, onVote, onConv
     >
       <div className="p-6 space-y-5">
         <header className="space-y-2">
-          <div className="flex items-center gap-3 text-xs uppercase tracking-wide text-gray-500 dark:text-gray-300">
-            <span className="px-3 py-1 bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-200 rounded-full font-medium">Statystyka</span>
-            <span className="text-gray-400 dark:text-gray-400">{new Date(statistic.createdAt).toLocaleDateString('pl-PL')}</span>
-            {statistic.convertedAntisticId && (
-              <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[11px] font-medium">
-                Przekształcona w antystyk
-              </span>
-            )}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3 text-xs uppercase tracking-wide text-gray-500 dark:text-gray-300">
+              <span className="px-3 py-1 bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-200 rounded-full font-medium">Statystyka</span>
+              <span className="text-gray-400 dark:text-gray-400">{new Date(statistic.createdAt).toLocaleDateString('pl-PL')}</span>
+              {statistic.convertedAntisticId && (
+                <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[11px] font-medium">
+                  Przekształcona w antystyk
+                </span>
+              )}
+              {statistic.hiddenAt && (
+                <span className="px-2 py-1 text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-full">HIDDEN</span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              {canEdit && (
+                <Link
+                  to={`/statistic/${statistic.id}/edit`}
+                  className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  title="Edytuj statystykę"
+                >
+                  ✏️
+                </Link>
+              )}
+              <AdminActions statisticId={statistic.id} isHidden={!!statistic.hiddenAt} type="statistic" onAction={onAdminAction} />
+            </div>
           </div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">{statistic.title}</h2>
           <p className="text-gray-600 dark:text-gray-200 leading-relaxed text-lg">{statistic.summary}</p>

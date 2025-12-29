@@ -67,6 +67,7 @@ export interface Statistic {
   createdAt: string;
   publishedAt?: string;
   moderatedAt?: string;
+  hiddenAt?: string;
   createdByUserId: string;
   convertedAntisticId?: string;
   createdBy: User;

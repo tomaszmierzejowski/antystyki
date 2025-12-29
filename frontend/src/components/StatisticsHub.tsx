@@ -242,6 +242,7 @@ const StatisticsHub: React.FC<StatisticsHubProps> = ({
               statistic={statistic}
               onVote={handleVote}
               onConvert={handleConvert}
+              onAdminAction={() => loadStatistics(true)}
               isBusy={voteBusyId === statistic.id}
             />
           ))}

@@ -22,6 +22,7 @@ public class StatisticDto
     public DateTime CreatedAt { get; set; }
     public DateTime? PublishedAt { get; set; }
     public DateTime? ModeratedAt { get; set; }
+    public DateTime? HiddenAt { get; set; }
     public Guid CreatedByUserId { get; set; }
     public Guid? ConvertedAntisticId { get; set; }
     public UserDto CreatedBy { get; set; } = null!;

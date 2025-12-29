@@ -18,13 +18,16 @@ public class Statistic
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? PublishedAt { get; set; }
     public DateTime? ModeratedAt { get; set; }
+    public DateTime? HiddenAt { get; set; }
     public Guid CreatedByUserId { get; set; }
     public Guid? ModeratedByUserId { get; set; }
+    public Guid? HiddenByUserId { get; set; }
     public Guid? ConvertedAntisticId { get; set; }
     public string? ModeratorNotes { get; set; }
 
     public virtual User CreatedBy { get; set; } = null!;
     public virtual User? ModeratedBy { get; set; }
+    public virtual User? HiddenBy { get; set; }
     public virtual Antistic? ConvertedAntistic { get; set; }
     public virtual ICollection<StatisticVote> Votes { get; set; } = new List<StatisticVote>();
 }

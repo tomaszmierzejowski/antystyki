@@ -113,6 +113,20 @@ const StatisticDetailPage: React.FC = () => {
     navigate('/create', { state: { fromStatisticId: selectedStatistic.id } });
   };
 
+  const handleAdminAction = async () => {
+    // Reload the statistic to reflect changes (hide/unhide) or navigate back if deleted
+    if (!statisticId) return;
+    
+    try {
+      const data = await fetchStatistic(statisticId);
+      setStatistic(data);
+    } catch (error) {
+      // If statistic was deleted, navigate back
+      console.error('Failed to reload statistic (may have been deleted)', error);
+      navigate('/statistics');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen" style={{ backgroundColor: '#f8f9fb' }}>
@@ -161,6 +175,7 @@ const StatisticDetailPage: React.FC = () => {
           statistic={statistic}
           onVote={handleVote}
           onConvert={handleConvert}
+          onAdminAction={handleAdminAction}
           isBusy={voteBusy}
         />
       </div>
