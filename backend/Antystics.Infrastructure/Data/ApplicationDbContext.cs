@@ -101,6 +101,12 @@ public class ApplicationDbContext : IdentityDbContext<User, IdentityRole<Guid>, 
                 .HasForeignKey(e => e.ModeratedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // HiddenBy relationship (admin/moderator who hid the statistic)
+            entity.HasOne(e => e.HiddenBy)
+                .WithMany()
+                .HasForeignKey(e => e.HiddenByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             entity.HasOne(e => e.ConvertedAntistic)
                 .WithMany()
                 .HasForeignKey(e => e.ConvertedAntisticId)
@@ -109,6 +115,7 @@ public class ApplicationDbContext : IdentityDbContext<User, IdentityRole<Guid>, 
             entity.HasIndex(e => e.Status);
             entity.HasIndex(e => e.PublishedAt);
             entity.HasIndex(e => e.CreatedAt);
+            entity.HasIndex(e => e.HiddenAt);
         });
 
         // StatisticVote configuration
