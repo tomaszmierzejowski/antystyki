@@ -1,0 +1,11 @@
+# Manual dry-run trigger for content generation (use with REST Client or VSCode)
+POST http://localhost:5000/api/admin/content-generation/run
+Content-Type: application/json
+Authorization: Bearer YOUR_ADMIN_JWT
+
+{
+  "dryRun": true,
+  "statistics": 5,
+  "antystics": 2,
+  "sourceIds": ["pap-rss", "wirtualnemedia-rss", "polsat-rss", "gus-rss"]
+}
