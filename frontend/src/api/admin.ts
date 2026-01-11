@@ -33,6 +33,22 @@ const adminApi = {
   deleteComment: async (antisticId: string, commentId: string): Promise<void> => {
     await api.delete(`/antistics/${antisticId}/comments/${commentId}/admin`);
   },
+
+  // Trigger automated content generation
+  runContentGeneration: async (payload: {
+    dryRun?: boolean;
+    statistics?: number;
+    antystics?: number;
+    sourceIds?: string[];
+  }) => {
+    const response = await api.post('/admin/content-generation/run', {
+      dryRun: payload.dryRun ?? true,
+      statistics: payload.statistics,
+      antystics: payload.antystics,
+      sourceIds: payload.sourceIds,
+    });
+    return response.data;
+  },
 };
 
 export default adminApi;

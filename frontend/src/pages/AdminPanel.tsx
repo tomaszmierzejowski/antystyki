@@ -6,6 +6,26 @@ import { useAuth } from '../context/useAuth';
 import { Link, Navigate } from 'react-router-dom';
 import AntisticCard from '../components/AntisticCard';
 import { fetchPendingStatistics as fetchPendingStatisticsApi, moderateStatistic as moderateStatisticApi } from '../api/statistics';
+import adminApi from '../api/admin';
+
+type GeneratedDraft = {
+  id: string;
+  title: string;
+  summary: string;
+  sourceUrl: string;
+  sourceCitation: string;
+  kind: 'statistic' | 'antystyk' | string;
+};
+
+type ContentGenerationResult = {
+  createdStatistics: GeneratedDraft[];
+  createdAntystics: GeneratedDraft[];
+  skippedDuplicates: string[];
+  sourceFailures: string[];
+  validationFailures: string[];
+  executedAt: string;
+  dryRun: boolean;
+};
 
 const AdminPanel: React.FC = () => {
   const [pendingAntistics, setPendingAntistics] = useState<Antistic[]>([]);
@@ -15,6 +35,9 @@ const AdminPanel: React.FC = () => {
   const [antisticsError, setAntisticsError] = useState<string | null>(null);
   const [statisticsError, setStatisticsError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'statistics' | 'antistics'>('statistics');
+  const [autoGenLoading, setAutoGenLoading] = useState(false);
+  const [autoGenMessage, setAutoGenMessage] = useState<string | null>(null);
+  const [autoGenSummary, setAutoGenSummary] = useState<ContentGenerationResult | null>(null);
   const { user } = useAuth();
   const canViewWebsiteStats = user?.email?.toLowerCase() === 'tmierzejowski@gmail.com';
 
@@ -74,6 +97,31 @@ const AdminPanel: React.FC = () => {
     } catch (error) {
       console.error('Error moderating statistic:', error);
       alert('Błąd podczas moderacji statystyki');
+    }
+  };
+
+  const handleRunAutoGeneration = async (dryRun: boolean) => {
+    if (!canViewWebsiteStats) return;
+    setAutoGenLoading(true);
+    setAutoGenMessage(null);
+    try {
+      const data: ContentGenerationResult = await adminApi.runContentGeneration({
+        dryRun,
+        statistics: 5,
+        antystics: 2,
+      });
+      setAutoGenSummary(data);
+      setAutoGenMessage(dryRun ? 'Suche uruchomienie zakończone — nic nie zapisano.' : 'Wygenerowano nowe drafty (pending_review).');
+      // Refresh queues if persisted
+      if (!dryRun) {
+        fetchPendingAntistics();
+        fetchPendingStatistics();
+      }
+    } catch (error) {
+      console.error('Error triggering auto-generation:', error);
+      setAutoGenMessage('Nie udało się uruchomić generowania. Sprawdź uprawnienia lub backend.');
+    } finally {
+      setAutoGenLoading(false);
     }
   };
 
@@ -384,21 +432,62 @@ const AdminPanel: React.FC = () => {
               Zarządzaj kolejką statystyk i antystyków z zachowaniem misji „witty gray-area stories”.
             </p>
           </div>
-          <div className="text-sm text-gray-600 text-right">
-            Moderator: <span className="font-semibold">{user.username}</span>
-            {user.role && (
-              <span className="ml-2 px-2 py-1 bg-gray-200 text-gray-700 rounded-full text-xs">
-                {user.role}
-              </span>
-            )}
+          <div className="text-sm text-gray-600 text-right space-y-2">
+            <div>
+              Moderator: <span className="font-semibold">{user.username}</span>
+              {user.role && (
+                <span className="ml-2 px-2 py-1 bg-gray-200 text-gray-700 rounded-full text-xs">
+                  {user.role}
+                </span>
+              )}
+            </div>
             {canViewWebsiteStats && (
-              <div className="mt-3">
+              <div className="flex flex-col gap-2 items-end">
                 <Link
                   to="/admin/statistics"
                   className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-900 text-white text-xs font-medium hover:bg-gray-800 transition-colors"
                 >
                   📈 Website Statistics
                 </Link>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleRunAutoGeneration(true)}
+                    disabled={autoGenLoading}
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100 text-gray-800 text-xs font-medium hover:bg-gray-200 transition-colors disabled:opacity-60"
+                  >
+                    🔍 Suchy run (07:00 job)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleRunAutoGeneration(false)}
+                    disabled={autoGenLoading}
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-medium hover:bg-emerald-700 transition-colors disabled:opacity-60"
+                  >
+                    ⚡ Uruchom teraz
+                  </button>
+                </div>
+                {autoGenMessage && (
+                  <div className="text-xs text-left max-w-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                    {autoGenMessage}
+                    {autoGenSummary && (
+                      <div className="mt-2 space-y-1">
+                        <div>Statystyki: {autoGenSummary.createdStatistics.length}</div>
+                        <div>Antystyki: {autoGenSummary.createdAntystics.length}</div>
+                        {autoGenSummary.skippedDuplicates.length > 0 && (
+                          <div className="text-amber-700">
+                            Pomiń dup.: {autoGenSummary.skippedDuplicates.length}
+                          </div>
+                        )}
+                        {autoGenSummary.sourceFailures.length > 0 && (
+                          <div className="text-rose-700">
+                            Źródła offline: {autoGenSummary.sourceFailures.join(', ')}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
