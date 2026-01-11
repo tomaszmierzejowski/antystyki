@@ -7,6 +7,7 @@ COPY ["Antystics.sln", "./"]
 COPY ["Antystics.Api/Antystics.Api.csproj", "Antystics.Api/"]
 COPY ["Antystics.Core/Antystics.Core.csproj", "Antystics.Core/"]
 COPY ["Antystics.Infrastructure/Antystics.Infrastructure.csproj", "Antystics.Infrastructure/"]
+COPY ["Antystics.Api.Tests/Antystics.Api.Tests.csproj", "Antystics.Api.Tests/"]
 
 # Restore dependencies
 RUN dotnet restore "Antystics.sln"
