@@ -2,6 +2,9 @@ using System;
 using System.Data.Common;
 using System.Security.Claims;
 using System.Text;
+using Antystics.Api.ContentGeneration;
+using Antystics.Api.ContentGeneration.Adapters;
+using Antystics.Api.ContentGeneration.Services;
 using Antystics.Api.Extensions;
 using Antystics.Core.Entities;
 using Antystics.Core.Interfaces;
@@ -162,6 +165,24 @@ builder.Services.AddScoped<IImageService, ImageService>();
 builder.Services.AddScoped<ISocialAuthService, SocialAuthService>();
 
 builder.Services.AddVisitorMetrics(builder.Configuration);
+
+builder.Services.Configure<ContentGenerationOptions>(builder.Configuration.GetSection("ContentGeneration"));
+builder.Services.AddSingleton<IContentSourceProvider, ContentSourceProvider>();
+builder.Services.AddSingleton<ISourceHealthChecker, SourceHealthChecker>();
+builder.Services.AddSingleton<IContentSourceAdapter, RssContentSourceAdapter>();
+builder.Services.AddSingleton<IContentSourceAdapter, ApiContentSourceAdapter>();
+builder.Services.AddSingleton<IContentSourceAdapter, WebContentSourceAdapter>();
+builder.Services.AddScoped<IContentGenerationService, ContentGenerationService>();
+builder.Services.AddHostedService<ContentGenerationHostedService>();
+builder.Services.PostConfigure<ContentGenerationOptions>(options =>
+{
+    options.DailyRunLocalTime = builder.Configuration["CONTENT_GENERATION_DAILY_TIME"] ?? options.DailyRunLocalTime;
+    options.MinStatistics = GetInt(builder.Configuration, "CONTENT_GENERATION_MIN_STATS", options.MinStatistics);
+    options.MaxStatistics = GetInt(builder.Configuration, "CONTENT_GENERATION_MAX_STATS", options.MaxStatistics);
+    options.MinAntystics = GetInt(builder.Configuration, "CONTENT_GENERATION_MIN_ANTYSTICS", options.MinAntystics);
+    options.MaxAntystics = GetInt(builder.Configuration, "CONTENT_GENERATION_MAX_ANTYSTICS", options.MaxAntystics);
+    options.CreatorEmail = builder.Configuration["CONTENT_GENERATION_CREATOR_EMAIL"] ?? options.CreatorEmail;
+});
 
 // Configure CORS
 builder.Services.AddCors(options =>
@@ -388,6 +409,11 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.Run();
+
+static int GetInt(IConfiguration configuration, string key, int fallback)
+{
+    return int.TryParse(configuration[key], out var parsed) ? parsed : fallback;
+}
 
 static bool IsDatabaseTimeout(DbException exception)
 {

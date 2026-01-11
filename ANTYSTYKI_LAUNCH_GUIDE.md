@@ -197,6 +197,7 @@
 - [ ] Deploy Statistics API endpoints and analytics events
 - [ ] Stand up Loki + Promtail + Grafana logging stack (`OPS-LOG-STACK`) and confirm alert hook for errors >5/min (SSH tunnel required per §5)
 - [x] Validate canonical share URLs, mission-aligned copy, and GA4 instrumentation across Statystyki & Antystyki hubs
+- [ ] Enable AUTO-GEN-DAILY pipeline: verify `/api/admin/content-generation/run` dry-run, confirm 07:00 local scheduler, dedupe window 30 days, and Poland-first quota ≥50% with curated sources manifest
 
 ### Week 2: Launch & Marketing
 
@@ -420,6 +421,7 @@
 - `CI_CD_IMPLEMENTATION_SUMMARY.md` - Executive summary
 - `User_Actions_After_Vibe_Coding_On_MVP.md` - Updated with 30 actions (1500+ lines)
 - `STAT_HOME_TOGGLE_VALIDATION.md` (planned) - Capture QA scripts for the Antystyki/Statystyki toggle and compact filtering experience
+- AUTO-GEN-DAILY: backend scheduler + admin trigger for curated content generation (07:00 local, dry-run support, health-checked sources manifest)
 
 ---
 

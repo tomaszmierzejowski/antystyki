@@ -65,6 +65,14 @@ ASPNETCORE_ENVIRONMENT=Production
 RECAPTCHA_SECRET_KEY=your-recaptcha-secret-key-from-google
 RECAPTCHA_SITE_KEY=your-recaptcha-site-key-from-google
 
+# Content generation (automation)
+CONTENT_GENERATION_DAILY_TIME=07:00
+CONTENT_GENERATION_MIN_STATS=5
+CONTENT_GENERATION_MAX_STATS=6
+CONTENT_GENERATION_MIN_ANTYSTICS=1
+CONTENT_GENERATION_MAX_ANTYSTICS=5
+CONTENT_GENERATION_CREATOR_EMAIL=antystyki@gmail.com
+
 # =============================================================================
 # How to Generate Secure Secrets
 # =============================================================================
