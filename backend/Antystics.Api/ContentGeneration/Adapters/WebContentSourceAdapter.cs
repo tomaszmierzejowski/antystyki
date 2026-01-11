@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -14,7 +15,10 @@ internal sealed class WebContentSourceAdapter : IContentSourceAdapter
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<WebContentSourceAdapter> _logger;
-    private static readonly Regex SentenceRegex = new(@"([^.?!]{12,240}[.?!])", RegexOptions.Compiled);
+    private static readonly Regex TitleRegex = new(@"<title[^>]*>(?<val>.*?)<\/title>", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Singleline);
+    private static readonly Regex OgTitleRegex = new(@"<meta[^>]+property=[""']og:title[""'][^>]+content=[""'](?<val>[^""']+)[""'][^>]*>", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex MetaDescriptionRegex = new(@"<meta[^>]+name=[""']description[""'][^>]+content=[""'](?<val>[^""']+)[""'][^>]*>", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex CanonicalRegex = new(@"<link[^>]+rel=[""']canonical[""'][^>]+href=[""'](?<val>[^""']+)[""'][^>]*>", RegexOptions.Compiled | RegexOptions.IgnoreCase);
     private static readonly Regex NumberRegex = new(@"(\d+[.,]?\d*\%?)", RegexOptions.Compiled);
 
     public WebContentSourceAdapter(IHttpClientFactory httpClientFactory, ILogger<WebContentSourceAdapter> logger)
@@ -40,25 +44,41 @@ internal sealed class WebContentSourceAdapter : IContentSourceAdapter
             }
 
             var html = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-            var sentences = SentenceRegex.Matches(html ?? string.Empty)
-                .Select(m => m.Value.Trim())
-                .Where(s => NumberRegex.IsMatch(s))
-                .Take(20)
-                .ToList();
+            var title = ExtractFirst(html, OgTitleRegex) ?? ExtractFirst(html, TitleRegex);
+            var description = ExtractFirst(html, MetaDescriptionRegex);
+            var candidate = title ?? description ?? string.Empty;
+            var cleanedTitle = ContentSanitizer.CleanText(candidate, 180);
+            var cleanedSummary = ContentSanitizer.CleanText(description ?? candidate, 400);
 
-            return sentences.Select(sentence => new SourceItem
+            if (ContentSanitizer.HasHtmlNoise(candidate) || string.IsNullOrWhiteSpace(cleanedTitle))
+            {
+                return Array.Empty<SourceItem>();
+            }
+
+            // Require at least one numeric hint to stay mission-aligned for stats
+            if (!NumberRegex.IsMatch(cleanedTitle + " " + cleanedSummary))
+            {
+                return Array.Empty<SourceItem>();
+            }
+
+            var canonical = ExtractFirst(html, CanonicalRegex);
+            var sourceUrl = !string.IsNullOrWhiteSpace(canonical) ? canonical!.Trim() : source.Endpoint;
+
+            var item = new SourceItem
             {
                 SourceId = source.Id,
                 SourceName = source.Name,
-                Title = Trim(sentence, 140),
-                Summary = Trim(sentence, 280),
-                SourceUrl = source.Endpoint,
+                Title = cleanedTitle,
+                Summary = string.IsNullOrWhiteSpace(cleanedSummary) ? cleanedTitle : cleanedSummary,
+                SourceUrl = sourceUrl,
                 PublishedAt = null,
                 Topics = source.Topics,
                 Tags = source.Tags,
                 PolandFocus = source.PolandFocus,
                 HumorFriendly = source.HumorFriendly
-            }).ToList();
+            };
+
+            return new[] { item };
         }
         catch (Exception ex)
         {
@@ -67,14 +87,20 @@ internal sealed class WebContentSourceAdapter : IContentSourceAdapter
         }
     }
 
-    private static string Trim(string value, int maxLength)
+    private static string? ExtractFirst(string html, Regex regex)
     {
-        if (string.IsNullOrWhiteSpace(value))
+        if (string.IsNullOrWhiteSpace(html))
         {
-            return string.Empty;
+            return null;
         }
 
-        var trimmed = value.Trim();
-        return trimmed.Length <= maxLength ? trimmed : trimmed[..maxLength];
+        var match = regex.Match(html);
+        if (!match.Success)
+        {
+            return null;
+        }
+
+        var val = match.Groups["val"].Value;
+        return WebUtility.HtmlDecode(val);
     }
 }

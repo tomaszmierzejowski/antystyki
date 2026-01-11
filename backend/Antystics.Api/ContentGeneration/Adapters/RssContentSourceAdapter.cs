@@ -17,7 +17,6 @@ internal sealed class RssContentSourceAdapter : IContentSourceAdapter
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<RssContentSourceAdapter> _logger;
-    private static readonly Regex HtmlTagRegex = new("<.*?>", RegexOptions.Compiled);
 
     public RssContentSourceAdapter(IHttpClientFactory httpClientFactory, ILogger<RssContentSourceAdapter> logger)
     {
@@ -49,19 +48,26 @@ internal sealed class RssContentSourceAdapter : IContentSourceAdapter
                 return Array.Empty<SourceItem>();
             }
 
-            return feed.Items.Select(item =>
+            var items = feed.Items.Select(item =>
             {
                 var published = item.PublishDate != default ? item.PublishDate : item.LastUpdatedTime;
-                var link = item.Links.FirstOrDefault()?.Uri?.ToString() ?? source.Endpoint;
-                var rawSummary = item.Summary?.Text ?? item.Title?.Text ?? string.Empty;
-                var summary = HtmlTagRegex.Replace(rawSummary, string.Empty);
+                var rawTitle = item.Title?.Text ?? string.Empty;
+                var rawSummary = item.Summary?.Text ?? string.Empty;
+                var title = ContentSanitizer.CleanText(rawTitle, 180);
+                var summary = ContentSanitizer.CleanText(string.IsNullOrWhiteSpace(rawSummary) ? rawTitle : rawSummary, 400);
+                var link = GetBestLink(item) ?? source.Endpoint;
+
+                if (string.IsNullOrWhiteSpace(title) || ContentSanitizer.HasHtmlNoise(title) || ContentSanitizer.HasHtmlNoise(summary))
+                {
+                    return null;
+                }
 
                 return new SourceItem
                 {
                     SourceId = source.Id,
                     SourceName = source.Name,
-                    Title = (item.Title?.Text ?? string.Empty).Trim(),
-                    Summary = summary.Trim(),
+                    Title = title,
+                    Summary = summary,
                     SourceUrl = link,
                     PublishedAt = published == default ? null : published,
                     Topics = source.Topics,
@@ -70,14 +76,33 @@ internal sealed class RssContentSourceAdapter : IContentSourceAdapter
                     HumorFriendly = source.HumorFriendly
                 };
             })
-            .Where(i => !string.IsNullOrWhiteSpace(i.Title) && !string.IsNullOrWhiteSpace(i.SourceUrl))
+            .Where(i => i != null && !string.IsNullOrWhiteSpace(i.SourceUrl))
+            .Cast<SourceItem>()
             .Take(50)
             .ToList();
+
+            return items;
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "RSS fetch failed for {Source}", source.Id);
             return Array.Empty<SourceItem>();
         }
+    }
+
+    private static string? GetBestLink(SyndicationItem item)
+    {
+        var link = item.Links?.FirstOrDefault(l => l.Uri != null)?.Uri?.ToString();
+        if (!string.IsNullOrWhiteSpace(link))
+        {
+            return link.Trim();
+        }
+
+        if (!string.IsNullOrWhiteSpace(item.Id) && Uri.IsWellFormedUriString(item.Id, UriKind.Absolute))
+        {
+            return item.Id.Trim();
+        }
+
+        return null;
     }
 }

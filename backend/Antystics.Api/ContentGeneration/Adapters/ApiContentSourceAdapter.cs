@@ -98,12 +98,23 @@ internal sealed class ApiContentSourceAdapter : IContentSourceAdapter
                 continue;
             }
 
+            if (ContentSanitizer.HasHtmlNoise(value))
+            {
+                continue;
+            }
+
+            var cleaned = ContentSanitizer.CleanText(value, 180);
+            if (string.IsNullOrWhiteSpace(cleaned))
+            {
+                continue;
+            }
+
             results.Add(new SourceItem
             {
                 SourceId = source.Id,
                 SourceName = source.Name,
-                Title = Trim(value, 140),
-                Summary = Trim(value, 280),
+                Title = cleaned,
+                Summary = cleaned,
                 SourceUrl = source.Endpoint,
                 PublishedAt = null,
                 Topics = source.Topics,
@@ -145,14 +156,4 @@ internal sealed class ApiContentSourceAdapter : IContentSourceAdapter
         }
     }
 
-    private static string Trim(string value, int maxLength)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return string.Empty;
-        }
-
-        var trimmed = value.Trim();
-        return trimmed.Length <= maxLength ? trimmed : trimmed[..maxLength];
-    }
 }

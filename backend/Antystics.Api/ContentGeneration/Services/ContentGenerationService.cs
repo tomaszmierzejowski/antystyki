@@ -60,6 +60,11 @@ internal sealed class ContentGenerationService : IContentGenerationService
         var sources = FilterSources(request.SourceIds);
         var healthySources = await ValidateSourcesAsync(sources, cancellationToken).ConfigureAwait(false);
         var candidateItems = await FetchCandidatesAsync(healthySources.HealthySources, cancellationToken).ConfigureAwait(false);
+        candidateItems = candidateItems
+            .Select(SanitizeItem)
+            .Where(i => i != null)
+            .Cast<SourceItem>()
+            .ToList();
 
         if (candidateItems.Count == 0)
         {
@@ -109,6 +114,29 @@ internal sealed class ContentGenerationService : IContentGenerationService
         await _dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         return BuildResult(executionTime, selectedStatistics, selectedAntystics, createdStatisticIds, createdAntysticIds, healthySources.UnhealthyIds, filtered.SkippedKeys, false);
+    }
+
+    private SourceItem? SanitizeItem(SourceItem item)
+    {
+        if (item is null)
+        {
+            return null;
+        }
+
+        var cleanedTitle = ContentSanitizer.CleanText(item.Title, 180);
+        var cleanedSummary = ContentSanitizer.CleanText(item.Summary, 400);
+
+        if (string.IsNullOrWhiteSpace(cleanedTitle) || ContentSanitizer.HasHtmlNoise(cleanedTitle) || ContentSanitizer.HasHtmlNoise(cleanedSummary))
+        {
+            return null;
+        }
+
+        return item with
+        {
+            Title = cleanedTitle,
+            Summary = string.IsNullOrWhiteSpace(cleanedSummary) ? cleanedTitle : cleanedSummary,
+            SourceUrl = item.SourceUrl?.Trim() ?? string.Empty
+        };
     }
 
     private IReadOnlyCollection<ContentSource> FilterSources(IReadOnlyCollection<string>? sourceIds)
@@ -379,12 +407,12 @@ internal sealed class ContentGenerationService : IContentGenerationService
     private string BuildAntysticText(SourceItem item)
     {
         var number = ExtractNumber(item.Title) ?? ExtractNumber(item.Summary);
-        var hook = !string.IsNullOrWhiteSpace(item.Title) ? item.Title : "Nowy stat";
+        var hook = !string.IsNullOrWhiteSpace(item.Title) ? Trim(item.Title, 160) : "Nowy stat";
         var turn = number is null
             ? "Jeśli to ma być norma, to memy mają nowy temat."
             : $"Jeśli {number} to nowa norma, to memosfera właśnie dostała świeży materiał.";
 
-        return $"{hook} — {turn}";
+        return Trim($"{hook} — {turn}", SummaryMaxLength);
     }
 
     private static string? ExtractNumber(string? value)
