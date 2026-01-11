@@ -46,6 +46,7 @@ COPY backend/Antystics.sln ./backend/
 COPY backend/Antystics.Api/Antystics.Api.csproj ./backend/Antystics.Api/
 COPY backend/Antystics.Core/Antystics.Core.csproj ./backend/Antystics.Core/
 COPY backend/Antystics.Infrastructure/Antystics.Infrastructure.csproj ./backend/Antystics.Infrastructure/
+COPY backend/Antystics.Api.Tests/Antystics.Api.Tests.csproj ./backend/Antystics.Api.Tests/
 
 # Restore dependencies
 RUN dotnet restore ./backend/Antystics.sln
