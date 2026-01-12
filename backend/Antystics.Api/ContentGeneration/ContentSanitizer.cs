@@ -1,4 +1,3 @@
-using System;
 using System.Net;
 using System.Text.RegularExpressions;
 
@@ -8,7 +7,11 @@ internal static class ContentSanitizer
 {
     private static readonly Regex HtmlTagRegex = new("<.*?>", RegexOptions.Compiled | RegexOptions.Singleline);
     private static readonly Regex MultiSpaceRegex = new("\\s{2,}", RegexOptions.Compiled);
-    private static readonly string[] HtmlNoiseTokens = { "<html", "<head", "<meta", "<!doctype", "<body", "</html" };
+    private static readonly string[] HtmlNoiseTokens =
+    {
+        "<html", "<head", "<meta", "<!doctype", "<body", "</html",
+        "w3.org/1999/xhtml", "xmlns=\"http://www.w3.org/1999/xhtml\"", "doctype html"
+    };
 
     public static string CleanText(string? input, int maxLength)
     {
