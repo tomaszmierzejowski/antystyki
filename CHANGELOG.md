@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed (2026-01-16) - Content Generation Source Failures
+
+#### AUTO-GEN-DAILY Source Connectivity Fixes
+- **[BACKEND]** Added `content-generation` named HttpClient with proper `User-Agent` header to prevent 403 blocks from external APIs
+- **[BACKEND]** Updated all content source adapters (API, RSS, Web) to use the named HttpClient with browser-like headers
+- **[BACKEND]** Enhanced `SourceHealthChecker` to accept HTTP 2xx-3xx status codes as healthy, handle redirects properly
+- **[BACKEND]** Fixed `content-sources.json` with correct working API endpoints:
+  - GUS BDL: Changed from `/v1/` to actual data endpoint at `bdl.stat.gov.pl/api/v1/`
+  - NBP: Changed from `/api/` to `/api/exchangerates/tables/A` which returns actual data
+  - Eurostat: Changed to SDMX 2.1 JSON endpoint with Poland inflation data
+  - ECB: Changed to working PLN/EUR exchange rate data endpoint
+  - IMF: Changed to indicators endpoint that returns valid JSON
+- **[BACKEND]** Replaced broken/blocked RSS feeds:
+  - Replaced `demagog-rss` (403 Forbidden) with `oko-press-rss` (OKO.press fact-checking)
+  - Fixed `wyborcza-rss` (404) to use `rss.gazeta.pl` working endpoint
+  - Fixed `polsat-rss` endpoint to `rss/wszystkie.xml` format
+- **[DOCS]** Aligned with PRD §3.1 AUTO-GEN-DAILY requirements
+
 ### Added (2025-11-02) - Statistics Companion Beta & Trust Signals Roadmap
 - **[BACKEND]** Introduced `Statistic` and `StatisticVote` entities with comprehensive EF migration
 - **[BACKEND]** Added `/api/statistics` public controller (list/detail/vote) and admin moderation endpoints

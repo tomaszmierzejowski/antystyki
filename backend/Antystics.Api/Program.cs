@@ -55,6 +55,13 @@ builder.Services.AddHttpClient("google-oauth", client =>
 {
     client.Timeout = TimeSpan.FromSeconds(15);
 });
+builder.Services.AddHttpClient("content-generation", client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(20);
+    client.DefaultRequestHeaders.Add("User-Agent", "Antystics/1.0 (+https://antystyki.pl; content-aggregator)");
+    client.DefaultRequestHeaders.Add("Accept", "application/json, application/xml, application/rss+xml, text/xml, text/html, */*");
+    client.DefaultRequestHeaders.Add("Accept-Language", "pl-PL,pl;q=0.9,en;q=0.8");
+});
 
 // Configure Swagger with JWT authentication
 builder.Services.AddSwaggerGen(c =>

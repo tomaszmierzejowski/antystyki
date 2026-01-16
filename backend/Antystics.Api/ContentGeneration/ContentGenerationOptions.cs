@@ -4,6 +4,7 @@ namespace Antystics.Api.ContentGeneration;
 
 public sealed class ContentGenerationOptions
 {
+    public bool Enabled { get; set; } = true;
     public string DailyRunLocalTime { get; set; } = "07:00";
     public int MinStatistics { get; set; } = 5;
     public int MaxStatistics { get; set; } = 6;

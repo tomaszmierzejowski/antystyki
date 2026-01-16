@@ -24,13 +24,34 @@ internal sealed class SourceHealthChecker : ISourceHealthChecker
 
     public async Task<bool> IsHealthyAsync(ContentSource source, TimeSpan timeout, CancellationToken cancellationToken)
     {
-        var client = _httpClientFactory.CreateClient();
+        var client = _httpClientFactory.CreateClient("content-generation");
         client.Timeout = timeout;
 
         try
         {
-            using var response = await client.GetAsync(source.HealthCheckUrl, cancellationToken).ConfigureAwait(false);
-            return response.IsSuccessStatusCode;
+            using var request = new HttpRequestMessage(HttpMethod.Get, source.HealthCheckUrl);
+            using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+            
+            // Accept success codes, redirects, and some specific codes that still indicate the service is up
+            var statusCode = (int)response.StatusCode;
+            var isHealthy = statusCode >= 200 && statusCode < 400;
+            
+            if (!isHealthy)
+            {
+                _logger.LogDebug("Health check for {Source} returned status {StatusCode}", source.Id, response.StatusCode);
+            }
+            
+            return isHealthy;
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogDebug(ex, "Health check HTTP error for {Source}: {Message}", source.Id, ex.Message);
+            return false;
+        }
+        catch (TaskCanceledException ex) when (ex.CancellationToken != cancellationToken)
+        {
+            _logger.LogDebug("Health check timed out for {Source}", source.Id);
+            return false;
         }
         catch (Exception ex)
         {

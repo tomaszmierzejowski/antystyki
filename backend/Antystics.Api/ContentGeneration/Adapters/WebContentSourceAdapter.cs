@@ -31,8 +31,7 @@ internal sealed class WebContentSourceAdapter : IContentSourceAdapter
 
     public async Task<IReadOnlyCollection<SourceItem>> FetchAsync(ContentSource source, CancellationToken cancellationToken)
     {
-        var client = _httpClientFactory.CreateClient();
-        client.Timeout = TimeSpan.FromSeconds(12);
+        var client = _httpClientFactory.CreateClient("content-generation");
 
         try
         {
