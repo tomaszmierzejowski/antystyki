@@ -74,7 +74,9 @@ internal sealed class WebContentSourceAdapter : IContentSourceAdapter
                 Topics = source.Topics,
                 Tags = source.Tags,
                 PolandFocus = source.PolandFocus,
-                HumorFriendly = source.HumorFriendly
+                HumorFriendly = source.HumorFriendly,
+                GeoFocus = source.GeoFocus,
+                Publisher = source.Name
             };
 
             return new[] { item };

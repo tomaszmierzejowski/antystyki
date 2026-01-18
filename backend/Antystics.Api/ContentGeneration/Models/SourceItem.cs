@@ -15,6 +15,14 @@ public sealed record SourceItem
     public IReadOnlyCollection<string> Tags { get; init; } = Array.Empty<string>();
     public bool PolandFocus { get; init; }
     public bool HumorFriendly { get; init; }
+    public string GeoFocus { get; init; } = string.Empty;
+    public string? Publisher { get; init; }
+    public double? PercentageValue { get; init; }
+    public string? Ratio { get; init; }
+    public string? Timeframe { get; init; }
+    public string? ContextSentence { get; init; }
+    public string? NumericStatement { get; init; }
+    public int? SourceStatusCode { get; init; }
 }
 
 public sealed record GeneratedDraft
@@ -43,6 +51,21 @@ public sealed record ContentGenerationResult
     public IReadOnlyCollection<string> SkippedDuplicates { get; init; } = Array.Empty<string>();
     public IReadOnlyCollection<string> SourceFailures { get; init; } = Array.Empty<string>();
     public IReadOnlyCollection<string> ValidationFailures { get; init; } = Array.Empty<string>();
+    public IReadOnlyCollection<ValidationIssue> ValidationIssues { get; init; } = Array.Empty<ValidationIssue>();
     public DateTimeOffset ExecutedAt { get; init; }
     public bool DryRun { get; init; }
+}
+
+public sealed record ValidationIssue
+{
+    public string SourceId { get; init; } = string.Empty;
+    public string SourceName { get; init; } = string.Empty;
+    public string Title { get; init; } = string.Empty;
+    public string Reason { get; init; } = string.Empty;
+    public string? SourceUrl { get; init; }
+    public int? SourceStatusCode { get; init; }
+    public double? PercentageValue { get; init; }
+    public string? Ratio { get; init; }
+    public string? Timeframe { get; init; }
+    public string? ContextSentence { get; init; }
 }

@@ -40,12 +40,14 @@ const adminApi = {
     statistics?: number;
     antystics?: number;
     sourceIds?: string[];
+    executionTime?: string;
   }) => {
     const response = await api.post('/admin/content-generation/run', {
       dryRun: payload.dryRun ?? true,
       statistics: payload.statistics,
       antystics: payload.antystics,
       sourceIds: payload.sourceIds,
+      executionTime: payload.executionTime,
     });
     return response.data;
   },

@@ -198,6 +198,7 @@
 - [ ] Stand up Loki + Promtail + Grafana logging stack (`OPS-LOG-STACK`) and confirm alert hook for errors >5/min (SSH tunnel required per §5)
 - [x] Validate canonical share URLs, mission-aligned copy, and GA4 instrumentation across Statystyki & Antystyki hubs
 - [ ] Enable AUTO-GEN-DAILY pipeline: verify `/api/admin/content-generation/run` dry-run, confirm 07:00 local scheduler, dedupe window 30 days, and Poland-first quota ≥50% with curated sources manifest
+- [ ] Confirm AUTO-GEN-DAILY validation enforces %/ratio + timeframe, requires per-item source URL HTTP 200, rejects stale items (>14 days) when publish dates exist, and logs metadata payload for moderator review
 
 ### Week 2: Launch & Marketing
 
@@ -430,3 +431,4 @@
 - 2025-11-12T17:56Z: Added deployment verification for `visitor_metrics` Postgres persistence of cookieless aggregates (§5.8).
 - 2025-11-21: Updated documentation references to reflect new `/documentation/` structure. `START_HERE.md` moved to `documentation/getting-started/`.
 - 2025-11-22T10:35Z: Captured DEV-CORS-2025-11-22 in §5.1 to keep localhost QA aligned with `Statystyki` launch requirements by whitelisting Vite fallback ports (5173-5177).
+- 2026-01-16T09:00Z: Added AUTO-GEN-DAILY validation checks (percent/ratio, timeframe, source URL 200, freshness) to the Go-Live checklist (§5).

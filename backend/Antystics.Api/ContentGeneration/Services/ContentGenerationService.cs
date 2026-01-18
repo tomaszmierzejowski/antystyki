@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -25,11 +27,15 @@ internal sealed class ContentGenerationService : IContentGenerationService
     private readonly IEnumerable<IContentSourceAdapter> _adapters;
     private readonly IContentSourceProvider _sourceProvider;
     private readonly ISourceHealthChecker _healthChecker;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly ContentGenerationOptions _options;
     private readonly ApplicationDbContext _dbContext;
     private readonly UserManager<User> _userManager;
     private readonly ILogger<ContentGenerationService> _logger;
     private static readonly Regex NumberRegex = new(@"(\d+[.,]?\d*\%?)", RegexOptions.Compiled);
+    private static readonly Regex PercentageRegex = new(@"(?<!\d)(\d{1,3}(?:[.,]\d+)?)[ ]?%", RegexOptions.Compiled);
+    private static readonly Regex RatioRegex = new(@"(?<!\d)(\d{1,3}(?:[.,]\d+)?)[ ]*/[ ]*(\d{1,3}(?:[.,]\d+)?)", RegexOptions.Compiled);
+    private static readonly Regex YearRegex = new(@"\b(20\d{2})\b", RegexOptions.Compiled);
     private const int TitleMaxLength = 280;
     private const int SummaryMaxLength = 2000;
     private const string DefaultImageUrl = "/placeholder.png";
@@ -38,6 +44,7 @@ internal sealed class ContentGenerationService : IContentGenerationService
         IEnumerable<IContentSourceAdapter> adapters,
         IContentSourceProvider sourceProvider,
         ISourceHealthChecker healthChecker,
+        IHttpClientFactory httpClientFactory,
         IOptions<ContentGenerationOptions> options,
         ApplicationDbContext dbContext,
         UserManager<User> userManager,
@@ -46,6 +53,7 @@ internal sealed class ContentGenerationService : IContentGenerationService
         _adapters = adapters;
         _sourceProvider = sourceProvider;
         _healthChecker = healthChecker;
+        _httpClientFactory = httpClientFactory;
         _dbContext = dbContext;
         _userManager = userManager;
         _logger = logger;
@@ -66,7 +74,10 @@ internal sealed class ContentGenerationService : IContentGenerationService
             .Cast<SourceItem>()
             .ToList();
 
-        if (candidateItems.Count == 0)
+        var validation = await ValidateItemsAsync(candidateItems, utcNow, cancellationToken).ConfigureAwait(false);
+        var validatedItems = validation.ValidItems;
+
+        if (validatedItems.Count == 0)
         {
             return new ContentGenerationResult
             {
@@ -74,8 +85,9 @@ internal sealed class ContentGenerationService : IContentGenerationService
                 CreatedStatistics = Array.Empty<GeneratedDraft>(),
                 ExecutedAt = executionTime,
                 DryRun = request.DryRun,
-                ValidationFailures = healthySources.UnhealthyIds,
-                SourceFailures = healthySources.UnhealthyIds
+                ValidationFailures = validation.Issues.Select(v => v.Reason).Distinct().ToList(),
+                SourceFailures = healthySources.UnhealthyIds,
+                ValidationIssues = validation.Issues
             };
         }
 
@@ -83,14 +95,23 @@ internal sealed class ContentGenerationService : IContentGenerationService
         var targetAntystics = Clamp(request.TargetAntystics, _options.MinAntystics, _options.MaxAntystics);
 
         var duplicates = await LoadRecentDuplicateKeysAsync(utcNow, cancellationToken).ConfigureAwait(false);
-        var filtered = FilterDuplicates(candidateItems, duplicates);
+        var filtered = FilterDuplicates(validatedItems, duplicates);
 
         var selectedStatistics = SelectStatistics(filtered, targetStats);
         var selectedAntystics = SelectAntystics(selectedStatistics, targetAntystics);
 
         if (request.DryRun)
         {
-            return BuildResult(executionTime, selectedStatistics, selectedAntystics, Array.Empty<Guid>(), Array.Empty<Guid>(), healthySources.UnhealthyIds, filtered.SkippedKeys, true);
+            return BuildResult(
+                executionTime,
+                selectedStatistics,
+                selectedAntystics,
+                Array.Empty<Guid>(),
+                Array.Empty<Guid>(),
+                healthySources.UnhealthyIds,
+                filtered.SkippedKeys,
+                validation.Issues,
+                true);
         }
 
         var systemUserId = await EnsureSystemUserAsync(cancellationToken).ConfigureAwait(false);
@@ -113,7 +134,16 @@ internal sealed class ContentGenerationService : IContentGenerationService
 
         await _dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
-        return BuildResult(executionTime, selectedStatistics, selectedAntystics, createdStatisticIds, createdAntysticIds, healthySources.UnhealthyIds, filtered.SkippedKeys, false);
+        return BuildResult(
+            executionTime,
+            selectedStatistics,
+            selectedAntystics,
+            createdStatisticIds,
+            createdAntysticIds,
+            healthySources.UnhealthyIds,
+            filtered.SkippedKeys,
+            validation.Issues,
+            false);
     }
 
     private SourceItem? SanitizeItem(SourceItem item)
@@ -137,6 +167,175 @@ internal sealed class ContentGenerationService : IContentGenerationService
             Summary = string.IsNullOrWhiteSpace(cleanedSummary) ? cleanedTitle : cleanedSummary,
             SourceUrl = item.SourceUrl?.Trim() ?? string.Empty
         };
+    }
+
+    private async Task<(IReadOnlyCollection<SourceItem> ValidItems, IReadOnlyCollection<ValidationIssue> Issues)> ValidateItemsAsync(
+        IReadOnlyCollection<SourceItem> items,
+        DateTime utcNow,
+        CancellationToken cancellationToken)
+    {
+        var valid = new List<SourceItem>();
+        var issues = new List<ValidationIssue>();
+        var sourceStatusCache = new Dictionary<string, int?>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var item in items)
+        {
+            var metric = ExtractMetric($"{item.Title} {item.Summary}");
+            if (metric.PercentageValue is null)
+            {
+                issues.Add(BuildIssue(item, "Missing percentage or ratio convertible to percentage.", metric, null));
+                continue;
+            }
+
+            if (item.PublishedAt.HasValue && item.PublishedAt.Value.UtcDateTime < utcNow.AddDays(-14))
+            {
+                issues.Add(BuildIssue(item, "Stale item (older than 14 days).", metric, null));
+                continue;
+            }
+
+            var statusCode = await GetSourceStatusCodeAsync(item.SourceUrl, sourceStatusCache, cancellationToken).ConfigureAwait(false);
+            if (statusCode != 200)
+            {
+                issues.Add(BuildIssue(item, "Source URL did not return HTTP 200.", metric, statusCode));
+                continue;
+            }
+
+            var timeframe = BuildTimeframe(item);
+            var context = ExtractContextSentence(item);
+            var numericStatement = BuildNumericStatement(metric.PercentageValue.Value, context, timeframe);
+
+            valid.Add(item with
+            {
+                PercentageValue = metric.PercentageValue,
+                Ratio = metric.Ratio,
+                Timeframe = timeframe,
+                ContextSentence = context,
+                NumericStatement = numericStatement,
+                Publisher = item.Publisher ?? item.SourceName,
+                SourceStatusCode = statusCode
+            });
+        }
+
+        return (valid, issues);
+    }
+
+    private static ValidationIssue BuildIssue(SourceItem item, string reason, MetricExtraction metric, int? statusCode)
+    {
+        return new ValidationIssue
+        {
+            SourceId = item.SourceId,
+            SourceName = item.SourceName,
+            Title = item.Title,
+            Reason = reason,
+            SourceUrl = item.SourceUrl,
+            SourceStatusCode = statusCode,
+            PercentageValue = metric.PercentageValue,
+            Ratio = metric.Ratio,
+            Timeframe = item.PublishedAt?.ToString("yyyy-MM-dd"),
+            ContextSentence = ExtractContextSentence(item)
+        };
+    }
+
+    private async Task<int?> GetSourceStatusCodeAsync(
+        string sourceUrl,
+        IDictionary<string, int?> cache,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(sourceUrl))
+        {
+            return null;
+        }
+
+        if (cache.TryGetValue(sourceUrl, out var cached))
+        {
+            return cached;
+        }
+
+        var client = _httpClientFactory.CreateClient("content-generation");
+        try
+        {
+            using var response = await client.GetAsync(sourceUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+            var statusCode = (int)response.StatusCode;
+            cache[sourceUrl] = statusCode;
+            return statusCode;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Source URL check failed for {Url}", sourceUrl);
+            cache[sourceUrl] = null;
+            return null;
+        }
+    }
+
+    private static MetricExtraction ExtractMetric(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return new MetricExtraction(null, null);
+        }
+
+        var percentMatch = PercentageRegex.Match(text);
+        if (percentMatch.Success && double.TryParse(NormalizeNumber(percentMatch.Groups[1].Value), out var percentValue))
+        {
+            return new MetricExtraction(percentValue, null);
+        }
+
+        var ratioMatch = RatioRegex.Match(text);
+        if (ratioMatch.Success &&
+            double.TryParse(NormalizeNumber(ratioMatch.Groups[1].Value), out var numerator) &&
+            double.TryParse(NormalizeNumber(ratioMatch.Groups[2].Value), out var denominator) &&
+            denominator > 0 &&
+            numerator <= 1000 &&
+            denominator <= 1000)
+        {
+            var percentage = (numerator / denominator) * 100;
+            var ratio = $"{ratioMatch.Groups[1].Value}/{ratioMatch.Groups[2].Value}";
+            return new MetricExtraction(percentage, ratio);
+        }
+
+        return new MetricExtraction(null, null);
+    }
+
+    private static string NormalizeNumber(string value)
+    {
+        return value.Replace(',', '.');
+    }
+
+    private static string BuildTimeframe(SourceItem item)
+    {
+        if (item.PublishedAt.HasValue)
+        {
+            return item.PublishedAt.Value.ToString("yyyy-MM-dd");
+        }
+
+        var candidate = $"{item.Title} {item.Summary}";
+        var yearMatch = YearRegex.Match(candidate);
+        return yearMatch.Success ? yearMatch.Groups[1].Value : "latest available";
+    }
+
+    private static string ExtractContextSentence(SourceItem item)
+    {
+        var source = string.IsNullOrWhiteSpace(item.Summary) ? item.Title : item.Summary;
+        if (string.IsNullOrWhiteSpace(source))
+        {
+            return "the measured group";
+        }
+
+        var splitIndex = source.IndexOf('.');
+        var sentence = splitIndex > 0 ? source[..splitIndex] : source;
+        return sentence.Trim();
+    }
+
+    private static string BuildNumericStatement(double percentage, string context, string timeframe)
+    {
+        var cleanedContext = PercentageRegex.Replace(context, string.Empty);
+        cleanedContext = RatioRegex.Replace(cleanedContext, string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(cleanedContext))
+        {
+            cleanedContext = context;
+        }
+
+        return $"{percentage:0.#}% {cleanedContext} ({timeframe})";
     }
 
     private IReadOnlyCollection<ContentSource> FilterSources(IReadOnlyCollection<string>? sourceIds)
@@ -361,6 +560,24 @@ internal sealed class ContentGenerationService : IContentGenerationService
     private Statistic MapToStatistic(SourceItem item, Guid userId, DateTime utcNow)
     {
         var sourceCitation = $"{item.SourceName} ({(item.PublishedAt?.ToString("yyyy-MM-dd") ?? utcNow.ToString("yyyy-MM-dd"))})";
+        var chartData = JsonSerializer.Serialize(new
+        {
+            autoGen = new
+            {
+                percentageValue = item.PercentageValue,
+                ratio = item.Ratio,
+                timeframe = item.Timeframe,
+                contextSentence = item.ContextSentence,
+                publisher = item.Publisher,
+                sourceStatusCode = item.SourceStatusCode,
+                geoFocus = item.GeoFocus,
+                topics = item.Topics,
+                tags = item.Tags,
+                sourceId = item.SourceId,
+                sourceName = item.SourceName
+            }
+        });
+
         return new Statistic
         {
             Id = Guid.NewGuid(),
@@ -369,6 +586,7 @@ internal sealed class ContentGenerationService : IContentGenerationService
             Description = Trim(item.Summary, SummaryMaxLength),
             SourceUrl = item.SourceUrl,
             SourceCitation = sourceCitation,
+            ChartData = chartData,
             Status = ModerationStatus.Pending,
             CreatedAt = utcNow,
             CreatedByUserId = userId
@@ -378,6 +596,24 @@ internal sealed class ContentGenerationService : IContentGenerationService
     private Antistic MapToAntystic(SourceItem item, Guid userId, DateTime utcNow)
     {
         var turned = BuildAntysticText(item);
+        var chartData = JsonSerializer.Serialize(new
+        {
+            autoGen = new
+            {
+                percentageValue = item.PercentageValue,
+                ratio = item.Ratio,
+                timeframe = item.Timeframe,
+                contextSentence = item.ContextSentence,
+                publisher = item.Publisher,
+                sourceStatusCode = item.SourceStatusCode,
+                geoFocus = item.GeoFocus,
+                topics = item.Topics,
+                tags = item.Tags,
+                sourceId = item.SourceId,
+                sourceName = item.SourceName
+            }
+        });
+
         return new Antistic
         {
             Id = Guid.NewGuid(),
@@ -386,6 +622,7 @@ internal sealed class ContentGenerationService : IContentGenerationService
             SourceUrl = item.SourceUrl,
             ImageUrl = DefaultImageUrl,
             TemplateId = "auto",
+            ChartData = chartData,
             Status = ModerationStatus.Pending,
             CreatedAt = utcNow,
             UserId = userId
@@ -394,6 +631,11 @@ internal sealed class ContentGenerationService : IContentGenerationService
 
     private static string BuildStatisticSummary(SourceItem item)
     {
+        if (!string.IsNullOrWhiteSpace(item.NumericStatement))
+        {
+            return item.NumericStatement.Trim();
+        }
+
         if (!string.IsNullOrWhiteSpace(item.Summary))
         {
             return item.Summary.Trim();
@@ -406,13 +648,11 @@ internal sealed class ContentGenerationService : IContentGenerationService
 
     private string BuildAntysticText(SourceItem item)
     {
-        var number = ExtractNumber(item.Title) ?? ExtractNumber(item.Summary);
-        var hook = !string.IsNullOrWhiteSpace(item.Title) ? Trim(item.Title, 160) : "Nowy stat";
-        var turn = number is null
-            ? "Jeśli to ma być norma, to memy mają nowy temat."
-            : $"Jeśli {number} to nowa norma, to memosfera właśnie dostała świeży materiał.";
+        var setup = item.NumericStatement ?? Trim(item.Title, 160);
+        var percentText = item.PercentageValue.HasValue ? $"{item.PercentageValue:0.#}%" : "Ten odsetek";
+        var turn = $"Jeśli {percentText} to nowa norma, ironia już szykuje ripostę.";
 
-        return Trim($"{hook} — {turn}", SummaryMaxLength);
+        return Trim($"{setup} — {turn}", SummaryMaxLength);
     }
 
     private static string? ExtractNumber(string? value)
@@ -434,6 +674,7 @@ internal sealed class ContentGenerationService : IContentGenerationService
         IReadOnlyCollection<Guid> antysticIds,
         IReadOnlyCollection<string> sourceFailures,
         IReadOnlyCollection<string> duplicates,
+        IReadOnlyCollection<ValidationIssue> validationIssues,
         bool dryRun)
     {
         var statList = statistics.ToList();
@@ -480,7 +721,8 @@ internal sealed class ContentGenerationService : IContentGenerationService
             DryRun = dryRun,
             SourceFailures = sourceFailures,
             SkippedDuplicates = duplicates,
-            ValidationFailures = sourceFailures
+            ValidationFailures = validationIssues.Select(v => v.Reason).Distinct().ToList(),
+            ValidationIssues = validationIssues
         };
     }
 
@@ -501,4 +743,6 @@ internal sealed class ContentGenerationService : IContentGenerationService
     }
 
     private sealed record FilteredItems(IReadOnlyCollection<SourceItem> Items, IReadOnlyCollection<string> SkippedKeys);
+
+    private sealed record MetricExtraction(double? PercentageValue, string? Ratio);
 }

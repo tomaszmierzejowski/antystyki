@@ -72,7 +72,9 @@ internal sealed class RssContentSourceAdapter : IContentSourceAdapter
                     Topics = source.Topics,
                     Tags = source.Tags,
                     PolandFocus = source.PolandFocus,
-                    HumorFriendly = source.HumorFriendly
+                    HumorFriendly = source.HumorFriendly,
+                    GeoFocus = source.GeoFocus,
+                    Publisher = source.Name
                 };
             })
             .Where(i => i != null && !string.IsNullOrWhiteSpace(i.SourceUrl))

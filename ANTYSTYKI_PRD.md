@@ -125,6 +125,8 @@ To become the leading platform for thought-provoking, statistically-based humor 
    - Daily 07:00 local job plus admin-only manual trigger to generate 5-6 Statistics and 1-5 Antystics, all `pending_review`
    - Uses curated sources manifest `backend/Antystics.Api/ContentGeneration/content-sources.json` with HTTP 200 health checks, Poland-first quota ≥50%, dedupe window 30 days, and mission-aligned tone guard
    - Admin endpoint `/api/admin/content-generation/run` supports dry-run summaries, optional source allowlist, and override counts/date; telemetry logs created/skipped items
+   - Validation requires explicit percentage or ratio convertible to percent, timeframe inclusion, and source URL HTTP 200 per item; rejects stale items (>14 days) when publish dates exist
+   - Auto-generated drafts include metadata payload (percent/ratio, timeframe, context sentence, publisher, geo focus, tags, source status) for moderator review and auditability
 
 #### Success Metrics
 - Application uptime >99%
@@ -604,3 +606,4 @@ The roadmap provides a clear path from MVP to a profitable, scalable platform th
 - 2025-11-21: Repository restructuring for LLM optimization. Added `/llm-context/` for AI assistants and consolidated documentation into `/documentation/`.
 - 2025-11-22T10:30Z: Logged bugfix DEV-CORS-2025-11-22 in §10.1 to document expanded local CORS whitelist (ports 5173-5177) supporting `STAT-HOME-TOGGLE`, `STAT-FILTER-REFINE`, and F11 QA cycles.
 - 2026-01-10T17:30Z: Added AUTO-GEN-DAILY content automation (07:00 job + admin trigger) with curated sources manifest and dedupe/health checks (§3.1).
+- 2026-01-16T09:00Z: Strengthened AUTO-GEN-DAILY validation rules (percent/ratio, timeframe, source URL 200, freshness) and metadata logging requirements (§3.1).
