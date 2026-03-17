@@ -22,6 +22,7 @@ public sealed record SourceItem
     public string? Timeframe { get; init; }
     public string? ContextSentence { get; init; }
     public string? NumericStatement { get; init; }
+    public string? ReversedStatistic { get; init; }
     public int? SourceStatusCode { get; init; }
 }
 
@@ -33,6 +34,9 @@ public sealed record GeneratedDraft
     public string SourceUrl { get; init; } = string.Empty;
     public string SourceCitation { get; init; } = string.Empty;
     public string Kind { get; init; } = string.Empty;
+    /// <summary>Raw ChartData JSON that was (or would be) persisted — useful for dry-run inspection.</summary>
+    public string? ChartData { get; init; }
+    public string? TemplateId { get; init; }
 }
 
 public sealed record ContentGenerationRequest

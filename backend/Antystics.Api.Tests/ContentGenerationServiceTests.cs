@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Antystics.Api.ContentGeneration;
@@ -46,8 +47,10 @@ public class ContentGenerationServiceTests
 
         var provider = new TestSourceProvider(sources);
         var health = new TestHealthChecker();
+        var httpClientFactory = new TestHttpClientFactory();
+        var openAiService = new TestOpenAiService();
         var adapters = new List<IContentSourceAdapter> { new TestAdapter() };
-        var service = new ContentGenerationService(adapters, provider, health, options, db, userManager, NullLogger<ContentGenerationService>.Instance);
+        var service = new ContentGenerationService(adapters, provider, health, httpClientFactory, options, db, userManager, NullLogger<ContentGenerationService>.Instance, openAiService);
 
         var result = await service.GenerateAsync(new ContentGenerationRequest
         {
@@ -88,8 +91,10 @@ public class ContentGenerationServiceTests
 
         var provider = new TestSourceProvider(sources);
         var health = new TestHealthChecker();
+        var httpClientFactory = new TestHttpClientFactory();
+        var openAiService = new TestOpenAiService();
         var adapters = new List<IContentSourceAdapter> { new TestAdapter() };
-        var service = new ContentGenerationService(adapters, provider, health, options, db, userManager, NullLogger<ContentGenerationService>.Instance);
+        var service = new ContentGenerationService(adapters, provider, health, httpClientFactory, options, db, userManager, NullLogger<ContentGenerationService>.Instance, openAiService);
 
         var result = await service.GenerateAsync(new ContentGenerationRequest
         {
@@ -155,6 +160,38 @@ public class ContentGenerationServiceTests
             };
 
             return Task.FromResult<IReadOnlyCollection<SourceItem>>(items);
+        }
+    }
+
+    private sealed class TestHttpClientFactory : IHttpClientFactory
+    {
+        public HttpClient CreateClient(string name)
+        {
+            var handler = new TestHttpMessageHandler();
+            return new HttpClient(handler);
+        }
+    }
+
+    private sealed class TestHttpMessageHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK));
+        }
+    }
+
+    private sealed class TestOpenAiService : IOpenAiService
+    {
+        public Task<LlmGenerationResult?> AnalyzeAndGenerateAsync(SourceItem item, CancellationToken cancellationToken)
+        {
+            return Task.FromResult<LlmGenerationResult?>(new LlmGenerationResult
+            {
+                IsValid = true,
+                PercentageValue = 42,
+                ContextSentence = "Test context",
+                Timeframe = "2024",
+                ReversedStatistic = "Ironia na 42%!"
+            });
         }
     }
 }
