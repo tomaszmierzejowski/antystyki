@@ -103,7 +103,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "sum by (service) (count_over_time({service=\"backend\"} | json | level = \"error\" [5m]))",
+          "expr": "sum by (service) (count_over_time({service=\"backend\"} | json | Level = \"Error\" [5m]))",
           "legendFormat": "{{service}}",
           "range": true,
           "refId": "A"
@@ -194,7 +194,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "sum by (Reason) (count_over_time({service=\"backend\"} | json | eventType = \"auth.failed_login\" [1h]))",
+          "expr": "sum by (Reason) (count_over_time({service=\"backend\"} | json | EventType = \"auth.failed_login\" [1h]))",
           "legendFormat": "{{Reason}}",
           "range": true,
           "refId": "A"
@@ -208,59 +208,22 @@
         "type": "loki",
         "uid": "loki"
       },
-      "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "align": "auto",
-            "cellOptions": {
-              "type": "auto"
-            },
-            "inspect": false
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 20
-              }
-            ]
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
       "gridPos": {
-        "h": 8,
+        "h": 12,
         "w": 12,
         "x": 0,
         "y": 8
       },
       "id": 3,
       "options": {
-        "cellHeight": "sm",
-        "footer": {
-          "countRows": false,
-          "fields": "",
-          "reducer": [
-            "sum"
-          ],
-          "show": false
-        },
-        "showHeader": true,
-        "sortBy": [
-          {
-            "desc": true,
-            "displayName": "Count"
-          }
-        ]
+        "showTime": true,
+        "showLabels": false,
+        "showCommonLabels": false,
+        "wrapLogMessage": true,
+        "prettifyLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending"
       },
-      "pluginVersion": "11.1.0",
       "targets": [
         {
           "datasource": {
@@ -268,26 +231,14 @@
             "uid": "loki"
           },
           "editorMode": "code",
-          "expr": "topk(\r\n  10,\r\n  sum by (RequestPath) (\r\n    count_over_time(\r\n      {service=\"backend\"}\r\n      | json\r\n      | label_format RequestPath=\"{{.RequestPath}}\"\r\n      | RequestPath != \"\"\r\n    [30m])\r\n  )\r\n)",
-          "legendFormat": "{{RequestPath}}",
+          "expr": "{service=\"backend\"} | json | Level=\"Error\"",
           "queryType": "range",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "API 500s by endpoint (last 30m)",
-      "transformations": [
-        {
-          "id": "organize",
-          "options": {
-            "renameByName": {
-              "RequestPath": "Endpoint",
-              "Value": "Count"
-            }
-          }
-        }
-      ],
-      "type": "table"
+      "title": "500 Errors (Error Details & Stack Traces)",
+      "type": "logs"
     },
     {
       "datasource": {
@@ -350,7 +301,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 8,
+        "h": 12,
         "w": 12,
         "x": 12,
         "y": 8
@@ -371,8 +322,8 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "sum by (component) (count_over_time({service=\"backend\"} | json | eventType = \"frontend.js_error\" [1h]))",
-          "legendFormat": "{{component}}",
+          "expr": "sum by (Component) (count_over_time({service=\"backend\"} | json | EventType = \"frontend.js_error\" [1h]))",
+          "legendFormat": "{{Component}}",
           "range": true,
           "refId": "A"
         }

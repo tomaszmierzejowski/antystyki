@@ -27,26 +27,19 @@ public class LogsController : ControllerBase
 
         var sanitizedContext = SanitizeContext(request.Context);
 
-        var payload = new
-        {
-            EventType = "frontend.js_error",
-            Severity = severity,
-            request.Component,
-            request.Url,
-            Context = sanitizedContext,
-            Stack = trimmedStack
-        };
-
         switch (severity)
         {
             case "warning":
-                _logger.LogWarning("Client log: {Message} {@Payload}", trimmedMessage, payload);
+                _logger.LogWarning("Client log: {Message} eventType={EventType} component={Component} url={Url} context={@ClientContext} stackTrace={StackTrace}", 
+                    trimmedMessage, "frontend.js_error", request.Component, request.Url, sanitizedContext, trimmedStack);
                 break;
             case "info":
-                _logger.LogInformation("Client log: {Message} {@Payload}", trimmedMessage, payload);
+                _logger.LogInformation("Client log: {Message} eventType={EventType} component={Component} url={Url} context={@ClientContext} stackTrace={StackTrace}", 
+                    trimmedMessage, "frontend.js_error", request.Component, request.Url, sanitizedContext, trimmedStack);
                 break;
             default:
-                _logger.LogError("Client log: {Message} {@Payload}", trimmedMessage, payload);
+                _logger.LogError("Client log: {Message} eventType={EventType} component={Component} url={Url} context={@ClientContext} stackTrace={StackTrace}", 
+                    trimmedMessage, "frontend.js_error", request.Component, request.Url, sanitizedContext, trimmedStack);
                 break;
         }
 
