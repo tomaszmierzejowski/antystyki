@@ -168,6 +168,10 @@ jobs:
             
             cd /var/www/antystyki
             
+            # Free up space before loading the new image
+            echo "🧹 Cleaning up old Docker images to free up space..."
+            docker system prune -af --volumes || true
+            
             # Load Docker image
             echo "📥 Loading new Docker image..."
             docker load -i /tmp/antystyki-image.tar
