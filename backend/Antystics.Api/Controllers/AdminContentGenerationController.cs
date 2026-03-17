@@ -7,6 +7,8 @@ using Antystics.Api.ContentGeneration.Models;
 using Antystics.Api.ContentGeneration.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Antystics.Api.Controllers;
 
@@ -15,28 +17,47 @@ namespace Antystics.Api.Controllers;
 [Authorize(Policy = "AdminOnly")]
 public sealed class AdminContentGenerationController : ControllerBase
 {
-    private readonly IContentGenerationService _generationService;
+    private readonly IServiceProvider _serviceProvider;
+    private readonly ILogger<AdminContentGenerationController> _logger;
 
-    public AdminContentGenerationController(IContentGenerationService generationService)
+    public AdminContentGenerationController(IServiceProvider serviceProvider, ILogger<AdminContentGenerationController> logger)
     {
-        _generationService = generationService;
+        _serviceProvider = serviceProvider;
+        _logger = logger;
     }
 
     [HttpPost("run")]
-    public async Task<ActionResult<ContentGenerationResult>> RunGeneration(
-        [FromBody] RunGenerationRequest request,
-        CancellationToken cancellationToken)
+    public IActionResult RunGeneration([FromBody] RunGenerationRequest request)
     {
-        var result = await _generationService.GenerateAsync(new ContentGenerationRequest
+        var req = new ContentGenerationRequest
         {
             DryRun = request.DryRun,
             TargetStatistics = request.Statistics ?? request.TargetStatistics,
             TargetAntystics = request.Antystics ?? request.TargetAntystics,
             SourceIds = request.SourceIds,
             ExecutionTime = request.ExecutionTime ?? DateTimeOffset.UtcNow
-        }, cancellationToken).ConfigureAwait(false);
+        };
 
-        return Ok(result);
+        _logger.LogInformation("Accepting manual generation request. Background processing started.");
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                using var scope = _serviceProvider.CreateScope();
+                var generationService = scope.ServiceProvider.GetRequiredService<IContentGenerationService>();
+                
+                // Do not pass the Controller's CancellationToken
+                // because it aborts when the HTTP request ends.
+                await generationService.GenerateAsync(req, CancellationToken.None).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Background manual generation failed.");
+            }
+        });
+
+        return Accepted(new { Message = "Generation started in the background. Check logs or database for results." });
     }
 }
 
