@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace Antystics.Api.ContentGeneration;
 
 public sealed class ContentGenerationOptions
