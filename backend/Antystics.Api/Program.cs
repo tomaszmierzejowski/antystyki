@@ -179,7 +179,10 @@ builder.Services.AddSingleton<ISourceHealthChecker, SourceHealthChecker>();
 builder.Services.AddSingleton<IContentSourceAdapter, RssContentSourceAdapter>();
 builder.Services.AddSingleton<IContentSourceAdapter, ApiContentSourceAdapter>();
 builder.Services.AddSingleton<IContentSourceAdapter, WebContentSourceAdapter>();
-builder.Services.AddHttpClient<IOpenAiService, GeminiService>();
+builder.Services.AddHttpClient<IOpenAiService, GeminiService>(client =>
+{
+    client.Timeout = TimeSpan.FromMinutes(10);
+});
 builder.Services.AddScoped<IContentGenerationService, ContentGenerationService>();
 builder.Services.AddHostedService<ContentGenerationHostedService>();
 builder.Services.PostConfigure<ContentGenerationOptions>(options =>
