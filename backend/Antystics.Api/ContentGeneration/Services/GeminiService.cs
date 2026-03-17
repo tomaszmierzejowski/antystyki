@@ -76,7 +76,13 @@ internal sealed class GeminiService : IOpenAiService
         {
             try
             {
-                using var response = await _httpClient.PostAsJsonAsync(url, requestBody, cancellationToken).ConfigureAwait(false);
+                // Force an Information log using LogError so it bypasses the strict Prod filter, helping us debug the hang
+                _logger.LogError("DEBUG-TRACE: Initiating Gemini POST request for '{Title}' (Attempt {Attempt}/{MaxRetries})...", item.Title, attempt, maxRetries);
+                
+                using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                cts.CancelAfter(TimeSpan.FromSeconds(25)); // 25s hard limit per attempt to prevent silent 10min hangs
+
+                using var response = await _httpClient.PostAsJsonAsync(url, requestBody, cts.Token).ConfigureAwait(false);
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -130,16 +136,15 @@ internal sealed class GeminiService : IOpenAiService
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "DEBUG-TRACE: Exception or Timeout calling Gemini API for item '{Title}' (Attempt {Attempt}/{MaxRetries}).", item.Title, attempt, maxRetries);
+            
             if (attempt < maxRetries)
             {
                 var delayMs = (int)Math.Pow(2, attempt) * 1000;
-                _logger.LogWarning(ex, "Exception calling Gemini API for item '{Title}'. Retrying in {Delay}ms (Attempt {Attempt}/{MaxRetries}).",
-                    item.Title, delayMs, attempt, maxRetries);
                 await Task.Delay(delayMs, cancellationToken).ConfigureAwait(false);
                 continue;
             }
 
-            _logger.LogError(ex, "Exception calling Gemini API for item '{Title}' after {MaxRetries} attempts.", item.Title, maxRetries);
             return null;
         }
     }
