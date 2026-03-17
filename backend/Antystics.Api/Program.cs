@@ -184,6 +184,7 @@ builder.Services.AddSingleton<IContentSourceAdapter, WebContentSourceAdapter>();
 builder.Services.AddHttpClient<IOpenAiService, GeminiService>(client =>
 {
     client.Timeout = TimeSpan.FromMinutes(10);
+    client.DefaultRequestHeaders.Add("User-Agent", "Antystics/1.0.0 (Custom Backend Application)");
 });
 builder.Services.AddScoped<IContentGenerationService, ContentGenerationService>();
 builder.Services.AddHostedService<ContentGenerationHostedService>();

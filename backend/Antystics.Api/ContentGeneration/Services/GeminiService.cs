@@ -145,7 +145,9 @@ internal sealed class GeminiService : IOpenAiService
                 continue;
             }
 
-            return null;
+            // Fast-fail the entire generation batch if Gemini is fundamentally unreachable or continuously timing out.
+            // Returning null here previously caused the system to waste 15-20 minutes stalling on the remaining items!
+            throw new HttpRequestException($"Gemini API completely failed or timed out after {maxRetries} attempts for item '{item.Title}'.", ex);
         }
     }
     return null;
