@@ -28,6 +28,7 @@ internal sealed class ContentGenerationService : IContentGenerationService
     private readonly IContentSourceProvider _sourceProvider;
     private readonly ISourceHealthChecker _healthChecker;
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IOpenAiService _openAiService;
     private readonly ContentGenerationOptions _options;
     private readonly ApplicationDbContext _dbContext;
     private readonly UserManager<User> _userManager;
@@ -48,12 +49,14 @@ internal sealed class ContentGenerationService : IContentGenerationService
         IOptions<ContentGenerationOptions> options,
         ApplicationDbContext dbContext,
         UserManager<User> userManager,
-        ILogger<ContentGenerationService> logger)
+        ILogger<ContentGenerationService> logger,
+        IOpenAiService openAiService)
     {
         _adapters = adapters;
         _sourceProvider = sourceProvider;
         _healthChecker = healthChecker;
         _httpClientFactory = httpClientFactory;
+        _openAiService = openAiService;
         _dbContext = dbContext;
         _userManager = userManager;
         _logger = logger;
@@ -180,37 +183,72 @@ internal sealed class ContentGenerationService : IContentGenerationService
 
         foreach (var item in items)
         {
-            var metric = ExtractMetric($"{item.Title} {item.Summary}");
-            if (metric.PercentageValue is null)
-            {
-                issues.Add(BuildIssue(item, "Missing percentage or ratio convertible to percentage.", metric, null));
-                continue;
-            }
-
             if (item.PublishedAt.HasValue && item.PublishedAt.Value.UtcDateTime < utcNow.AddDays(-14))
             {
-                issues.Add(BuildIssue(item, "Stale item (older than 14 days).", metric, null));
+                issues.Add(BuildIssue(item, "Stale item (older than 14 days).", null, null));
                 continue;
             }
 
             var statusCode = await GetSourceStatusCodeAsync(item.SourceUrl, sourceStatusCache, cancellationToken).ConfigureAwait(false);
-            if (statusCode != 200)
+            // Only reject if we received a real non-200 HTTP response.
+            // null means the URL was empty or the request failed (network error) — we allow those through
+            // so that items sourced from feeds without direct URLs are not silently discarded.
+            if (statusCode.HasValue && statusCode != 200)
             {
-                issues.Add(BuildIssue(item, "Source URL did not return HTTP 200.", metric, statusCode));
+                issues.Add(BuildIssue(item, $"Source URL returned HTTP {statusCode}.", null, statusCode));
                 continue;
             }
 
-            var timeframe = BuildTimeframe(item);
-            var context = ExtractContextSentence(item);
-            var numericStatement = BuildNumericStatement(metric.PercentageValue.Value, context, timeframe);
+            var llmResult = await _openAiService.AnalyzeAndGenerateAsync(item, cancellationToken).ConfigureAwait(false);
+
+            double percentageValue;
+            string? ratio;
+            string timeframe;
+            string context;
+            string? reversedStatistic;
+
+            if (llmResult == null)
+            {
+                // Gemini/OpenAI key not configured — fall back to local regex extraction.
+                // Items are NOT skipped; they proceed without an LLM-generated antistic.
+                _logger.LogInformation("LLM unavailable for '{Title}', falling back to regex extraction.", item.Title);
+                var metric = ExtractMetric($"{item.Title} {item.Summary}");
+                if (metric.PercentageValue == null)
+                {
+                    issues.Add(BuildIssue(item, "No LLM key configured and regex found no percentage or ratio metric.", metric, statusCode));
+                    continue;
+                }
+
+                percentageValue = metric.PercentageValue.Value;
+                ratio = metric.Ratio;
+                timeframe = BuildTimeframe(item);
+                context = ExtractContextSentence(item);
+                reversedStatistic = null; // no witty antistic without LLM
+            }
+            else if (!llmResult.IsValid)
+            {
+                issues.Add(BuildIssue(item, llmResult.Reason ?? "LLM rejected item without a specific reason.", null, statusCode));
+                continue;
+            }
+            else
+            {
+                percentageValue = llmResult.PercentageValue ?? 0;
+                ratio = llmResult.Ratio;
+                timeframe = llmResult.Timeframe ?? BuildTimeframe(item);
+                context = llmResult.ContextSentence ?? ExtractContextSentence(item);
+                reversedStatistic = llmResult.ReversedStatistic;
+            }
+
+            var numericStatement = BuildNumericStatement(percentageValue, context, timeframe);
 
             valid.Add(item with
             {
-                PercentageValue = metric.PercentageValue,
-                Ratio = metric.Ratio,
+                PercentageValue = percentageValue,
+                Ratio = ratio,
                 Timeframe = timeframe,
                 ContextSentence = context,
                 NumericStatement = numericStatement,
+                ReversedStatistic = reversedStatistic,
                 Publisher = item.Publisher ?? item.SourceName,
                 SourceStatusCode = statusCode
             });
@@ -219,7 +257,7 @@ internal sealed class ContentGenerationService : IContentGenerationService
         return (valid, issues);
     }
 
-    private static ValidationIssue BuildIssue(SourceItem item, string reason, MetricExtraction metric, int? statusCode)
+    private static ValidationIssue BuildIssue(SourceItem item, string reason, MetricExtraction? metric, int? statusCode)
     {
         return new ValidationIssue
         {
@@ -229,8 +267,8 @@ internal sealed class ContentGenerationService : IContentGenerationService
             Reason = reason,
             SourceUrl = item.SourceUrl,
             SourceStatusCode = statusCode,
-            PercentageValue = metric.PercentageValue,
-            Ratio = metric.Ratio,
+            PercentageValue = metric?.PercentageValue,
+            Ratio = metric?.Ratio,
             Timeframe = item.PublishedAt?.ToString("yyyy-MM-dd"),
             ContextSentence = ExtractContextSentence(item)
         };
@@ -560,23 +598,7 @@ internal sealed class ContentGenerationService : IContentGenerationService
     private Statistic MapToStatistic(SourceItem item, Guid userId, DateTime utcNow)
     {
         var sourceCitation = $"{item.SourceName} ({(item.PublishedAt?.ToString("yyyy-MM-dd") ?? utcNow.ToString("yyyy-MM-dd"))})";
-        var chartData = JsonSerializer.Serialize(new
-        {
-            autoGen = new
-            {
-                percentageValue = item.PercentageValue,
-                ratio = item.Ratio,
-                timeframe = item.Timeframe,
-                contextSentence = item.ContextSentence,
-                publisher = item.Publisher,
-                sourceStatusCode = item.SourceStatusCode,
-                geoFocus = item.GeoFocus,
-                topics = item.Topics,
-                tags = item.Tags,
-                sourceId = item.SourceId,
-                sourceName = item.SourceName
-            }
-        });
+        var chartData = BuildStatisticChartData(item);
 
         return new Statistic
         {
@@ -596,23 +618,7 @@ internal sealed class ContentGenerationService : IContentGenerationService
     private Antistic MapToAntystic(SourceItem item, Guid userId, DateTime utcNow)
     {
         var turned = BuildAntysticText(item);
-        var chartData = JsonSerializer.Serialize(new
-        {
-            autoGen = new
-            {
-                percentageValue = item.PercentageValue,
-                ratio = item.Ratio,
-                timeframe = item.Timeframe,
-                contextSentence = item.ContextSentence,
-                publisher = item.Publisher,
-                sourceStatusCode = item.SourceStatusCode,
-                geoFocus = item.GeoFocus,
-                topics = item.Topics,
-                tags = item.Tags,
-                sourceId = item.SourceId,
-                sourceName = item.SourceName
-            }
-        });
+        var (chartData, templateId) = BuildAntisticChartData(item);
 
         return new Antistic
         {
@@ -621,12 +627,114 @@ internal sealed class ContentGenerationService : IContentGenerationService
             ReversedStatistic = Trim(turned, SummaryMaxLength),
             SourceUrl = item.SourceUrl,
             ImageUrl = DefaultImageUrl,
-            TemplateId = "auto",
+            TemplateId = templateId,
             ChartData = chartData,
             Status = ModerationStatus.Pending,
             CreatedAt = utcNow,
             UserId = userId
         };
+    }
+
+    /// <summary>
+    /// Builds ChartData JSON in the AntisticData shape the React frontend expects.
+    /// For Statistics: two-column-default when a clean % is available; text-focused otherwise.
+    /// </summary>
+    private static string BuildStatisticChartData(SourceItem item)
+    {
+        if (item.PercentageValue.HasValue && item.PercentageValue.Value > 0)
+        {
+            var main = Math.Round(item.PercentageValue.Value, 1);
+            var secondary = Math.Round(100.0 - main, 1);
+            var label = Trim(item.ContextSentence ?? item.Title, 80);
+
+            return JsonSerializer.Serialize(new
+            {
+                templateId = "two-column-default",
+                perspectiveData = new
+                {
+                    mainPercentage = main,
+                    mainLabel = label,
+                    secondaryPercentage = secondary,
+                    secondaryLabel = "Pozostałe",
+                    chartColor = "#3b82f6",
+                    type = "pie"
+                },
+                sourceData = new
+                {
+                    type = "pie",
+                    segments = new[]
+                    {
+                        new { label = label, percentage = main, color = "#3b82f6" },
+                        new { label = "Pozostałe", percentage = secondary, color = "#e5e7eb" }
+                    }
+                }
+            });
+        }
+
+        // Fallback: text-focused
+        return JsonSerializer.Serialize(new
+        {
+            templateId = "text-focused",
+            textData = new
+            {
+                mainStatistic = Trim(item.NumericStatement ?? item.Title, 160),
+                context = Trim(item.ContextSentence ?? item.Summary, 220),
+                comparison = item.Ratio != null ? $"Proporcja: {item.Ratio}" : (string?)null
+            }
+        });
+    }
+
+    /// <summary>
+    /// Builds ChartData JSON for Antistics. Returns (chartDataJson, templateId).
+    /// two-column-default when % available (main stat vs complement), text-focused otherwise.
+    /// </summary>
+    private static (string ChartData, string TemplateId) BuildAntisticChartData(SourceItem item)
+    {
+        if (item.PercentageValue.HasValue && item.PercentageValue.Value > 0)
+        {
+            var main = Math.Round(item.PercentageValue.Value, 1);
+            var secondary = Math.Round(100.0 - main, 1);
+            var label = Trim(item.ContextSentence ?? item.Title, 80);
+
+            var json = JsonSerializer.Serialize(new
+            {
+                templateId = "two-column-default",
+                perspectiveData = new
+                {
+                    mainPercentage = main,
+                    mainLabel = label,
+                    secondaryPercentage = secondary,
+                    secondaryLabel = "Pozostałe",
+                    chartColor = "#ef4444",
+                    type = "pie"
+                },
+                sourceData = new
+                {
+                    type = "pie",
+                    segments = new[]
+                    {
+                        new { label = label, percentage = main, color = "#ef4444" },
+                        new { label = "Pozostałe", percentage = secondary, color = "#e5e7eb" }
+                    }
+                }
+            });
+
+            return (json, "two-column-default");
+        }
+
+        // Fallback: text-focused
+        var fallbackJson = JsonSerializer.Serialize(new
+        {
+            templateId = "text-focused",
+            textData = new
+            {
+                mainStatistic = Trim(item.NumericStatement ?? item.Title, 160),
+                context = Trim(item.ContextSentence ?? item.Summary, 220),
+                comparison = item.Ratio != null ? $"Proporcja: {item.Ratio}" : (string?)null
+            }
+        });
+
+        return (fallbackJson, "text-focused");
     }
 
     private static string BuildStatisticSummary(SourceItem item)
@@ -648,6 +756,11 @@ internal sealed class ContentGenerationService : IContentGenerationService
 
     private string BuildAntysticText(SourceItem item)
     {
+        if (!string.IsNullOrWhiteSpace(item.ReversedStatistic))
+        {
+            return Trim(item.ReversedStatistic, SummaryMaxLength);
+        }
+
         var setup = item.NumericStatement ?? Trim(item.Title, 160);
         var percentText = item.PercentageValue.HasValue ? $"{item.PercentageValue:0.#}%" : "Ten odsetek";
         var turn = $"Jeśli {percentText} to nowa norma, ironia już szykuje ripostę.";
@@ -691,7 +804,9 @@ internal sealed class ContentGenerationService : IContentGenerationService
                 Summary = Trim(BuildStatisticSummary(item), SummaryMaxLength),
                 SourceUrl = item.SourceUrl,
                 SourceCitation = item.SourceName,
-                Kind = "statistic"
+                Kind = "statistic",
+                ChartData = BuildStatisticChartData(item),
+                TemplateId = item.PercentageValue.HasValue && item.PercentageValue.Value > 0 ? "two-column-default" : "text-focused"
             });
         }
 
@@ -709,7 +824,9 @@ internal sealed class ContentGenerationService : IContentGenerationService
                 Summary = Trim(BuildAntysticText(item), SummaryMaxLength),
                 SourceUrl = item.SourceUrl,
                 SourceCitation = item.SourceName,
-                Kind = "antystyk"
+                Kind = "antystyk",
+                ChartData = BuildAntisticChartData(item).ChartData,
+                TemplateId = BuildAntisticChartData(item).TemplateId
             });
         }
 

@@ -18,4 +18,10 @@ public sealed class ContentGenerationOptions
     public List<string> EnabledSourceIds { get; set; } = new();
     public bool RunAtStartup { get; set; } = true;
     public int StartupDelaySeconds { get; set; } = 30;
+    public string? OpenAiApiKey { get; set; }
+    public string OpenAiModel { get; set; } = "gpt-4o";
+
+    // Gemini (preferred)
+    public string? GeminiApiKey { get; set; }
+    public string GeminiModel { get; set; } = "gemini-2.0-flash";
 }
