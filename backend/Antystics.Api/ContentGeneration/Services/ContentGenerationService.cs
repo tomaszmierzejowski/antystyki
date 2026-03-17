@@ -77,7 +77,30 @@ internal sealed class ContentGenerationService : IContentGenerationService
             .Cast<SourceItem>()
             .ToList();
 
-        var validation = await ValidateItemsAsync(candidateItems, utcNow, cancellationToken).ConfigureAwait(false);
+        var targetStats = Clamp(request.TargetStatistics, _options.MinStatistics, _options.MaxStatistics);
+        var targetAntystics = Clamp(request.TargetAntystics, _options.MinAntystics, _options.MaxAntystics);
+
+        // 1. Filter duplicates FIRST to avoid sending known duplicates to the LLM (saves API costs & time)
+        var duplicates = await LoadRecentDuplicateKeysAsync(utcNow, cancellationToken).ConfigureAwait(false);
+        var filteredCandidates = FilterDuplicates(candidateItems, duplicates);
+
+        // 2. Limit the number of items sent to the LLM (max 15 to stay within 60s proxy timeouts and 15 RPM API limits)
+        var maxToProcess = Math.Max(15, targetStats * 2);
+        var desiredPoland = (int)Math.Ceiling(maxToProcess * _options.PolandRatioFloor);
+        
+        var polandCandidates = filteredCandidates.Items.Where(i => i.PolandFocus).ToList();
+        var otherCandidates = filteredCandidates.Items.Where(i => !i.PolandFocus)
+            .OrderByDescending(i => i.PublishedAt ?? DateTimeOffset.MinValue)
+            .ToList();
+            
+        var itemsToProcess = polandCandidates.Take(desiredPoland)
+            .Concat(otherCandidates)
+            .Concat(polandCandidates.Skip(desiredPoland))
+            .Take(maxToProcess)
+            .ToList();
+
+        // 3. Validate (makes external LLM API calls)
+        var validation = await ValidateItemsAsync(itemsToProcess, utcNow, cancellationToken).ConfigureAwait(false);
         var validatedItems = validation.ValidItems;
 
         if (validatedItems.Count == 0)
@@ -90,17 +113,15 @@ internal sealed class ContentGenerationService : IContentGenerationService
                 DryRun = request.DryRun,
                 ValidationFailures = validation.Issues.Select(v => v.Reason).Distinct().ToList(),
                 SourceFailures = healthySources.UnhealthyIds,
-                ValidationIssues = validation.Issues
+                ValidationIssues = validation.Issues,
+                SkippedDuplicates = filteredCandidates.SkippedKeys
             };
         }
 
-        var targetStats = Clamp(request.TargetStatistics, _options.MinStatistics, _options.MaxStatistics);
-        var targetAntystics = Clamp(request.TargetAntystics, _options.MinAntystics, _options.MaxAntystics);
-
-        var duplicates = await LoadRecentDuplicateKeysAsync(utcNow, cancellationToken).ConfigureAwait(false);
-        var filtered = FilterDuplicates(validatedItems, duplicates);
-
-        var selectedStatistics = SelectStatistics(filtered, targetStats);
+        // 4. Select final items from the validated ones
+        // We wrap validatedItems in a FilteredItems dto so SelectStatistics can reuse it
+        var finalFiltered = new FilteredItems(validatedItems, filteredCandidates.SkippedKeys);
+        var selectedStatistics = SelectStatistics(finalFiltered, targetStats);
         var selectedAntystics = SelectAntystics(selectedStatistics, targetAntystics);
 
         if (request.DryRun)
@@ -112,7 +133,7 @@ internal sealed class ContentGenerationService : IContentGenerationService
                 Array.Empty<Guid>(),
                 Array.Empty<Guid>(),
                 healthySources.UnhealthyIds,
-                filtered.SkippedKeys,
+                filteredCandidates.SkippedKeys,
                 validation.Issues,
                 true);
         }
@@ -144,7 +165,7 @@ internal sealed class ContentGenerationService : IContentGenerationService
             createdStatisticIds,
             createdAntysticIds,
             healthySources.UnhealthyIds,
-            filtered.SkippedKeys,
+            filteredCandidates.SkippedKeys,
             validation.Issues,
             false);
     }
