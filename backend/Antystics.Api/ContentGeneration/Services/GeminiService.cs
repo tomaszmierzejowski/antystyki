@@ -43,7 +43,7 @@ internal sealed class GeminiService : IOpenAiService
             return null;
         }
 
-        var model = string.IsNullOrWhiteSpace(_options.GeminiModel) ? "gemini-1.5-flash" : _options.GeminiModel;
+        var model = string.IsNullOrWhiteSpace(_options.GeminiModel) ? "gemini-2.5-flash" : _options.GeminiModel;
         var url = $"{GeminiBaseUrl}{model}:generateContent?key={_options.GeminiApiKey}";
 
         var userContent = $"Tytuł: {item.Title}\nOpis: {item.Summary}\nWydawca: {item.Publisher ?? item.SourceName}\nData publikacji: {item.PublishedAt?.ToString("yyyy-MM-dd") ?? "nieznana"}";

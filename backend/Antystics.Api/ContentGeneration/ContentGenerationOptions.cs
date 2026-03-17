@@ -21,5 +21,5 @@ public sealed class ContentGenerationOptions
 
     // Gemini (preferred)
     public string? GeminiApiKey { get; set; }
-    public string GeminiModel { get; set; } = "gemini-1.5-flash";
+    public string GeminiModel { get; set; } = "gemini-2.5-flash";
 }
