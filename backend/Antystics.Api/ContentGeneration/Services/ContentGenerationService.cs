@@ -230,13 +230,16 @@ internal sealed class ContentGenerationService : IContentGenerationService
 
             if (llmResult == null)
             {
-                // Gemini/OpenAI key not configured — fall back to local regex extraction.
+                var keyMissing = string.IsNullOrWhiteSpace(_options.GeminiApiKey) && string.IsNullOrWhiteSpace(_options.OpenAiApiKey);
+                var fallbackReason = keyMissing ? "No LLM key configured" : "LLM generation failed or returned empty";
+
+                // Fall back to local regex extraction.
                 // Items are NOT skipped; they proceed without an LLM-generated antistic.
-                _logger.LogInformation("LLM unavailable for '{Title}', falling back to regex extraction.", item.Title);
+                _logger.LogInformation("{Reason} for '{Title}', falling back to regex extraction.", fallbackReason, item.Title);
                 var metric = ExtractMetric($"{item.Title} {item.Summary}");
                 if (metric.PercentageValue == null)
                 {
-                    issues.Add(BuildIssue(item, "No LLM key configured and regex found no percentage or ratio metric.", metric, statusCode));
+                    issues.Add(BuildIssue(item, $"{fallbackReason} and regex found no percentage or ratio metric.", metric, statusCode));
                     continue;
                 }
 

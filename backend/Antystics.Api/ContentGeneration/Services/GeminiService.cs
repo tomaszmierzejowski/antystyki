@@ -67,21 +67,35 @@ internal sealed class GeminiService : IOpenAiService
                 ResponseMimeType = "application/json",
                 ResponseSchema = BuildResponseSchema(),
                 Temperature = 0.75f,
-                MaxOutputTokens = 600
+                MaxOutputTokens = 2048
             }
         };
 
-        try
+        const int maxRetries = 3;
+        for (int attempt = 1; attempt <= maxRetries; attempt++)
         {
-            using var response = await _httpClient.PostAsJsonAsync(url, requestBody, cancellationToken).ConfigureAwait(false);
-
-            if (!response.IsSuccessStatusCode)
+            try
             {
-                var errorBody = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-                _logger.LogError("Gemini API returned {StatusCode} for item '{Title}': {Error}",
-                    (int)response.StatusCode, item.Title, errorBody);
-                return null;
-            }
+                using var response = await _httpClient.PostAsJsonAsync(url, requestBody, cancellationToken).ConfigureAwait(false);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorBody = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+                    var statusCode = (int)response.StatusCode;
+                    
+                    if ((statusCode == 429 || statusCode == 503) && attempt < maxRetries)
+                    {
+                        var delayMs = (int)Math.Pow(2, attempt) * 1000;
+                        _logger.LogWarning("Gemini API returned {StatusCode} for item '{Title}'. Retrying in {Delay}ms (Attempt {Attempt}/{MaxRetries}). Error: {Error}",
+                            statusCode, item.Title, delayMs, attempt, maxRetries, errorBody);
+                        await Task.Delay(delayMs, cancellationToken).ConfigureAwait(false);
+                        continue;
+                    }
+
+                    _logger.LogError("Gemini API returned {StatusCode} for item '{Title}': {Error}",
+                        statusCode, item.Title, errorBody);
+                    return null;
+                }
 
             var geminiResponse = await response.Content
                 .ReadFromJsonAsync<GeminiResponse>(cancellationToken: cancellationToken)
@@ -96,22 +110,41 @@ internal sealed class GeminiService : IOpenAiService
                 return null;
             }
 
-            var result = JsonSerializer.Deserialize<LlmGenerationResult>(text,
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
-            if (result == null)
+            try
             {
-                _logger.LogWarning("Failed to deserialize Gemini JSON for item '{Title}'. Raw: {Raw}", item.Title, text);
-            }
+                var result = JsonSerializer.Deserialize<LlmGenerationResult>(text,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-            return result;
+                if (result == null)
+                {
+                    _logger.LogWarning("Failed to deserialize Gemini JSON for item '{Title}'. Raw: {Raw}", item.Title, text);
+                }
+
+                return result;
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "JSON Parsing failed for item '{Title}'. Raw output from Gemini: {RawText}", item.Title, text);
+                return null;
+            }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Exception calling Gemini API for item '{Title}'.", item.Title);
+            if (attempt < maxRetries)
+            {
+                var delayMs = (int)Math.Pow(2, attempt) * 1000;
+                _logger.LogWarning(ex, "Exception calling Gemini API for item '{Title}'. Retrying in {Delay}ms (Attempt {Attempt}/{MaxRetries}).",
+                    item.Title, delayMs, attempt, maxRetries);
+                await Task.Delay(delayMs, cancellationToken).ConfigureAwait(false);
+                continue;
+            }
+
+            _logger.LogError(ex, "Exception calling Gemini API for item '{Title}' after {MaxRetries} attempts.", item.Title, maxRetries);
             return null;
         }
     }
+    return null;
+}
 
     /// <summary>
     /// Mission-aligned system prompt. Produces sharp, Polish-language antistyki.
@@ -210,7 +243,7 @@ internal sealed class GeminiService : IOpenAiService
         public float Temperature { get; set; } = 0.75f;
 
         [JsonPropertyName("maxOutputTokens")]
-        public int MaxOutputTokens { get; set; } = 600;
+        public int MaxOutputTokens { get; set; } = 2048;
     }
 
     // ── Response model ─────────────────────────────────────────────────────────
