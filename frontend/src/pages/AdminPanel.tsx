@@ -126,18 +126,24 @@ const AdminPanel: React.FC = () => {
         .split(',')
         .map((entry) => entry.trim())
         .filter((entry) => entry.length > 0);
-      const data: ContentGenerationResult = await adminApi.runContentGeneration({
+      const data: any = await adminApi.runContentGeneration({
         dryRun,
         statistics: autoGenStatsTarget,
         antystics: autoGenAntysticsTarget,
         sourceIds: sourceIds.length > 0 ? sourceIds : undefined,
       });
-      setAutoGenSummary(data);
-      setAutoGenMessage(dryRun ? 'Suche uruchomienie zakończone — nic nie zapisano.' : 'Wygenerowano nowe drafty (pending_review).');
-      // Refresh queues if persisted
-      if (!dryRun) {
-        fetchPendingAntistics();
-        fetchPendingStatistics();
+      
+      const asyncMsg = data.message || data.Message;
+      if (asyncMsg) {
+        setAutoGenMessage(asyncMsg);
+        setAutoGenSummary(null);
+      } else {
+        setAutoGenSummary(data);
+        setAutoGenMessage(dryRun ? 'Suche uruchomienie zakończone — nic nie zapisano.' : 'Wygenerowano nowe drafty (pending_review).');
+        if (!dryRun) {
+          fetchPendingAntistics();
+          fetchPendingStatistics();
+        }
       }
     } catch (error) {
       console.error('Error triggering auto-generation:', error);
