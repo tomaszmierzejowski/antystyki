@@ -158,8 +158,10 @@ builder.Services.AddAuthorization(options =>
         policy.RequireAuthenticatedUser();
         policy.RequireAssertion(context =>
         {
+            var isRoleAdmin = context.User.IsInRole("Admin");
             var email = context.User.FindFirstValue(ClaimTypes.Email);
-            return email is not null && string.Equals(email, "tmierzejowski@gmail.com", StringComparison.OrdinalIgnoreCase);
+            var isEmailAdmin = email is not null && string.Equals(email, "tmierzejowski@gmail.com", StringComparison.OrdinalIgnoreCase);
+            return isRoleAdmin || isEmailAdmin;
         });
     });
 });
