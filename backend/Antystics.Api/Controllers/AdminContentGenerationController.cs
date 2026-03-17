@@ -49,7 +49,10 @@ public sealed class AdminContentGenerationController : ControllerBase
                 
                 // Do not pass the Controller's CancellationToken
                 // because it aborts when the HTTP request ends.
-                await generationService.GenerateAsync(req, CancellationToken.None).ConfigureAwait(false);
+                var result = await generationService.GenerateAsync(req, CancellationToken.None).ConfigureAwait(false);
+                
+                _logger.LogWarning("DEBUG-TRACE: Admin Generation Finished. Created {Stats} Stats, {Antys} Antystics. {Rejected} Items Rejected Validation.", 
+                    result.CreatedStatistics.Count, result.CreatedAntystics.Count, result.ValidationIssues.Count);
             }
             catch (Exception ex)
             {

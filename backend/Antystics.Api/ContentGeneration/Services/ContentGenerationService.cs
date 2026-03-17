@@ -251,7 +251,9 @@ internal sealed class ContentGenerationService : IContentGenerationService
             }
             else if (!llmResult.IsValid)
             {
-                issues.Add(BuildIssue(item, llmResult.Reason ?? "LLM rejected item without a specific reason.", null, statusCode));
+                var reason = llmResult.Reason ?? "LLM rejected item without a specific reason.";
+                _logger.LogWarning("DEBUG-TRACE: Gemini REJECTED '{Title}'. Reason: {Reason}", item.Title, reason);
+                issues.Add(BuildIssue(item, reason, null, statusCode));
                 continue;
             }
             else
