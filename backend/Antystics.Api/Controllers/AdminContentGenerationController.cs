@@ -17,12 +17,12 @@ namespace Antystics.Api.Controllers;
 [Authorize(Policy = "AdminOnly")]
 public sealed class AdminContentGenerationController : ControllerBase
 {
-    private readonly IServiceProvider _serviceProvider;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<AdminContentGenerationController> _logger;
 
-    public AdminContentGenerationController(IServiceProvider serviceProvider, ILogger<AdminContentGenerationController> logger)
+    public AdminContentGenerationController(IServiceScopeFactory scopeFactory, ILogger<AdminContentGenerationController> logger)
     {
-        _serviceProvider = serviceProvider;
+        _scopeFactory = scopeFactory;
         _logger = logger;
     }
 
@@ -44,7 +44,7 @@ public sealed class AdminContentGenerationController : ControllerBase
         {
             try
             {
-                using var scope = _serviceProvider.CreateScope();
+                using var scope = _scopeFactory.CreateScope();
                 var generationService = scope.ServiceProvider.GetRequiredService<IContentGenerationService>();
                 
                 // Do not pass the Controller's CancellationToken
