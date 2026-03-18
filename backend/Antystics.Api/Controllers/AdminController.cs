@@ -175,6 +175,9 @@ public class AdminController : ControllerBase
             antistic.RejectionReason = request.RejectionReason;
             antistic.ModeratedAt = DateTime.UtcNow;
             antistic.ModeratedByUserId = userId.Value;
+            // Release the generation key so the same article can be re-processed
+            // in a subsequent run without hitting the unique DB constraint.
+            antistic.GenerationKey = null;
             
             await _context.SaveChangesAsync();
 
@@ -210,6 +213,12 @@ public class AdminController : ControllerBase
         if (request.Approve)
         {
             statistic.PublishedAt = DateTime.UtcNow;
+        }
+        else
+        {
+            // Release the generation key so the same article can be re-processed
+            // in a subsequent run without hitting the unique DB constraint.
+            statistic.GenerationKey = null;
         }
 
         await _context.SaveChangesAsync();
