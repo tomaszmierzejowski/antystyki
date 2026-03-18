@@ -12,8 +12,9 @@
     "updateFrequency": "daily",
     "polandFocus": true,
     "humorFriendly": false,
+    "enabled": false,
     "tags": ["official", "gov", "stats"],
-    "rateLimitNotes": "5 req/s anonymous; CC BY 4.0"
+    "rateLimitNotes": "Disabled: returns raw numeric value arrays with no narrative title; LLM cannot extract a % metric from this data."
   },
   {
     "id": "nbp-api",
@@ -128,8 +129,9 @@
     "updateFrequency": "regular",
     "polandFocus": false,
     "humorFriendly": false,
+    "enabled": false,
     "tags": ["official", "oecd"],
-    "rateLimitNotes": "Rate-limited free tier"
+    "rateLimitNotes": "Disabled: endpoint is the OECD portal homepage (HTML), not a data API — adapter fails silently on every run."
   },
   {
     "id": "cbos-portal",
@@ -225,8 +227,9 @@
     "updateFrequency": "continuous",
     "polandFocus": true,
     "humorFriendly": true,
+    "enabled": false,
     "tags": ["news"],
-    "rateLimitNotes": "RSS free; articles may be paywalled"
+    "rateLimitNotes": "Disabled: general news feed — articles describe events with no percentage statistics; consistently rejected by LLM."
   },
   {
     "id": "wirtualnemedia-rss",
@@ -257,8 +260,9 @@
     "updateFrequency": "continuous",
     "polandFocus": true,
     "humorFriendly": true,
+    "enabled": false,
     "tags": ["news"],
-    "rateLimitNotes": "RSS free"
+    "rateLimitNotes": "Disabled: TV news wire — nearly 100% event articles with no percentage statistics; consistently rejected by LLM."
   },
   {
     "id": "gus-rss",
@@ -275,6 +279,86 @@
     "humorFriendly": false,
     "tags": ["official", "gov"],
     "rateLimitNotes": "RSS free"
+  },
+  {
+    "id": "bankier-rss",
+    "name": "Bankier.pl",
+    "type": "Rss",
+    "endpoint": "https://www.bankier.pl/rss/wiadomosci.xml",
+    "healthCheckUrl": "https://www.bankier.pl/rss/wiadomosci.xml",
+    "languages": ["pl"],
+    "topics": ["economy", "finance", "labor", "inflation"],
+    "geoFocus": "Poland",
+    "reliability": 5,
+    "updateFrequency": "continuous",
+    "polandFocus": true,
+    "humorFriendly": true,
+    "tags": ["finance", "stats", "economy"],
+    "rateLimitNotes": "RSS free; Poland's leading financial portal — headlines frequently contain inflation %, GDP %, and unemployment % data"
+  },
+  {
+    "id": "forsal-rss",
+    "name": "Forsal.pl",
+    "type": "Rss",
+    "endpoint": "https://forsal.pl/rss/aktualnosci.xml",
+    "healthCheckUrl": "https://forsal.pl/rss/aktualnosci.xml",
+    "languages": ["pl"],
+    "topics": ["economy", "finance", "society", "surveys"],
+    "geoFocus": "Poland",
+    "reliability": 4,
+    "updateFrequency": "continuous",
+    "polandFocus": true,
+    "humorFriendly": true,
+    "tags": ["finance", "stats", "surveys"],
+    "rateLimitNotes": "RSS free; Ringier Axel Springer economic outlet — publishes survey results and macroeconomic data articles"
+  },
+  {
+    "id": "businessinsider-pl-rss",
+    "name": "Business Insider Polska",
+    "type": "Rss",
+    "endpoint": "https://businessinsider.com.pl/feed",
+    "healthCheckUrl": "https://businessinsider.com.pl/feed",
+    "languages": ["pl"],
+    "topics": ["economy", "tech", "society", "research"],
+    "geoFocus": "Poland",
+    "reliability": 4,
+    "updateFrequency": "continuous",
+    "polandFocus": true,
+    "humorFriendly": true,
+    "tags": ["tech", "research", "stats"],
+    "rateLimitNotes": "RSS free; frequently publishes study summaries and research statistics with clear percentage figures"
+  },
+  {
+    "id": "rp-ekonomia-rss",
+    "name": "Rzeczpospolita — Ekonomia",
+    "type": "Rss",
+    "endpoint": "https://www.rp.pl/rss/ekonomia",
+    "healthCheckUrl": "https://www.rp.pl/rss/ekonomia",
+    "languages": ["pl"],
+    "topics": ["economy", "finance", "business"],
+    "geoFocus": "Poland",
+    "reliability": 5,
+    "updateFrequency": "daily",
+    "polandFocus": true,
+    "humorFriendly": false,
+    "tags": ["finance", "economy", "analysis"],
+    "rateLimitNotes": "RSS free; Rzeczpospolita economics section — in-depth data articles with percentage statistics"
+  },
+  {
+    "id": "pb-rss",
+    "name": "Puls Biznesu",
+    "type": "Rss",
+    "endpoint": "https://www.pb.pl/rss",
+    "healthCheckUrl": "https://www.pb.pl/rss",
+    "languages": ["pl"],
+    "topics": ["economy", "finance", "business", "labor"],
+    "geoFocus": "Poland",
+    "reliability": 5,
+    "updateFrequency": "daily",
+    "polandFocus": true,
+    "humorFriendly": false,
+    "tags": ["finance", "economy", "stats"],
+    "rateLimitNotes": "RSS free; dedicated Polish financial newspaper — data-heavy coverage of economic indicators"
   },
   {
     "id": "imgw-climate",

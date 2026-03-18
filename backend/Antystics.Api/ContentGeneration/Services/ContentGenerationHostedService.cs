@@ -86,7 +86,7 @@ internal sealed class ContentGenerationHostedService : BackgroundService
 
             var result = await service.GenerateAsync(request, cancellationToken).ConfigureAwait(false);
 
-            _logger.LogWarning(
+            _logger.LogInformation(
                 "Content generation completed: {StatsCount} statistics, {AntysticsCount} antystics created. Skipped duplicates: {Duplicates}. Source failures: {Failures}. Validation rejections: {Rejections}.",
                 result.CreatedStatistics.Count,
                 result.CreatedAntystics.Count,

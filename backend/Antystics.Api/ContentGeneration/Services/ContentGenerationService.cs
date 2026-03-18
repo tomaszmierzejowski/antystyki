@@ -84,8 +84,8 @@ internal sealed class ContentGenerationService : IContentGenerationService
         var duplicates = await LoadRecentDuplicateKeysAsync(utcNow, cancellationToken).ConfigureAwait(false);
         var filteredCandidates = FilterDuplicates(candidateItems, duplicates);
 
-        // 2. Limit the number of items sent to the LLM (max 15 to stay within 60s proxy timeouts and 15 RPM API limits)
-        var maxToProcess = Math.Max(15, targetStats * 2);
+        // 2. Limit the number of items sent to the LLM (max 30 to handle the enriched source pool within API rate limits)
+        var maxToProcess = Math.Max(30, targetStats * 4);
         var desiredPoland = (int)Math.Ceiling(maxToProcess * _options.PolandRatioFloor);
         
         var polandCandidates = filteredCandidates.Items.Where(i => i.PolandFocus).ToList();
@@ -252,7 +252,7 @@ internal sealed class ContentGenerationService : IContentGenerationService
 
                 // Fall back to local regex extraction.
                 // Items are NOT skipped; they proceed without an LLM-generated antistic.
-                _logger.LogInformation("{Reason} for '{Title}', falling back to regex extraction.", fallbackReason, item.Title);
+                _logger.LogDebug("{Reason} for '{Title}', falling back to regex extraction.", fallbackReason, item.Title);
                 var metric = ExtractMetric($"{item.Title} {item.Summary}");
                 if (metric.PercentageValue == null)
                 {
@@ -269,7 +269,7 @@ internal sealed class ContentGenerationService : IContentGenerationService
             else if (!llmResult.IsValid)
             {
                 var reason = llmResult.Reason ?? "LLM rejected item without a specific reason.";
-                _logger.LogInformation("LLM rejected item '{Title}'. Reason: {Reason}", item.Title, reason);
+                _logger.LogDebug("LLM rejected item '{Title}'. Reason: {Reason}", item.Title, reason);
                 issues.Add(BuildIssue(item, reason, null, statusCode));
                 continue;
             }
@@ -280,7 +280,7 @@ internal sealed class ContentGenerationService : IContentGenerationService
                 if (!llmResult.PercentageValue.HasValue || llmResult.PercentageValue.Value <= 0)
                 {
                     var noMetricReason = "LLM marked valid but returned no usable percentage (raw count or missing denominator).";
-                    _logger.LogInformation("Rejecting item '{Title}': {Reason}", item.Title, noMetricReason);
+                    _logger.LogDebug("Rejecting item '{Title}': {Reason}", item.Title, noMetricReason);
                     issues.Add(BuildIssue(item, noMetricReason, null, statusCode));
                     continue;
                 }
