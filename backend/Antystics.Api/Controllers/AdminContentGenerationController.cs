@@ -60,7 +60,7 @@ public sealed class AdminContentGenerationController : ControllerBase
                     var rejectionSummary = string.Join(" | ", result.ValidationIssues
                         .GroupBy(v => v.Reason)
                         .Select(g => $"{g.Key} ({g.Count()}x)"));
-                    _logger.LogWarning("All items rejected — no statistics generated. Rejection summary: {Summary}", rejectionSummary);
+                    _logger.LogError("All items rejected — no statistics generated. Rejection summary: {Summary}", rejectionSummary);
                 }
             }
             catch (Exception ex)

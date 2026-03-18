@@ -113,7 +113,7 @@ internal sealed class ContentGenerationService : IContentGenerationService
                     .Select(g => $"{g.Key} ({g.Count()}x)"))
                 : "no candidates fetched";
 
-            _logger.LogWarning(
+            _logger.LogError(
                 "Content generation produced 0 valid items from {Candidates} candidates. " +
                 "Skipped duplicates: {Duplicates}. Source failures: {SourceFailures}. " +
                 "Rejection reasons: {Reasons}",
