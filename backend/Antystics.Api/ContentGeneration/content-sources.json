@@ -28,8 +28,9 @@
     "updateFrequency": "daily",
     "polandFocus": true,
     "humorFriendly": true,
+    "enabled": false,
     "tags": ["official", "central-bank"],
-    "rateLimitNotes": "HTTPS required; limits not published"
+    "rateLimitNotes": "Disabled: returns raw rate tables without narrative context; LLM cannot extract a % metric from this data."
   },
   {
     "id": "eurostat-api",
@@ -60,8 +61,9 @@
     "updateFrequency": "intraday",
     "polandFocus": false,
     "humorFriendly": false,
+    "enabled": false,
     "tags": ["official", "central-bank"],
-    "rateLimitNotes": "Public SDMX 2.1"
+    "rateLimitNotes": "Disabled: returns SDMX exchange-rate time-series without narrative; no % statistic or antistic can be generated."
   },
   {
     "id": "pap-rss",
@@ -92,8 +94,9 @@
     "updateFrequency": "hourly",
     "polandFocus": true,
     "humorFriendly": true,
+    "enabled": false,
     "tags": ["official", "weather"],
-    "rateLimitNotes": "Public; no documented limits"
+    "rateLimitNotes": "Disabled: returns raw synoptic sensor readings (temperature, wind speed) — no textual statistic with % metric."
   },
   {
     "id": "imf-api",
@@ -108,8 +111,9 @@
     "updateFrequency": "regular",
     "polandFocus": false,
     "humorFriendly": false,
+    "enabled": false,
     "tags": ["official", "multilateral"],
-    "rateLimitNotes": "Public"
+    "rateLimitNotes": "Disabled: returns JSON country-indicator matrices without narrative titles; no actionable statistic text for LLM."
   },
   {
     "id": "oecd-api",
@@ -188,8 +192,9 @@
     "updateFrequency": "regular",
     "polandFocus": false,
     "humorFriendly": false,
+    "enabled": false,
     "tags": ["multilateral"],
-    "rateLimitNotes": "Public; CC BY"
+    "rateLimitNotes": "Disabled: returns indicator value arrays without narrative titles; LLM has no textual context to work with."
   },
   {
     "id": "who-api",

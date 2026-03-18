@@ -55,7 +55,7 @@ internal sealed class ContentSourceProvider : IContentSourceProvider
 
             var parsed = JsonSerializer.Deserialize<List<ContentSourceDto>>(json, options) ?? new List<ContentSourceDto>();
             return parsed
-                .Where(p => !string.IsNullOrWhiteSpace(p.Id) && !string.IsNullOrWhiteSpace(p.Endpoint))
+                .Where(p => !string.IsNullOrWhiteSpace(p.Id) && !string.IsNullOrWhiteSpace(p.Endpoint) && p.Enabled)
                 .Select(Map)
                 .ToList();
         }
@@ -105,6 +105,11 @@ internal sealed class ContentSourceProvider : IContentSourceProvider
         public string? UpdateFrequency { get; set; }
         public bool PolandFocus { get; set; }
         public bool HumorFriendly { get; set; }
+        /// <summary>
+        /// When false the source is skipped entirely during loading.
+        /// Defaults to true so existing entries without this field remain active.
+        /// </summary>
+        public bool Enabled { get; set; } = true;
         public List<string>? Tags { get; set; }
         public string? RateLimitNotes { get; set; }
     }

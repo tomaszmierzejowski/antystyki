@@ -183,7 +183,10 @@ builder.Services.AddSingleton<IContentSourceAdapter, ApiContentSourceAdapter>();
 builder.Services.AddSingleton<IContentSourceAdapter, WebContentSourceAdapter>();
 builder.Services.AddHttpClient<IOpenAiService, GeminiService>(client =>
 {
-    client.Timeout = TimeSpan.FromMinutes(10);
+    // 90s outer timeout: 3 retries × 25s per-attempt hard limit + buffer.
+    // Must be higher than the per-attempt CTS in GeminiService so the inner
+    // token always fires first and the retry loop can do its job.
+    client.Timeout = TimeSpan.FromSeconds(90);
     client.DefaultRequestHeaders.Add("User-Agent", "Antystics/1.0.0 (Custom Backend Application)");
 });
 builder.Services.AddScoped<IContentGenerationService, ContentGenerationService>();

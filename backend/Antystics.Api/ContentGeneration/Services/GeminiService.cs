@@ -76,11 +76,10 @@ internal sealed class GeminiService : IOpenAiService
         {
             try
             {
-                // Force an Information log using LogError so it bypasses the strict Prod filter, helping us debug the hang
-                _logger.LogError("DEBUG-TRACE: Initiating Gemini POST request for '{Title}' (Attempt {Attempt}/{MaxRetries})...", item.Title, attempt, maxRetries);
-                
+                _logger.LogDebug("Initiating Gemini POST request for '{Title}' (Attempt {Attempt}/{MaxRetries})...", item.Title, attempt, maxRetries);
+
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                cts.CancelAfter(TimeSpan.FromSeconds(25)); // 25s hard limit per attempt to prevent silent 10min hangs
+                cts.CancelAfter(TimeSpan.FromSeconds(25)); // 25s hard limit per attempt
 
                 using var response = await _httpClient.PostAsJsonAsync(url, requestBody, cts.Token).ConfigureAwait(false);
 
@@ -88,7 +87,7 @@ internal sealed class GeminiService : IOpenAiService
                 {
                     var errorBody = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
                     var statusCode = (int)response.StatusCode;
-                    
+
                     if ((statusCode == 429 || statusCode == 503) && attempt < maxRetries)
                     {
                         var delayMs = (int)Math.Pow(2, attempt) * 1000;
@@ -103,55 +102,57 @@ internal sealed class GeminiService : IOpenAiService
                     return null;
                 }
 
-            var geminiResponse = await response.Content
-                .ReadFromJsonAsync<GeminiResponse>(cancellationToken: cancellationToken)
-                .ConfigureAwait(false);
+                var geminiResponse = await response.Content
+                    .ReadFromJsonAsync<GeminiResponse>(cancellationToken: cancellationToken)
+                    .ConfigureAwait(false);
 
-            // Null-safe access — Gemini may return 0 candidates when content is filtered
-            var text = geminiResponse?.Candidates?[0]?.Content?.Parts?[0]?.Text;
-            if (string.IsNullOrWhiteSpace(text))
-            {
-                _logger.LogWarning("Gemini returned empty content for item '{Title}'. FinishReason: {Reason}",
-                    item.Title, geminiResponse?.Candidates?[0]?.FinishReason ?? "unknown");
-                return null;
-            }
-
-            try
-            {
-                var result = JsonSerializer.Deserialize<LlmGenerationResult>(text,
-                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
-                if (result == null)
+                // Null-safe access — Gemini may return 0 candidates when content is filtered
+                var text = geminiResponse?.Candidates?[0]?.Content?.Parts?[0]?.Text;
+                if (string.IsNullOrWhiteSpace(text))
                 {
-                    _logger.LogWarning("Failed to deserialize Gemini JSON for item '{Title}'. Raw: {Raw}", item.Title, text);
+                    _logger.LogWarning("Gemini returned empty content for item '{Title}'. FinishReason: {Reason}",
+                        item.Title, geminiResponse?.Candidates?[0]?.FinishReason ?? "unknown");
+                    return null;
                 }
 
-                return result;
+                try
+                {
+                    var result = JsonSerializer.Deserialize<LlmGenerationResult>(text,
+                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                    if (result == null)
+                    {
+                        _logger.LogWarning("Failed to deserialize Gemini JSON for item '{Title}'. Raw: {Raw}", item.Title, text);
+                    }
+
+                    return result;
+                }
+                catch (JsonException ex)
+                {
+                    _logger.LogError(ex, "JSON parsing failed for item '{Title}'. Raw output from Gemini: {RawText}", item.Title, text);
+                    return null;
+                }
             }
-            catch (JsonException ex)
+            catch (Exception ex)
             {
-                _logger.LogError(ex, "JSON Parsing failed for item '{Title}'. Raw output from Gemini: {RawText}", item.Title, text);
+                _logger.LogWarning(ex, "Exception or timeout calling Gemini API for item '{Title}' (Attempt {Attempt}/{MaxRetries}).", item.Title, attempt, maxRetries);
+
+                if (attempt < maxRetries)
+                {
+                    var delayMs = (int)Math.Pow(2, attempt) * 1000;
+                    await Task.Delay(delayMs, cancellationToken).ConfigureAwait(false);
+                    continue;
+                }
+
+                // All retries exhausted — return null so the caller can use the regex fallback.
+                // Never throw here; a single slow item must not crash the entire batch run.
+                _logger.LogError("Gemini API failed after {MaxRetries} attempts for item '{Title}'. Falling back to regex extraction.", maxRetries, item.Title);
                 return null;
             }
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "DEBUG-TRACE: Exception or Timeout calling Gemini API for item '{Title}' (Attempt {Attempt}/{MaxRetries}).", item.Title, attempt, maxRetries);
-            
-            if (attempt < maxRetries)
-            {
-                var delayMs = (int)Math.Pow(2, attempt) * 1000;
-                await Task.Delay(delayMs, cancellationToken).ConfigureAwait(false);
-                continue;
-            }
 
-            // Fast-fail the entire generation batch if Gemini is fundamentally unreachable or continuously timing out.
-            // Returning null here previously caused the system to waste 15-20 minutes stalling on the remaining items!
-            throw new HttpRequestException($"Gemini API completely failed or timed out after {maxRetries} attempts for item '{item.Title}'.", ex);
-        }
+        return null;
     }
-    return null;
-}
 
     /// <summary>
     /// Mission-aligned system prompt. Produces sharp, Polish-language antistyki.
