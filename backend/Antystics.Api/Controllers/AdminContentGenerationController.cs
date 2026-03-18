@@ -51,8 +51,17 @@ public sealed class AdminContentGenerationController : ControllerBase
                 // because it aborts when the HTTP request ends.
                 var result = await generationService.GenerateAsync(req, CancellationToken.None).ConfigureAwait(false);
                 
-                _logger.LogWarning("DEBUG-TRACE: Admin Generation Finished. Created {Stats} Stats, {Antys} Antystics. {Rejected} Items Rejected Validation.", 
-                    result.CreatedStatistics.Count, result.CreatedAntystics.Count, result.ValidationIssues.Count);
+                _logger.LogWarning(
+                    "Content generation finished: {Stats} statistics, {Antys} antystics created. {Rejected} items rejected during validation. DryRun={DryRun}.",
+                    result.CreatedStatistics.Count, result.CreatedAntystics.Count, result.ValidationIssues.Count, result.DryRun);
+
+                if (result.CreatedStatistics.Count == 0 && result.ValidationIssues.Count > 0)
+                {
+                    var rejectionSummary = string.Join(" | ", result.ValidationIssues
+                        .GroupBy(v => v.Reason)
+                        .Select(g => $"{g.Key} ({g.Count()}x)"));
+                    _logger.LogWarning("All items rejected — no statistics generated. Rejection summary: {Summary}", rejectionSummary);
+                }
             }
             catch (Exception ex)
             {

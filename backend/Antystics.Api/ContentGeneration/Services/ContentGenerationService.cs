@@ -105,6 +105,23 @@ internal sealed class ContentGenerationService : IContentGenerationService
 
         if (validatedItems.Count == 0)
         {
+            var rejectionSummary = validation.Issues.Count > 0
+                ? string.Join(" | ", validation.Issues
+                    .GroupBy(v => v.Reason)
+                    .OrderByDescending(g => g.Count())
+                    .Take(5)
+                    .Select(g => $"{g.Key} ({g.Count()}x)"))
+                : "no candidates fetched";
+
+            _logger.LogWarning(
+                "Content generation produced 0 valid items from {Candidates} candidates. " +
+                "Skipped duplicates: {Duplicates}. Source failures: {SourceFailures}. " +
+                "Rejection reasons: {Reasons}",
+                itemsToProcess.Count,
+                filteredCandidates.SkippedKeys.Count,
+                healthySources.UnhealthyIds.Count,
+                rejectionSummary);
+
             return new ContentGenerationResult
             {
                 CreatedAntystics = Array.Empty<GeneratedDraft>(),
