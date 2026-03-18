@@ -67,7 +67,13 @@ internal sealed class GeminiService : IOpenAiService
                 ResponseMimeType = "application/json",
                 ResponseSchema = BuildResponseSchema(),
                 Temperature = 0.75f,
-                MaxOutputTokens = 2048
+                // gemini-2.5-flash uses internal "thinking" tokens by default.
+                // Those thinking tokens are counted against maxOutputTokens, leaving
+                // almost nothing for the actual JSON — causing mid-string truncation.
+                // Setting thinkingBudget: 0 disables thinking entirely (appropriate
+                // for fast structured JSON extraction; deep reasoning not needed here).
+                MaxOutputTokens = 8192,
+                ThinkingConfig = new GeminiThinkingConfig { ThinkingBudget = 0 }
             }
         };
 
@@ -107,11 +113,20 @@ internal sealed class GeminiService : IOpenAiService
                     .ConfigureAwait(false);
 
                 // Null-safe access — Gemini may return 0 candidates when content is filtered
-                var text = geminiResponse?.Candidates?[0]?.Content?.Parts?[0]?.Text;
+                var candidate = geminiResponse?.Candidates?[0];
+                var finishReason = candidate?.FinishReason ?? "unknown";
+
+                if (finishReason == "MAX_TOKENS")
+                {
+                    _logger.LogError("Gemini hit MAX_TOKENS for item '{Title}'. JSON will be truncated. Increase maxOutputTokens or reduce thinkingBudget.", item.Title);
+                    return null;
+                }
+
+                var text = candidate?.Content?.Parts?[0]?.Text;
                 if (string.IsNullOrWhiteSpace(text))
                 {
                     _logger.LogWarning("Gemini returned empty content for item '{Title}'. FinishReason: {Reason}",
-                        item.Title, geminiResponse?.Candidates?[0]?.FinishReason ?? "unknown");
+                        item.Title, finishReason);
                     return null;
                 }
 
@@ -251,7 +266,27 @@ internal sealed class GeminiService : IOpenAiService
         public float Temperature { get; set; } = 0.75f;
 
         [JsonPropertyName("maxOutputTokens")]
-        public int MaxOutputTokens { get; set; } = 2048;
+        public int MaxOutputTokens { get; set; } = 8192;
+
+        /// <summary>
+        /// Controls Gemini 2.5's built-in thinking mode. When null the field is
+        /// omitted from the request and the model uses its default thinking budget,
+        /// which consumes most of maxOutputTokens and causes JSON truncation.
+        /// Setting thinkingBudget: 0 disables thinking entirely for fast,
+        /// deterministic structured-output calls.
+        /// </summary>
+        [JsonPropertyName("thinkingConfig")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public GeminiThinkingConfig? ThinkingConfig { get; set; }
+    }
+
+    private sealed class GeminiThinkingConfig
+    {
+        /// <summary>
+        /// Maximum internal reasoning tokens. 0 = thinking disabled.
+        /// </summary>
+        [JsonPropertyName("thinkingBudget")]
+        public int ThinkingBudget { get; set; }
     }
 
     // ── Response model ─────────────────────────────────────────────────────────
