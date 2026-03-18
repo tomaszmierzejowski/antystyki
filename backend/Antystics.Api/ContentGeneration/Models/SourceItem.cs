@@ -24,6 +24,12 @@ public sealed record SourceItem
     public string? NumericStatement { get; init; }
     public string? ReversedStatistic { get; init; }
     public int? SourceStatusCode { get; init; }
+    /// <summary>Chart type hint from LLM: "pie" | "bar" | "trend" | "comparison"</summary>
+    public string? ChartType { get; init; }
+    /// <summary>Short Polish label (≤50 chars) for the main chart value, e.g. "Polacy bez oszczędności"</summary>
+    public string? ChartLabelMain { get; init; }
+    /// <summary>Short Polish label (≤50 chars) for the secondary/contrast chart value, e.g. "Pozostałe"</summary>
+    public string? ChartLabelSecondary { get; init; }
 }
 
 public sealed record GeneratedDraft

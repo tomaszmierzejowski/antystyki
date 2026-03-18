@@ -179,17 +179,62 @@ internal sealed class GeminiService : IOpenAiService
 
         Twoje zadanie: przeanalizować podaną statystykę i zwrócić WYŁĄCZNIE poprawny JSON (bez markdown, bez komentarzy).
 
-        ZASADY NIEZBĘDNE:
-        1. Oceń, czy statystyka jest wiarygodna i zawiera konkretny % lub proporcję. Jeśli nie — oznacz jako invalid
-           i podaj powód w polu "reason".
-        2. Wydobądź: percentageValue (liczba, np. 72.5), ratio (string, np. "1/3", lub null),
-           timeframe (rok lub okres, np. "2024"), contextSentence (krótki opis co mierzono, po polsku).
-        3. Napisz "reversedStatistic" — ANTYSTYKĘ. Ma być:
-           • Max 2 zdania. Treściwa. Bez owijania w bawełnę.
-           • PO POLSKU.
-           • ALBO ostra ironia obnażająca absurd statystyki. Wzorzec dobry: "Skoro X% [podmiot] [absurdalna konsekwencja], to może [ironica konkluzja]."
-           • ALBO subtelna perspektywa szarej strefy zmieniająca sposób myślenia: "Zanim udostępnisz: te X% to... [nieoczywisty kontekst]."
-           • NIGDY: zdania w stylu "to skłania do refleksji", "warto się zastanowić", "to interesujące zjawisko", "ironia szykuje ripostę".
+        ═══════════════════════════════════════════════
+        ZASADA KLUCZOWA — CO JEST STATYSTYKĄ, A CO NIE:
+        ═══════════════════════════════════════════════
+        STATYSTYKA (isValid=true) wymaga JEDNEGO z:
+          a) Konkretny procent: "72% Polaków...", "co trzeci..."
+          b) Proporcja z mianownikiem: "1 na 3 kierowców", "2/5 respondentów"
+          c) Zmiana procentowa: "wzrost o 15%", "o 30% mniej"
+
+        NIE SĄ STATYSTYKAMI — zawsze zwróć isValid=false:
+          ✗ Surowe liczby BEZ mianownika: "20 milionów wyświetleń", "40 ofiar", "300 km", "45 minut"
+          ✗ Newsy i zdarzenia: "X zaatakował Y", "Rząd ogłosił Z", wyniki wyborów bez %
+          ✗ Historie ludzkie / reportaże: artykuły opisujące losy konkretnych osób
+          ✗ Opinie / prognozy bez danych liczbowych
+
+        ZASADA DLA PORTALI NEWSOWYCH (Polsat News, PAP, Gazeta.pl, TVN24 i podobne):
+          Bądź EKSTRA SUROWY. Przyjmuj wyłącznie artykuły, gdzie tytuł lub opis WPROST zawiera % lub proporcję.
+          Odrzucaj wszystko inne, nawet jeśli artykuł wspomina duże liczby.
+
+        PRZYKŁADY ODRZUCONYCH POZYCJI:
+        ❌ "Izraelskie filmy propagandowe miały 20 mln wyświetleń na YouTube"
+           → Powód: surowa liczba bez mianownika — nie wiadomo jaki % czegokolwiek.
+        ❌ "Drony ukraińskie uszkodziły rosyjski lotniskowiec"
+           → Powód: wydarzenie newsowe bez żadnej statystyki procentowej.
+        ❌ "8-latka przeszła 40 km przez las, żeby uratować babcię"
+           → Powód: historia ludzka, odległość bez kontekstu statystycznego.
+
+        ══════════════════════════
+        POLA DO WYPEŁNIENIA (JSON):
+        ══════════════════════════
+        1. isValid (boolean) — czy artykuł zawiera prawdziwą statystykę procentową lub proporcję
+        2. reason (string) — wymagany, nawet gdy isValid=true (wtedy ""); przy odrzuceniu: jasny, konkretny powód po polsku
+        3. percentageValue (number) — wartość % jako liczba (np. 72.5); null jeśli brak danych
+        4. ratio (string|null) — proporcja tekstowa np. "1/3"; null jeśli brak
+        5. timeframe (string) — rok lub okres np. "2024", "Q1 2025"
+        6. contextSentence (string) — krótki opis co mierzono, po polsku (max 120 znaków)
+        7. reversedStatistic (string) — ANTYSTYKA (patrz zasady poniżej); "" jeśli isValid=false
+        8. chartType (string) — typ wykresu: "pie" | "bar" | "trend" | "comparison"
+           • pie        = jeden procent całości (np. "72% robi X")
+           • bar        = porównanie wielu grup lub kategorii (np. "Niemcy 45%, Polska 38%, Francja 52%")
+           • trend      = zmiana w czasie (rok do roku, miesięczna)
+           • comparison = dwie kontrastujące wartości obok siebie (np. "biedni vs bogaci")
+        9. chartLabelMain (string) — krótka polska etykieta głównej wartości, max 50 znaków
+           Przykłady: "Polacy bez oszczędności", "Kierowcy po alkoholu", "Wzrost inflacji"
+        10. chartLabelSecondary (string) — etykieta wartości uzupełniającej / grupy kontrastowej, max 50 znaków
+            Domyślnie "Pozostałe" dla pie; dla comparison — nazwa grupy porównawczej
+
+        ════════════════════════════════
+        ZASADY PISANIA ANTYSTYKI (pole reversedStatistic):
+        ════════════════════════════════
+        • Max 2 zdania. Treściwa. Bez owijania w bawełnę.
+        • PO POLSKU.
+        • ALBO ostra ironia obnażająca absurd statystyki.
+          Wzorzec: "Skoro X% [podmiot] [absurdalna konsekwencja], to może [ironiczna konkluzja]."
+        • ALBO subtelna perspektywa szarej strefy zmieniająca sposób myślenia:
+          "Zanim udostępnisz: te X% to... [nieoczywisty kontekst]."
+        • NIGDY: "to skłania do refleksji", "warto się zastanowić", "to interesujące zjawisko", "ironia szykuje ripostę"
 
         PRZYKŁADY DOBREJ ANTYSTYKI:
         ✅ Stat: "72% Polaków nie przeczyta książki w tym roku"
@@ -201,8 +246,6 @@ internal sealed class GeminiService : IOpenAiService
 
         PRZYKŁAD ZŁEJ ANTYSTYKI (NIGDY TAK):
         ❌ "To zjawisko skłania do głębszej refleksji nad stanem naszego społeczeństwa."
-
-        Pola "reason" — zawsze string, nawet jeśli isValid=true (wtedy pusty string "").
         """;
 
     /// <summary>
@@ -220,9 +263,12 @@ internal sealed class GeminiService : IOpenAiService
             ratio = new { type = "STRING" },
             timeframe = new { type = "STRING" },
             contextSentence = new { type = "STRING" },
-            reversedStatistic = new { type = "STRING" }
+            reversedStatistic = new { type = "STRING" },
+            chartType = new { type = "STRING" },
+            chartLabelMain = new { type = "STRING" },
+            chartLabelSecondary = new { type = "STRING" }
         },
-        required = new[] { "isValid", "reason", "timeframe", "contextSentence", "reversedStatistic" }
+        required = new[] { "isValid", "reason", "timeframe", "contextSentence", "reversedStatistic", "chartType", "chartLabelMain", "chartLabelSecondary" }
     };
 
     // ── Request model ──────────────────────────────────────────────────────────

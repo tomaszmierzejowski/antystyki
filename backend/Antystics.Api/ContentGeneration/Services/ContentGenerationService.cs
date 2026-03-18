@@ -258,7 +258,17 @@ internal sealed class ContentGenerationService : IContentGenerationService
             }
             else
             {
-                percentageValue = llmResult.PercentageValue ?? 0;
+                // Reject items where the LLM says isValid=true but provides no usable percentage.
+                // A null or zero percentageValue means the article has no real statistical metric.
+                if (!llmResult.PercentageValue.HasValue || llmResult.PercentageValue.Value <= 0)
+                {
+                    var noMetricReason = "LLM marked valid but returned no usable percentage (raw count or missing denominator).";
+                    _logger.LogInformation("Rejecting item '{Title}': {Reason}", item.Title, noMetricReason);
+                    issues.Add(BuildIssue(item, noMetricReason, null, statusCode));
+                    continue;
+                }
+
+                percentageValue = llmResult.PercentageValue.Value;
                 ratio = llmResult.Ratio;
                 timeframe = llmResult.Timeframe ?? BuildTimeframe(item);
                 context = llmResult.ContextSentence ?? ExtractContextSentence(item);
@@ -276,7 +286,10 @@ internal sealed class ContentGenerationService : IContentGenerationService
                 NumericStatement = numericStatement,
                 ReversedStatistic = reversedStatistic,
                 Publisher = item.Publisher ?? item.SourceName,
-                SourceStatusCode = statusCode
+                SourceStatusCode = statusCode,
+                ChartType = llmResult?.ChartType,
+                ChartLabelMain = llmResult?.ChartLabelMain,
+                ChartLabelSecondary = llmResult?.ChartLabelSecondary
             });
         }
 
@@ -663,104 +676,155 @@ internal sealed class ContentGenerationService : IContentGenerationService
 
     /// <summary>
     /// Builds ChartData JSON in the AntisticData shape the React frontend expects.
-    /// For Statistics: two-column-default when a clean % is available; text-focused otherwise.
+    /// Dispatches on item.ChartType (pie/bar/trend/comparison); falls back to text-focused
+    /// only when no numeric data is available at all.
     /// </summary>
     private static string BuildStatisticChartData(SourceItem item)
     {
-        if (item.PercentageValue.HasValue && item.PercentageValue.Value > 0)
-        {
-            var main = Math.Round(item.PercentageValue.Value, 1);
-            var secondary = Math.Round(100.0 - main, 1);
-            var label = Trim(item.ContextSentence ?? item.Title, 80);
-
-            return JsonSerializer.Serialize(new
-            {
-                templateId = "two-column-default",
-                perspectiveData = new
-                {
-                    mainPercentage = main,
-                    mainLabel = label,
-                    secondaryPercentage = secondary,
-                    secondaryLabel = "Pozostałe",
-                    chartColor = "#3b82f6",
-                    type = "pie"
-                },
-                sourceData = new
-                {
-                    type = "pie",
-                    segments = new[]
-                    {
-                        new { label = label, percentage = main, color = "#3b82f6" },
-                        new { label = "Pozostałe", percentage = secondary, color = "#e5e7eb" }
-                    }
-                }
-            });
-        }
-
-        // Fallback: text-focused
-        return JsonSerializer.Serialize(new
-        {
-            templateId = "text-focused",
-            textData = new
-            {
-                mainStatistic = Trim(item.NumericStatement ?? item.Title, 160),
-                context = Trim(item.ContextSentence ?? item.Summary, 220),
-                comparison = item.Ratio != null ? $"Proporcja: {item.Ratio}" : (string?)null
-            }
-        });
+        var (json, _) = BuildChartDataCore(item, statisticColor: "#3b82f6");
+        return json;
     }
 
     /// <summary>
     /// Builds ChartData JSON for Antistics. Returns (chartDataJson, templateId).
-    /// two-column-default when % available (main stat vs complement), text-focused otherwise.
+    /// Dispatches on item.ChartType; falls back to text-focused only when no numeric data exists.
     /// </summary>
     private static (string ChartData, string TemplateId) BuildAntisticChartData(SourceItem item)
     {
-        if (item.PercentageValue.HasValue && item.PercentageValue.Value > 0)
+        return BuildChartDataCore(item, statisticColor: "#ef4444");
+    }
+
+    /// <summary>
+    /// Shared chart data builder. Selects template based on item.ChartType from the LLM hint,
+    /// then falls back gracefully when data is missing.
+    /// </summary>
+    private static (string Json, string TemplateId) BuildChartDataCore(SourceItem item, string statisticColor)
+    {
+        var hasPercentage = item.PercentageValue.HasValue && item.PercentageValue.Value > 0;
+
+        // Use LLM-suggested chart type; default to "pie" when a percentage is available.
+        var chartType = item.ChartType?.ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(chartType))
         {
-            var main = Math.Round(item.PercentageValue.Value, 1);
-            var secondary = Math.Round(100.0 - main, 1);
-            var label = Trim(item.ContextSentence ?? item.Title, 80);
-
-            var json = JsonSerializer.Serialize(new
-            {
-                templateId = "two-column-default",
-                perspectiveData = new
-                {
-                    mainPercentage = main,
-                    mainLabel = label,
-                    secondaryPercentage = secondary,
-                    secondaryLabel = "Pozostałe",
-                    chartColor = "#ef4444",
-                    type = "pie"
-                },
-                sourceData = new
-                {
-                    type = "pie",
-                    segments = new[]
-                    {
-                        new { label = label, percentage = main, color = "#ef4444" },
-                        new { label = "Pozostałe", percentage = secondary, color = "#e5e7eb" }
-                    }
-                }
-            });
-
-            return (json, "two-column-default");
+            chartType = hasPercentage ? "pie" : null;
         }
 
-        // Fallback: text-focused
-        var fallbackJson = JsonSerializer.Serialize(new
+        switch (chartType)
         {
-            templateId = "text-focused",
-            textData = new
+            case "pie" when hasPercentage:
             {
-                mainStatistic = Trim(item.NumericStatement ?? item.Title, 160),
-                context = Trim(item.ContextSentence ?? item.Summary, 220),
-                comparison = item.Ratio != null ? $"Proporcja: {item.Ratio}" : (string?)null
-            }
-        });
+                var main = Math.Round(item.PercentageValue!.Value, 1);
+                var secondary = Math.Round(100.0 - main, 1);
+                var mainLabel = Trim(item.ChartLabelMain ?? item.ContextSentence ?? item.Title, 50);
+                var secondaryLabel = Trim(item.ChartLabelSecondary ?? "Pozostałe", 50);
 
-        return (fallbackJson, "text-focused");
+                var json = JsonSerializer.Serialize(new
+                {
+                    templateId = "two-column-default",
+                    perspectiveData = new
+                    {
+                        mainPercentage = main,
+                        mainLabel,
+                        secondaryPercentage = secondary,
+                        secondaryLabel,
+                        chartColor = statisticColor,
+                        type = "pie"
+                    },
+                    sourceData = new
+                    {
+                        type = "pie",
+                        segments = new[]
+                        {
+                            new { label = mainLabel, percentage = main, color = statisticColor },
+                            new { label = secondaryLabel, percentage = secondary, color = "#e5e7eb" }
+                        }
+                    }
+                });
+                return (json, "two-column-default");
+            }
+
+            case "bar" when hasPercentage:
+            {
+                var main = Math.Round(item.PercentageValue!.Value, 1);
+                var secondary = Math.Round(100.0 - main, 1);
+                var mainLabel = Trim(item.ChartLabelMain ?? item.ContextSentence ?? item.Title, 50);
+                var secondaryLabel = Trim(item.ChartLabelSecondary ?? "Pozostałe", 50);
+
+                var json = JsonSerializer.Serialize(new
+                {
+                    templateId = "bar-chart",
+                    barData = new
+                    {
+                        chartColor = statisticColor,
+                        segments = new[]
+                        {
+                            new { label = mainLabel, percentage = main, color = statisticColor },
+                            new { label = secondaryLabel, percentage = secondary, color = "#e5e7eb" }
+                        }
+                    }
+                });
+                return (json, "bar-chart");
+            }
+
+            case "trend" when hasPercentage:
+            {
+                var current = Math.Round(item.PercentageValue!.Value, 1);
+                var mainLabel = Trim(item.ChartLabelMain ?? item.ContextSentence ?? item.Title, 50);
+                var secondaryLabel = Trim(item.ChartLabelSecondary ?? "Poprzedni okres", 50);
+
+                var json = JsonSerializer.Serialize(new
+                {
+                    templateId = "trend-line",
+                    trendData = new
+                    {
+                        chartColor = statisticColor,
+                        timeframe = item.Timeframe,
+                        dataPoints = new[]
+                        {
+                            new { label = secondaryLabel, percentage = (double?)null },
+                            new { label = mainLabel, percentage = (double?)current }
+                        }
+                    }
+                });
+                return (json, "trend-line");
+            }
+
+            case "comparison" when hasPercentage:
+            {
+                var main = Math.Round(item.PercentageValue!.Value, 1);
+                var secondary = Math.Round(100.0 - main, 1);
+                var mainLabel = Trim(item.ChartLabelMain ?? item.ContextSentence ?? item.Title, 50);
+                var secondaryLabel = Trim(item.ChartLabelSecondary ?? "Pozostałe", 50);
+
+                var json = JsonSerializer.Serialize(new
+                {
+                    templateId = "comparison-default",
+                    comparisonData = new
+                    {
+                        chartColor = statisticColor,
+                        valueA = new { label = mainLabel, percentage = main, color = statisticColor },
+                        valueB = new { label = secondaryLabel, percentage = secondary, color = "#e5e7eb" }
+                    }
+                });
+                return (json, "comparison-default");
+            }
+
+            default:
+            {
+                // True last resort: no numeric data available at all.
+                var fallbackJson = JsonSerializer.Serialize(new
+                {
+                    templateId = "text-focused",
+                    textData = new
+                    {
+                        mainStatistic = Trim(item.NumericStatement ?? item.Title, 160),
+                        context = Trim(item.ContextSentence ?? item.Summary, 220),
+                        comparison = item.Ratio != null ? $"Proporcja: {item.Ratio}" : (string?)null
+                    }
+                });
+                return (fallbackJson, "text-focused");
+            }
+        }
     }
 
     private static string BuildStatisticSummary(SourceItem item)
@@ -823,6 +887,7 @@ internal sealed class ContentGenerationService : IContentGenerationService
         {
             var item = statList[i];
             var id = i < statIds.Count ? statIds[i] : Guid.Empty;
+            var (statChartJson, statTemplateId) = BuildChartDataCore(item, statisticColor: "#3b82f6");
             statDrafts.Add(new GeneratedDraft
             {
                 Id = id,
@@ -831,8 +896,8 @@ internal sealed class ContentGenerationService : IContentGenerationService
                 SourceUrl = item.SourceUrl,
                 SourceCitation = item.SourceName,
                 Kind = "statistic",
-                ChartData = BuildStatisticChartData(item),
-                TemplateId = item.PercentageValue.HasValue && item.PercentageValue.Value > 0 ? "two-column-default" : "text-focused"
+                ChartData = statChartJson,
+                TemplateId = statTemplateId
             });
         }
 
@@ -843,6 +908,7 @@ internal sealed class ContentGenerationService : IContentGenerationService
         {
             var item = antList[i];
             var id = i < antIds.Count ? antIds[i] : Guid.Empty;
+            var (antChartJson, antTemplateId) = BuildAntisticChartData(item);
             antystykDrafts.Add(new GeneratedDraft
             {
                 Id = id,
@@ -851,8 +917,8 @@ internal sealed class ContentGenerationService : IContentGenerationService
                 SourceUrl = item.SourceUrl,
                 SourceCitation = item.SourceName,
                 Kind = "antystyk",
-                ChartData = BuildAntisticChartData(item).ChartData,
-                TemplateId = BuildAntisticChartData(item).TemplateId
+                ChartData = antChartJson,
+                TemplateId = antTemplateId
             });
         }
 
