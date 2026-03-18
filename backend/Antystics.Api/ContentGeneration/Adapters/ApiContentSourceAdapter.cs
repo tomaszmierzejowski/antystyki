@@ -49,6 +49,10 @@ internal sealed class ApiContentSourceAdapter : IContentSourceAdapter
                 .Take(MaxItems)
                 .ToList();
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "API fetch failed for {Source}", source.Id);

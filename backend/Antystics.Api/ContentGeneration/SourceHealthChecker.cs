@@ -51,13 +51,18 @@ internal sealed class SourceHealthChecker : ISourceHealthChecker
 
                 _logger.LogWarning("Health check FAILED for source {Source}: HTTP {StatusCode} (attempt {Attempt}/{MaxAttempts})", source.Id, statusCode, attempt, maxAttempts);
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (TaskCanceledException)
+            {
+                // Internal HttpClient timeout for this source — log and try next attempt.
+                _logger.LogWarning("Health check TIMED OUT for source {Source} on attempt {Attempt}/{MaxAttempts}", source.Id, attempt, maxAttempts);
+            }
             catch (HttpRequestException ex)
             {
                 _logger.LogWarning("Health check FAILED for source {Source} (network error on attempt {Attempt}/{MaxAttempts}): {Message}", source.Id, attempt, maxAttempts, ex.Message);
-            }
-            catch (TaskCanceledException ex) when (ex.CancellationToken != cancellationToken)
-            {
-                _logger.LogWarning("Health check TIMED OUT for source {Source} on attempt {Attempt}/{MaxAttempts}", source.Id, attempt, maxAttempts);
             }
             catch (Exception ex)
             {

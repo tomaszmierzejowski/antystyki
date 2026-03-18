@@ -66,6 +66,34 @@ public class ContentGenerationRunOrchestratorTests
     }
 
     [Fact]
+    public async Task QueueRunAsync_TimeoutCancellation_FailsWithTimeoutMessage_NoRetry()
+    {
+        // Arrange: service that delays longer than the configured run timeout.
+        var fakeService = new FakeGenerationService(delayMs: 5000);
+        // RunTimeoutSeconds = 1 s so it fires immediately; RunMaxAttempts = 2 to confirm no retry occurs.
+        var provider = BuildServices(fakeService, runTimeoutSeconds: 1, runMaxAttempts: 2);
+        var orchestrator = provider.GetRequiredService<IContentGenerationRunOrchestrator>();
+
+        var started = await orchestrator.QueueRunAsync(new ContentGenerationRequest
+        {
+            DryRun = false,
+            TargetStatistics = 1,
+            TargetAntystics = 0
+        }, "manual", "moderator@antystyki.pl", CancellationToken.None);
+
+        Assert.True(started.Accepted);
+
+        var run = await WaitForTerminalState(orchestrator, started.RunId!.Value, timeoutSecs: 8);
+
+        Assert.NotNull(run);
+        Assert.Equal("failed", run!.Status);
+        // Must mention the timeout so moderator has actionable info.
+        Assert.Contains("timed out", run.ErrorMessage, StringComparison.OrdinalIgnoreCase);
+        // AttemptCount must be 1: no retry after a timeout.
+        Assert.Equal(1, run.AttemptCount);
+    }
+
+    [Fact]
     public async Task QueueRunAsync_RejectsConcurrentRun()
     {
         var fakeService = new FakeGenerationService(delayMs: 700);
@@ -96,9 +124,12 @@ public class ContentGenerationRunOrchestratorTests
         Assert.NotNull(second.ActiveRunId);
     }
 
-    private static async Task<ContentGenerationRunView?> WaitForTerminalState(IContentGenerationRunOrchestrator orchestrator, Guid runId)
+    private static async Task<ContentGenerationRunView?> WaitForTerminalState(
+        IContentGenerationRunOrchestrator orchestrator,
+        Guid runId,
+        int timeoutSecs = 8)
     {
-        var deadline = DateTime.UtcNow.AddSeconds(8);
+        var deadline = DateTime.UtcNow.AddSeconds(timeoutSecs);
         while (DateTime.UtcNow < deadline)
         {
             var run = await orchestrator.GetRunAsync(runId, CancellationToken.None);
@@ -113,7 +144,10 @@ public class ContentGenerationRunOrchestratorTests
         return await orchestrator.GetRunAsync(runId, CancellationToken.None);
     }
 
-    private static ServiceProvider BuildServices(FakeGenerationService fakeService)
+    private static ServiceProvider BuildServices(
+        FakeGenerationService fakeService,
+        int runTimeoutSeconds = 30,
+        int runMaxAttempts = 1)
     {
         var services = new ServiceCollection();
         var dbName = $"content-generation-run-tests-{Guid.NewGuid()}";
@@ -123,7 +157,8 @@ public class ContentGenerationRunOrchestratorTests
         services.AddSingleton<IContentGenerationRunOrchestrator, ContentGenerationRunOrchestrator>();
         services.AddSingleton<IOptions<ContentGenerationOptions>>(Options.Create(new ContentGenerationOptions
         {
-            RunMaxAttempts = 1,
+            RunTimeoutSeconds = runTimeoutSeconds,
+            RunMaxAttempts = runMaxAttempts,
             RetryBaseDelaySeconds = 1,
             HttpTimeoutSeconds = 10
         }));

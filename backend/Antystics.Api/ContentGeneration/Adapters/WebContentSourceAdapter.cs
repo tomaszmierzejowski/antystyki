@@ -81,6 +81,10 @@ internal sealed class WebContentSourceAdapter : IContentSourceAdapter
 
             return new[] { item };
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "Web fetch failed for {Source}", source.Id);

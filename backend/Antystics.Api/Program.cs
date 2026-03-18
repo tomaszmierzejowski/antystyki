@@ -200,6 +200,7 @@ builder.Services.PostConfigure<ContentGenerationOptions>(options =>
     options.MinAntystics = GetInt(builder.Configuration, "CONTENT_GENERATION_MIN_ANTYSTICS", options.MinAntystics);
     options.MaxAntystics = GetInt(builder.Configuration, "CONTENT_GENERATION_MAX_ANTYSTICS", options.MaxAntystics);
     options.CreatorEmail = builder.Configuration["CONTENT_GENERATION_CREATOR_EMAIL"] ?? options.CreatorEmail;
+    options.RunTimeoutSeconds = GetInt(builder.Configuration, "CONTENT_GENERATION_RUN_TIMEOUT_SECONDS", options.RunTimeoutSeconds);
 });
 
 // Configure CORS

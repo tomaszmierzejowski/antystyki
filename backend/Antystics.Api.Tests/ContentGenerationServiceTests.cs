@@ -270,6 +270,119 @@ public class ContentGenerationServiceTests
         Assert.Contains(templateNode.GetString(), new[] { "two-column-default", "single-chart", "text-focused", "comparison" });
     }
 
+    [Fact]
+    public async Task GenerateAsync_FetchCancellation_PropagatesOutOfService()
+    {
+        // Arrange: adapter that throws OperationCanceledException when a pre-canceled token is passed.
+        // This simulates a run-timeout CTS firing while adapters are fetching sources.
+        var services = BuildServices();
+        var scopeFactory = services.GetRequiredService<IServiceScopeFactory>();
+        using var scope = scopeFactory.CreateScope();
+
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+
+        var options = Options.Create(new ContentGenerationOptions
+        {
+            MinStatistics = 1,
+            MaxStatistics = 1,
+            MinAntystics = 0,
+            MaxAntystics = 0
+        });
+
+        var sources = new[]
+        {
+            new ContentSource
+            {
+                Id = "rss-cancel",
+                Name = "Cancel RSS",
+                Type = ContentSourceType.Rss,
+                Endpoint = "http://example.com",
+                HealthCheckUrl = "http://example.com",
+                PolandFocus = true,
+                Reliability = 5
+            }
+        };
+
+        var provider = new TestSourceProvider(sources);
+        var health = new TestHealthChecker();
+        var httpClientFactory = new TestHttpClientFactory();
+        var openAiService = new TestOpenAiService();
+        var cancelAdapter = new CancelingAdapter();
+        var adapters = new List<IContentSourceAdapter> { cancelAdapter };
+        var service = new ContentGenerationService(adapters, provider, health, httpClientFactory, options, db, userManager, NullLogger<ContentGenerationService>.Instance, openAiService);
+
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            service.GenerateAsync(new ContentGenerationRequest
+            {
+                DryRun = false,
+                TargetStatistics = 1,
+                TargetAntystics = 0
+            }, cts.Token));
+
+        Assert.Empty(db.Statistics);
+    }
+
+    [Fact]
+    public async Task GenerateAsync_EmptyFetch_DoesNotRetryWithBackoff_CompletesQuickly()
+    {
+        // Arrange: adapter that always returns empty — should not spend time on backoff retries.
+        var services = BuildServices();
+        var scopeFactory = services.GetRequiredService<IServiceScopeFactory>();
+        using var scope = scopeFactory.CreateScope();
+
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+
+        var options = Options.Create(new ContentGenerationOptions
+        {
+            MinStatistics = 1,
+            MaxStatistics = 1,
+            MinAntystics = 0,
+            MaxAntystics = 0,
+            SourceFetchMaxAttempts = 3,
+            RetryBaseDelaySeconds = 10 // Large delay — would inflate time if retried on empty
+        });
+
+        var sources = new[]
+        {
+            new ContentSource
+            {
+                Id = "rss-empty",
+                Name = "Empty RSS",
+                Type = ContentSourceType.Rss,
+                Endpoint = "http://example.com",
+                HealthCheckUrl = "http://example.com",
+                PolandFocus = true,
+                Reliability = 5
+            }
+        };
+
+        var provider = new TestSourceProvider(sources);
+        var health = new TestHealthChecker();
+        var httpClientFactory = new TestHttpClientFactory();
+        var openAiService = new TestOpenAiService();
+        var adapters = new List<IContentSourceAdapter> { new EmptyAdapter() };
+        var service = new ContentGenerationService(adapters, provider, health, httpClientFactory, options, db, userManager, NullLogger<ContentGenerationService>.Instance, openAiService);
+
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        var result = await service.GenerateAsync(new ContentGenerationRequest
+        {
+            DryRun = false,
+            TargetStatistics = 1,
+            TargetAntystics = 0
+        }, CancellationToken.None);
+        sw.Stop();
+
+        Assert.Empty(result.CreatedStatistics);
+        // Must complete well under even one retry delay (10 s), proving empty fetch is not retried.
+        Assert.True(sw.Elapsed.TotalSeconds < 5,
+            $"Elapsed {sw.Elapsed.TotalSeconds:F1} s — empty fetch should not trigger retry backoff.");
+    }
+
     private static ServiceProvider BuildServices()
     {
         var services = new ServiceCollection();
@@ -322,6 +435,25 @@ public class ContentGenerationServiceTests
 
             return Task.FromResult<IReadOnlyCollection<SourceItem>>(items);
         }
+    }
+
+    private sealed class CancelingAdapter : IContentSourceAdapter
+    {
+        public bool CanHandle(ContentSourceType type) => true;
+
+        public Task<IReadOnlyCollection<SourceItem>> FetchAsync(ContentSource source, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult<IReadOnlyCollection<SourceItem>>(Array.Empty<SourceItem>());
+        }
+    }
+
+    private sealed class EmptyAdapter : IContentSourceAdapter
+    {
+        public bool CanHandle(ContentSourceType type) => true;
+
+        public Task<IReadOnlyCollection<SourceItem>> FetchAsync(ContentSource source, CancellationToken cancellationToken)
+            => Task.FromResult<IReadOnlyCollection<SourceItem>>(Array.Empty<SourceItem>());
     }
 
     private sealed class TestHttpClientFactory : IHttpClientFactory

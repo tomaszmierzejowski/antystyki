@@ -84,6 +84,10 @@ internal sealed class RssContentSourceAdapter : IContentSourceAdapter
 
             return items;
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "RSS fetch failed for {Source}", source.Id);

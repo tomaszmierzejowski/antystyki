@@ -449,6 +449,10 @@ internal sealed class ContentGenerationService : IContentGenerationService
                 cache[sourceUrl] = statusCode;
                 return statusCode;
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 if (attempt == maxAttempts)
@@ -633,23 +637,37 @@ internal sealed class ContentGenerationService : IContentGenerationService
 
             IReadOnlyCollection<SourceItem> fetched = Array.Empty<SourceItem>();
             var maxAttempts = Math.Max(1, _options.SourceFetchMaxAttempts);
+            var fetchedSuccessfully = false;
             for (var attempt = 1; attempt <= maxAttempts; attempt++)
             {
-                fetched = await adapter.FetchAsync(source, cancellationToken).ConfigureAwait(false);
-                if (fetched.Count > 0)
+                try
                 {
-                    break;
+                    fetched = await adapter.FetchAsync(source, cancellationToken).ConfigureAwait(false);
+                    fetchedSuccessfully = true;
+                    break; // Success (empty or non-empty) — do not retry on successful response.
                 }
-
-                if (attempt >= maxAttempts)
+                catch (OperationCanceledException)
                 {
-                    break;
+                    throw;
                 }
+                catch (Exception ex)
+                {
+                    if (attempt >= maxAttempts)
+                    {
+                        _logger.LogWarning(ex, "Fetch failed for source {SourceId} after {MaxAttempts} attempt(s). Skipping source.", source.Id, maxAttempts);
+                        break;
+                    }
 
-                var delayMs = (int)Math.Pow(2, attempt) * Math.Max(500, _options.RetryBaseDelaySeconds * 1000);
-                _logger.LogDebug("Source {SourceId} returned no items on attempt {Attempt}/{MaxAttempts}. Retrying in {DelayMs} ms.",
-                    source.Id, attempt, maxAttempts, delayMs);
-                await Task.Delay(delayMs, cancellationToken).ConfigureAwait(false);
+                    var delayMs = (int)Math.Pow(2, attempt) * Math.Max(500, _options.RetryBaseDelaySeconds * 1000);
+                    _logger.LogDebug(ex, "Fetch failed for source {SourceId} on attempt {Attempt}/{MaxAttempts}. Retrying in {DelayMs} ms.",
+                        source.Id, attempt, maxAttempts, delayMs);
+                    await Task.Delay(delayMs, cancellationToken).ConfigureAwait(false);
+                }
+            }
+
+            if (!fetchedSuccessfully)
+            {
+                _logger.LogInformation("Source {SourceId} ({SourceType}) could not be fetched after {MaxAttempts} attempt(s).", source.Id, source.Type, maxAttempts);
             }
 
             _logger.LogInformation(

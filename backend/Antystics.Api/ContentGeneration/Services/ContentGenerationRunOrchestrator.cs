@@ -121,10 +121,10 @@ internal sealed class ContentGenerationRunOrchestrator : IContentGenerationRunOr
                 run.AttemptCount = attempt;
                 await db.SaveChangesAsync().ConfigureAwait(false);
 
+                var runTimeoutSeconds = Math.Max(1, _options.RunTimeoutSeconds);
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(runTimeoutSeconds));
                 try
                 {
-                    var timeoutSeconds = Math.Max(45, _options.HttpTimeoutSeconds * 12);
-                    using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));
                     var result = await generationService.GenerateAsync(request, cts.Token).ConfigureAwait(false);
                     var createdStats = result.CreatedStatistics.Count;
                     var createdAntystics = result.CreatedAntystics.Count;
@@ -143,6 +143,22 @@ internal sealed class ContentGenerationRunOrchestrator : IContentGenerationRunOr
                         : "Run completed without validated trusted statistics. Nothing was persisted.";
                     run.CompletedAt = DateTime.UtcNow;
                     await db.SaveChangesAsync().ConfigureAwait(false);
+                    return;
+                }
+                catch (OperationCanceledException) when (cts.IsCancellationRequested)
+                {
+                    // The per-attempt run-timeout budget was exhausted.
+                    // This is a deterministic budget failure, not a transient network blip —
+                    // retrying would hit the same wall. Fail immediately and record diagnostics.
+                    run.ErrorMessage = $"Run timed out after {runTimeoutSeconds} s (RunTimeoutSeconds). " +
+                                       "Consider increasing ContentGeneration:RunTimeoutSeconds or reducing active source count.";
+                    run.CompletedAt = DateTime.UtcNow;
+                    run.Status = ContentGenerationRunStatuses.Failed;
+                    await db.SaveChangesAsync().ConfigureAwait(false);
+                    _logger.LogError(
+                        "Content generation run {RunId} timed out after {TimeoutSeconds} s on attempt {Attempt}. " +
+                        "Marking failed without retry.",
+                        runId, runTimeoutSeconds, attempt);
                     return;
                 }
                 catch (Exception ex)

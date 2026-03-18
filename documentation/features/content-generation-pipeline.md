@@ -1,6 +1,6 @@
 # Content Generation Pipeline (AUTO-GEN-DAILY)
 
-**Version**: 1.0  
+**Version**: 1.1  
 **Last Updated**: 2026-03-18  
 **Feature ID**: `AUTO-GEN-DAILY` (PRD §3.1)
 
@@ -155,16 +155,27 @@ Run states in `content_generation_runs`:
 - `succeeded`
 - `failed`
 
-Retry behavior:
+### Per-attempt run-timeout budget
+
+Each `GenerateAsync` attempt is bounded by `RunTimeoutSeconds` (default 360 s).  
+If the attempt exceeds this budget the run is immediately marked `failed` with a `timed out after N s` error message — **no retry** is performed (retrying the identical workload under the same budget would not help).
+
+To widen the budget for slower networks or larger source sets, set `ContentGeneration:RunTimeoutSeconds` in configuration or the `CONTENT_GENERATION_RUN_TIMEOUT_SECONDS` environment variable.
+
+### Retry behavior
 
 - source health checks: `SourceHealthMaxAttempts`
-- source fetch attempts: `SourceFetchMaxAttempts`
+- source fetch attempts: `SourceFetchMaxAttempts` — retries only on transient transport errors; an empty but successful fetch response is **not** retried (prevents backoff inflation)
 - source URL checks: `SourceUrlCheckMaxAttempts`
-- full run attempts: `RunMaxAttempts`
+- full run attempts (transient errors only): `RunMaxAttempts`
 
 Backoff:
 
 - exponential (`2^attempt * RetryBaseDelaySeconds`).
+
+### Cancellation propagation
+
+Caller cancellation from the run-timeout token propagates through all adapters, health checks, and URL-check retries. It is never swallowed as an empty result. Any `OperationCanceledException` that matches the run CTS token surfaces immediately as a timeout failure in the run record.
 
 ---
 
@@ -189,6 +200,13 @@ Backoff:
   - untrusted source filtering (`MinimumSourceReliability`, `TrustedSourceIds`),
   - source URL verification errors,
   - validation confidence threshold.
+
+- **Run failed with "timed out after N s"**  
+  The run-timeout budget was exhausted before all sources could be fetched and validated.  
+  Options:
+  - increase `ContentGeneration:RunTimeoutSeconds` (default 360) — set `CONTENT_GENERATION_RUN_TIMEOUT_SECONDS` env var in Docker/K8s,
+  - reduce the number of active sources in `content-sources.json` (fewer enabled sources = shorter fetch phase),
+  - lower `SourceFetchMaxAttempts` or `SourceHealthMaxAttempts` if retry delays are accumulating.
 
 - **High rejection volume**  
   Check `validationIssues` in run status for rejection reason clusters.
@@ -215,4 +233,7 @@ Backoff:
 
 - **Outdated**: antistics were not explicitly linked to same-run statistics.  
   **Corrected**: generated antistics now persist `SourceStatisticId`.
+
+- **Outdated**: run timeout was derived heuristically from `HttpTimeoutSeconds * 12`; timeout cancellation was swallowed as empty fetch results and then silently retried, eventually exhausting `RunMaxAttempts` and logging a confusing `TaskCanceledException`.  
+  **Corrected**: explicit `RunTimeoutSeconds` option (default 360 s); timeout fires `OperationCanceledException` which is caught separately, persisted as `failed` with a clear actionable message, and not retried. Adapters and URL-check retries propagate caller cancellation instead of swallowing it.
 

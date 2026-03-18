@@ -129,6 +129,7 @@ To become the leading platform for thought-provoking, statistically-based humor 
    - Validation requires explicit percentage or ratio convertible to percent, timeframe inclusion, and source URL HTTP 200 per item; rejects stale items (>14 days) when publish dates exist
    - Idempotency uses per-item `GenerationKey` + DB uniqueness to prevent same-day/topic/source duplicates unless explicitly overridden
    - Auto-generated drafts include metadata payload (percent/ratio, timeframe, context sentence, publisher, geo focus, tags, source status) for moderator review and auditability
+   - `RunTimeoutSeconds` (default 360 s, env-var `CONTENT_GENERATION_RUN_TIMEOUT_SECONDS`) is the explicit per-attempt wall-clock budget; timeout cancellation is fail-fast (no retry) and surfaces as a `failed` run with actionable message; source adapters propagate caller cancellation so it is never misclassified as an empty fetch result
 
 #### Success Metrics
 - Application uptime >99%
@@ -610,3 +611,4 @@ The roadmap provides a clear path from MVP to a profitable, scalable platform th
 - 2026-01-10T17:30Z: Added AUTO-GEN-DAILY content automation (07:00 job + admin trigger) with curated sources manifest and dedupe/health checks (§3.1).
 - 2026-01-16T09:00Z: Strengthened AUTO-GEN-DAILY validation rules (percent/ratio, timeframe, source URL 200, freshness) and metadata logging requirements (§3.1).
 - 2026-03-18T20:05Z: Hardened AUTO-GEN-DAILY execution model with persisted run states (`/api/admin/content-generation/runs/{runId}`), moderator manual trigger parity, trusted-source reliability enforcement, and generation-key idempotency safeguards (§3.1).
+- 2026-03-18T21:00Z: Fixed AUTO-GEN-DAILY timeout cancellation chain — added explicit `RunTimeoutSeconds` option, separated timeout `OperationCanceledException` from transient failures (fail-fast, no retry on timeout), fixed adapters/health-checks to propagate caller cancellation, and eliminated false backoff retries on empty-but-successful fetch responses (§3.1).

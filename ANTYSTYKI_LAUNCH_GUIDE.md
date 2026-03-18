@@ -201,6 +201,7 @@
 - [ ] Confirm scheduler path creates one daily run at 07:00 local time with persisted run status (`queued/running/succeeded/failed`) and no overlapping executions
 - [ ] Confirm AUTO-GEN-DAILY validation enforces trusted source reliability floor + optional allowlist, %/ratio + timeframe, per-item source URL HTTP 200, stale rejection (>14 days), confidence threshold, and metadata/provenance payload for moderator review
 - [ ] Confirm idempotency keys prevent same-day/topic/source duplicates in both statistics and antistics queues (unless manual duplicate override is explicitly used)
+- [ ] Verify `ContentGeneration:RunTimeoutSeconds` is set appropriately for production network conditions (default 360 s); confirm a timed-out run surfaces as `failed` with `timed out after N s` message in run status rather than an opaque `TaskCanceledException`
 
 ### Week 2: Launch & Marketing
 
@@ -435,3 +436,4 @@
 - 2025-11-22T10:35Z: Captured DEV-CORS-2025-11-22 in §5.1 to keep localhost QA aligned with `Statystyki` launch requirements by whitelisting Vite fallback ports (5173-5177).
 - 2026-01-16T09:00Z: Added AUTO-GEN-DAILY validation checks (percent/ratio, timeframe, source URL 200, freshness) to the Go-Live checklist (§5).
 - 2026-03-18T20:05Z: Updated AUTO-GEN-DAILY launch checks for persisted run states/polling endpoint, moderator manual trigger parity, trusted-source reliability gating, and generation-key idempotency verification (§5).
+- 2026-03-18T21:00Z: Added AUTO-GEN-DAILY timeout-budget observability checklist item (`RunTimeoutSeconds` verification, timed-out run message) (§5).

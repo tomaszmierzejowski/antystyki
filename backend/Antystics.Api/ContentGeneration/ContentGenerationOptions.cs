@@ -13,6 +13,12 @@ public sealed class ContentGenerationOptions
     public int DuplicateWindowDays { get; set; } = 30;
     public double PolandRatioFloor { get; set; } = 0.5;
     public int HttpTimeoutSeconds { get; set; } = 12;
+    /// <summary>
+    /// Hard wall-clock budget for a single GenerateAsync attempt (source fetch + validation + LLM).
+    /// Replaces the previous heuristic of HttpTimeoutSeconds * 12.
+    /// Default (360 s) is generous enough for ~17 sources × up to 20 s each plus LLM calls.
+    /// </summary>
+    public int RunTimeoutSeconds { get; set; } = 360;
     public int SourceHealthMaxAttempts { get; set; } = 3;
     public int SourceFetchMaxAttempts { get; set; } = 3;
     public int SourceUrlCheckMaxAttempts { get; set; } = 2;
