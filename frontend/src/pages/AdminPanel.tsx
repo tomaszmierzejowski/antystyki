@@ -5,6 +5,7 @@ import api from '../config/api';
 import { useAuth } from '../context/useAuth';
 import { Link, Navigate } from 'react-router-dom';
 import AntisticCard from '../components/AntisticCard';
+import StatisticCard from '../components/StatisticCard';
 import { fetchPendingStatistics as fetchPendingStatisticsApi, moderateStatistic as moderateStatisticApi } from '../api/statistics';
 import adminApi from '../api/admin';
 
@@ -450,67 +451,92 @@ const AdminPanel: React.FC = () => {
         </div>
 
         {pendingStatistics.map((statistic) => (
-          <div key={statistic.id} className="bg-white border border-gray-200 rounded-xl p-6 space-y-4">
-            <div className="flex flex-col lg:flex-row lg:justify-between gap-6">
-              <div className="space-y-3 flex-1">
-                <h3 className="text-xl font-semibold text-gray-900">{statistic.title}</h3>
-                <p className="text-gray-700 leading-relaxed">{statistic.summary}</p>
-                {statistic.description && (
-                  <p className="text-sm text-gray-600 bg-gray-50 border border-gray-100 rounded-lg p-4">
-                    {statistic.description}
-                  </p>
-                )}
-              </div>
-              <div className="w-full lg:w-72 space-y-2 text-sm text-gray-600">
-                <div>
-                  <span className="font-semibold text-gray-700">Źródło:</span>{' '}
-                  <a
-                    href={statistic.sourceUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:text-blue-800 break-all"
-                  >
-                    {statistic.sourceCitation || statistic.sourceUrl}
-                  </a>
-                </div>
-                <div>
-                  <span className="font-semibold text-gray-700">Dodane przez:</span>{' '}
-                  {statistic.createdBy.username}
-                </div>
-                <div>
-                  <span className="font-semibold text-gray-700">Dodano:</span>{' '}
-                  {new Date(statistic.createdAt).toLocaleDateString('pl-PL', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
-                </div>
-                <div>
-                  <span className="font-semibold text-gray-700">Głosy:</span>{' '}
-                  👍 {statistic.likeCount} · 👎 {statistic.dislikeCount}
+          <div key={statistic.id} className="bg-white rounded-lg border border-gray-200 p-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-2">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Podgląd statystyki</h3>
+                <div className="max-w-md mx-auto pointer-events-none">
+                  <StatisticCard
+                    statistic={statistic}
+                    onVote={async () => {}}
+                    isBusy={true}
+                  />
                 </div>
               </div>
-            </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-4 border-t border-gray-100 pt-4">
-              <div className="text-sm text-gray-500">
-                Wejścia: {statistic.viewsCount} · Zaufanie: {statistic.trustPoints} · Fake: {statistic.fakePoints}
-              </div>
-              <div className="flex flex-wrap gap-3">
-                <button
-                  onClick={() => handleModerateStatistic(statistic.id, true)}
-                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors"
-                  type="button"
-                >
-                  ✅ Publikuj jako bazę
-                </button>
-                <button
-                  onClick={() => handleModerateStatistic(statistic.id, false)}
-                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition-colors"
-                  type="button"
-                >
-                  ❌ Odrzuć
-                </button>
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Informacje o statystyce</h3>
+                  <div className="space-y-3 text-sm">
+                    <div>
+                      <strong className="text-gray-700">Tytuł:</strong>
+                      <p className="text-gray-900 mt-1">{statistic.title}</p>
+                    </div>
+                    <div>
+                      <strong className="text-gray-700">Opis:</strong>
+                      <p className="text-gray-600 mt-1">{statistic.summary}</p>
+                    </div>
+                    {statistic.description && (
+                      <div>
+                        <strong className="text-gray-700">Szczegóły:</strong>
+                        <p className="text-gray-600 mt-1">{statistic.description}</p>
+                      </div>
+                    )}
+                    {statistic.sourceUrl && (
+                      <div>
+                        <strong className="text-gray-700">Źródło:</strong>
+                        <a
+                          href={statistic.sourceUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block text-blue-600 hover:text-blue-800 mt-1 break-all"
+                        >
+                          {statistic.sourceCitation || statistic.sourceUrl}
+                        </a>
+                      </div>
+                    )}
+                    <div>
+                      <strong className="text-gray-700">Autor:</strong>
+                      <p className="text-gray-900 mt-1">{statistic.createdBy.username}</p>
+                    </div>
+                    <div>
+                      <strong className="text-gray-700">Data utworzenia:</strong>
+                      <p className="text-gray-900 mt-1">
+                        {new Date(statistic.createdAt).toLocaleDateString('pl-PL', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </p>
+                    </div>
+                    <div>
+                      <strong className="text-gray-700">Głosy:</strong>
+                      <p className="text-gray-900 mt-1">👍 {statistic.likeCount} · 👎 {statistic.dislikeCount}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t border-gray-200 pt-4">
+                  <h4 className="font-semibold text-gray-900 mb-3">Akcje moderacji</h4>
+                  <div className="space-y-3">
+                    <button
+                      onClick={() => handleModerateStatistic(statistic.id, true)}
+                      className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors font-medium"
+                      type="button"
+                    >
+                      ✅ Publikuj jako bazę
+                    </button>
+                    <button
+                      onClick={() => handleModerateStatistic(statistic.id, false)}
+                      className="w-full bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors font-medium"
+                      type="button"
+                    >
+                      ❌ Odrzuć
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

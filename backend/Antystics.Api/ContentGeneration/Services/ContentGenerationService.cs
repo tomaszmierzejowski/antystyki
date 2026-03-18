@@ -977,13 +977,13 @@ internal sealed class ContentGenerationService : IContentGenerationService
     {
         var windowStart = utcNow.AddDays(-Math.Max(1, _options.DuplicateWindowDays));
         var recentStatisticTitles = await _dbContext.Statistics
-            .Where(s => s.CreatedAt >= windowStart)
+            .Where(s => s.CreatedAt >= windowStart && s.Status != ModerationStatus.Rejected)
             .Select(s => new { s.Title, s.SourceUrl, s.GenerationKey })
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
         var recentAntysticTitles = await _dbContext.Antistics
-            .Where(a => a.CreatedAt >= windowStart)
+            .Where(a => a.CreatedAt >= windowStart && a.Status != ModerationStatus.Rejected)
             .Select(a => new { a.Title, a.SourceUrl, a.GenerationKey })
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
@@ -1213,17 +1213,50 @@ internal sealed class ContentGenerationService : IContentGenerationService
     private static string BuildStatisticChartData(SourceItem item)
     {
         var suggestion = BuildChartSuggestion(item);
+        var metricValue = item.PercentageValue;
+        var metricUnit = "%";
+        var metricLabel = Trim(item.ChartLabelMain ?? item.ContextSentence ?? item.Title, 100);
+        var chartSuggestionObj = new
+        {
+            type = suggestion.Type,
+            unit = suggestion.Unit,
+            dataPoints = suggestion.Points.Select(p => new { label = p.Label, value = Math.Round(p.Value, 2) })
+        };
+
+        // For pie charts the frontend StatisticCard uses singleChartData.segments
+        // (format: { label, percentage, color }), not chartSuggestion.dataPoints.
+        // Emit both so bar/line keep using the chartSuggestion fast-path while pie
+        // falls through to the template-based renderer correctly.
+        if (suggestion.Type == "pie")
+        {
+            var piePoints = NormalizePiePoints(suggestion.Points);
+            var segments = piePoints.Select((p, i) => new
+            {
+                label = p.Label,
+                percentage = Math.Round(p.Value, 1),
+                color = i == 0 ? "#ef4444" : "#e5e7eb"
+            });
+            return JsonSerializer.Serialize(new
+            {
+                templateId = "single-chart",
+                metricValue,
+                metricUnit,
+                metricLabel,
+                singleChartData = new
+                {
+                    type = "pie",
+                    segments
+                },
+                chartSuggestion = chartSuggestionObj
+            });
+        }
+
         return JsonSerializer.Serialize(new
         {
-            metricValue = item.PercentageValue,
-            metricUnit = "%",
-            metricLabel = Trim(item.ChartLabelMain ?? item.ContextSentence ?? item.Title, 100),
-            chartSuggestion = new
-            {
-                type = suggestion.Type,
-                unit = suggestion.Unit,
-                dataPoints = suggestion.Points.Select(p => new { label = p.Label, value = Math.Round(p.Value, 2) })
-            }
+            metricValue,
+            metricUnit,
+            metricLabel,
+            chartSuggestion = chartSuggestionObj
         });
     }
 
