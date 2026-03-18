@@ -1,6 +1,6 @@
 # Content Generation Pipeline (AUTO-GEN-DAILY)
 
-**Version**: 1.1  
+**Version**: 1.2  
 **Last Updated**: 2026-03-18  
 **Feature ID**: `AUTO-GEN-DAILY` (PRD §3.1)
 
@@ -23,7 +23,8 @@ It supersedes older notes that described this flow as fire-and-forget background
    - enforces single active run (`queued`/`running`),
    - executes with retry/backoff (`RunMaxAttempts`, `RetryBaseDelaySeconds`).
 4. Orchestrator invokes `ContentGenerationService.GenerateAsync`.
-5. Service validates sources, fetches candidates, enforces trust/quality gates, deduplicates, and persists only `pending` drafts.
+5. Service checks quarantine list (sources auto-blocked due to historically low yield), then fetches candidates in **StatYield-descending order** (High → Medium → Low), applying low-yield gating to skip low-density sources once enough candidates are already in the pool.
+6. Service enforces trust/quality gates, deduplicates, and persists only `pending` drafts.
 6. Moderator reviews items in `/admin` queue:
    - statistics via `/api/admin/statistics/pending`,
    - antistics via `/api/admin/antistics/pending`.
@@ -49,6 +50,50 @@ It supersedes older notes that described this flow as fire-and-forget background
 
 ---
 
+## Source Yield Rating (`StatYield`)
+
+Every source entry in `content-sources.json` carries a `statYield` field (`high | medium | low`) indicating the expected density of statistical content in its feed.
+
+| Tier | Sources (examples) | Behaviour |
+|------|-------------------|-----------|
+| `high` | bankier-rss, forsal-rss, gus-rss, rp-ekonomia-rss, pb-rss, businessinsider-pl-rss | Fetched first; counted toward low-yield gate |
+| `medium` | pap-rss, oko-press-rss, cbos-portal | Fetched second; counted toward gate |
+| `low` | wirtualnemedia-rss, sdg-api, polpan, imgw-climate, 300polityka | Fetched last; **skipped** when `LowYieldGatingEnabled=true` and `highMediumFetchedCount ≥ LowYieldSkipThreshold` |
+
+### Low-Yield Gating
+
+`LowYieldGatingEnabled` (default `true`) prevents low-density sources from crowding out high-density ones.  
+`LowYieldSkipThreshold` (default `0` = auto: `MaxStatistics × 3`) is the minimum number of raw items that must have been fetched from High+Medium sources before Low-yield sources are skipped.
+
+Skipped sources are recorded in `ContentGenerationRun.SkippedSourcesJson` with an explicit reason.
+
+---
+
+## Source Quarantine (optional)
+
+`SourceQuarantineEnabled` (default `false`) — when enabled, sources whose rolling pre-screen pass rate falls below `SourceQuarantineMinPrescreenRate` (default 5%) across the last `SourceQuarantineWindowRuns` (default 5) completed runs are automatically skipped for the duration of that run.
+
+Quarantine is computed at run-start by deserialising `SourcePerformanceJson` from recent runs in the DB.  
+Set `SourceQuarantineEnabled=true` only after several successful runs have accumulated source-performance data.
+
+---
+
+## Source Performance Diagnostics
+
+After each run, `ContentGenerationRun.SourcePerformanceJson` stores a JSON array:
+
+```json
+[
+  { "id": "bankier-rss", "name": "Bankier.pl", "fetched": 12, "sentToValidation": 8,
+    "prescreenPassed": 6, "prescreenFailed": 2, "validated": 4 },
+  ...
+]
+```
+
+Used by quarantine logic and visible to admins for operational diagnosis.
+
+---
+
 ## Trust and Validation Model
 
 Trusted-source enforcement is enabled by default:
@@ -60,10 +105,26 @@ Trusted-source enforcement is enabled by default:
 Per-candidate validation:
 
 - rejects stale items (`>14 days` when publish date exists),
-- requires percentage/ratio signal before LLM call,
+- requires percentage/ratio signal before LLM call (see extended pre-screen below),
 - requires verifiable source URL and HTTP `200` when `RequireSourceUrlHttp200=true`,
 - rejects low-confidence extraction (`MinimumValidationConfidence`, default `0.6`),
 - rejects LLM outputs lacking usable metric.
+
+### Extended Pre-Screen Patterns
+
+The pre-screen gate (`PassesPrescreen`) was expanded beyond simple `\d%` matching to cover common Polish statistical phrasings that contain unambiguous metric semantics:
+
+| Category | Examples |
+|----------|---------|
+| Explicit % | `45 %`, `12,3%`, `proc.`, `procent`, `pkt proc`, `p.p.` |
+| N/M fraction | `1/3`, `5/10` |
+| Polish ratio | `1 na 3`, `5 na 10` |
+| "co N-ty" | `co drugi`, `co trzeci`, `co czwarty` … `co dziesiąty` |
+| Multipliers | `dwukrotnie`, `trzykrotnie`, `razy więcej`, `razy mniej` |
+| Fraction phrases | `jedna trzecia`, `dwie trzecie`, `połowa Polaków`, `połowa badanych` |
+| Quantified change | `wzrósł o 5`, `spadek o 12`, `obniżył się o 3` |
+
+These expansions do not lower the quality bar — all patterns require explicit metric semantics and are still rejected by the LLM if the article lacks actual numerical backing.
 
 If no trusted validated data remains:
 
@@ -208,7 +269,14 @@ Caller cancellation from the run-timeout token propagates through all adapters, 
   - reduce the number of active sources in `content-sources.json` (fewer enabled sources = shorter fetch phase),
   - lower `SourceFetchMaxAttempts` or `SourceHealthMaxAttempts` if retry delays are accumulating.
 
-- **High rejection volume**  
+- **High rejection volume — "Pre-screen: no percentage or ratio found" (many items)**  
+  This means the active sources are not producing statistical articles in their RSS/Web feeds on that day. Steps:
+  1. Check `sourcePerformanceJson` in the run record — identify which sources had 0 `prescreenPassed`.
+  2. If recurring, enable `SourceQuarantineEnabled=true` to auto-skip chronically low-yield sources.
+  3. Ensure high-yield sources (bankier-rss, forsal-rss, gus-rss) are enabled in `content-sources.json`.
+  4. Confirm `LowYieldGatingEnabled=true` so low-yield sources don't drown out high-yield ones.
+
+- **High rejection volume — other reasons**  
   Check `validationIssues` in run status for rejection reason clusters.
 
 - **No daily run output**  
@@ -236,4 +304,13 @@ Caller cancellation from the run-timeout token propagates through all adapters, 
 
 - **Outdated**: run timeout was derived heuristically from `HttpTimeoutSeconds * 12`; timeout cancellation was swallowed as empty fetch results and then silently retried, eventually exhausting `RunMaxAttempts` and logging a confusing `TaskCanceledException`.  
   **Corrected**: explicit `RunTimeoutSeconds` option (default 360 s); timeout fires `OperationCanceledException` which is caught separately, persisted as `failed` with a clear actionable message, and not retried. Adapters and URL-check retries propagate caller cancellation instead of swallowing it.
+
+- **Outdated**: all sources were fetched in arbitrary order regardless of their expected statistical content density; pre-screen only checked `\d%`, `proc.`, `procent`, `pkt proc`, simple `N/M` ratios, and "co N-ty" phrases — missing many common real-world Polish statistical phrasings (`1 na 3`, `dwukrotnie`, `wzrósł o 5`, etc.); this produced `0 valid items` runs even when 25 candidates were available.  
+  **Corrected** (v1.2):  
+  - `StatYield` enum added to `ContentSource` — each source tagged `high | medium | low`.  
+  - Sources fetched in descending yield order; Low-yield sources gated behind configurable threshold (`LowYieldGatingEnabled`, `LowYieldSkipThreshold`).  
+  - `PassesPrescreen()` static method expanded with 7 new pattern categories covering Polish ratio/multiplier/fraction/growth phrasing.  
+  - Per-source outcome metrics (`fetched`, `sentToValidation`, `prescreenPassed`, `prescreenFailed`, `validated`) persisted in `ContentGenerationRun.SourcePerformanceJson` for each run.  
+  - Optional auto-quarantine (`SourceQuarantineEnabled`, default off) uses rolling source-performance history to skip chronically low-yield sources.  
+  - Skipped-source diagnostics persisted in `ContentGenerationRun.SkippedSourcesJson`.
 

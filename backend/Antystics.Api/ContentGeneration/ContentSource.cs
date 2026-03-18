@@ -9,6 +9,21 @@ public enum ContentSourceType
     Web
 }
 
+/// <summary>
+/// Expected rate at which a source produces candidates that pass the pre-screen
+/// (explicit %/ratio in title+summary). Used to prioritise high-yield sources first and
+/// to gate low-yield sources when the run target can already be met without them.
+/// </summary>
+public enum StatYield
+{
+    /// <summary>General news / portal homepages — rarely mention % in headlines.</summary>
+    Low = 1,
+    /// <summary>Mixed analytics/news — occasionally mentions statistics.</summary>
+    Medium = 2,
+    /// <summary>Finance/economy/stats feeds — frequently contains inflation %, GDP %, etc.</summary>
+    High = 3
+}
+
 public sealed record ContentSource
 {
     public string Id { get; init; } = string.Empty;
@@ -25,4 +40,6 @@ public sealed record ContentSource
     public bool HumorFriendly { get; init; }
     public IReadOnlyCollection<string> Tags { get; init; } = new List<string>();
     public string RateLimitNotes { get; init; } = string.Empty;
+    /// <summary>Expected statistical content density — drives fetch order and gating.</summary>
+    public StatYield StatYield { get; init; } = StatYield.Medium;
 }

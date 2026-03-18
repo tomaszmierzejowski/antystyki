@@ -202,6 +202,9 @@
 - [ ] Confirm AUTO-GEN-DAILY validation enforces trusted source reliability floor + optional allowlist, %/ratio + timeframe, per-item source URL HTTP 200, stale rejection (>14 days), confidence threshold, and metadata/provenance payload for moderator review
 - [ ] Confirm idempotency keys prevent same-day/topic/source duplicates in both statistics and antistics queues (unless manual duplicate override is explicitly used)
 - [ ] Verify `ContentGeneration:RunTimeoutSeconds` is set appropriately for production network conditions (default 360 s); confirm a timed-out run surfaces as `failed` with `timed out after N s` message in run status rather than an opaque `TaskCanceledException`
+- [ ] Verify HIGH-yield sources (bankier-rss, forsal-rss, gus-rss, rp-ekonomia-rss, pb-rss, businessinsider-pl-rss) are `"enabled": true` in `content-sources.json`; confirm `LowYieldGatingEnabled=true` (default) is active so low-density sources don't crowd out finance/stats feeds
+- [ ] After ≥5 successful daily runs, review `sourcePerformanceJson` in `content_generation_runs` to identify any sources with consistent `prescreenPassed = 0`; disable them in `content-sources.json` or enable `SourceQuarantineEnabled=true` for automatic governance
+- [ ] Confirm a manual run trigger from moderator panel completes with non-zero `createdStatisticsCount` and `sourcePerformanceJson` populated in the run record
 
 ### Week 2: Launch & Marketing
 
@@ -437,3 +440,4 @@
 - 2026-01-16T09:00Z: Added AUTO-GEN-DAILY validation checks (percent/ratio, timeframe, source URL 200, freshness) to the Go-Live checklist (§5).
 - 2026-03-18T20:05Z: Updated AUTO-GEN-DAILY launch checks for persisted run states/polling endpoint, moderator manual trigger parity, trusted-source reliability gating, and generation-key idempotency verification (§5).
 - 2026-03-18T21:00Z: Added AUTO-GEN-DAILY timeout-budget observability checklist item (`RunTimeoutSeconds` verification, timed-out run message) (§5).
+- 2026-03-18T22:30Z: Added production readiness checklist items for StatYield governance: verify high-yield sources enabled, LowYieldGatingEnabled active, post-run sourcePerformanceJson review, and manual run end-to-end validation (§5).

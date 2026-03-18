@@ -38,4 +38,45 @@ public sealed class ContentGenerationOptions
     // Gemini (preferred)
     public string? GeminiApiKey { get; set; }
     public string GeminiModel { get; set; } = "gemini-2.5-flash";
+
+    // ── Source yield gating ──────────────────────────────────────────────
+    /// <summary>
+    /// When true, Low-yield sources are only fetched if High+Medium sources have not
+    /// yet produced enough pre-screen candidates to meet <see cref="MinStatistics"/>.
+    /// Prevents low-density sources from crowding out high-density ones in
+    /// the candidate pool.
+    /// </summary>
+    public bool LowYieldGatingEnabled { get; set; } = true;
+
+    /// <summary>
+    /// Minimum number of pre-screen–passing candidates from High+Medium sources
+    /// before Low-yield sources are skipped entirely.
+    /// Default: MinStatistics × 3 (heuristic — enough headroom for LLM rejection).
+    /// Set to 0 to disable gating.
+    /// </summary>
+    public int LowYieldSkipThreshold { get; set; } = 0; // 0 = auto (3 × MinStatistics)
+
+    // ── Source quarantine ────────────────────────────────────────────────
+    /// <summary>
+    /// When true, sources whose rolling pre-screen acceptance rate is below
+    /// <see cref="SourceQuarantineMinPrescreenRate"/> across the last
+    /// <see cref="SourceQuarantineWindowRuns"/> completed runs are automatically
+    /// skipped. Disabled by default — requires data from several runs to be reliable.
+    /// </summary>
+    public bool SourceQuarantineEnabled { get; set; } = false;
+
+    /// <summary>Number of recent completed runs to evaluate per-source acceptance.</summary>
+    public int SourceQuarantineWindowRuns { get; set; } = 5;
+
+    /// <summary>
+    /// Minimum total items a source must have fetched across the evaluation window
+    /// before its acceptance rate is considered reliable enough to quarantine.
+    /// </summary>
+    public int SourceQuarantineMinFetched { get; set; } = 5;
+
+    /// <summary>
+    /// If a source's (prescreenPassed / fetched) rate over the evaluation window is below
+    /// this threshold it is quarantined for the run. Default 5 %.
+    /// </summary>
+    public double SourceQuarantineMinPrescreenRate { get; set; } = 0.05;
 }

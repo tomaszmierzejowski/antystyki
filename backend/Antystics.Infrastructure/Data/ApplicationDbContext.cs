@@ -290,6 +290,8 @@ public class ApplicationDbContext : IdentityDbContext<User, IdentityRole<Guid>, 
             entity.Property(e => e.ErrorMessage).HasMaxLength(4000);
             entity.Property(e => e.SourceIdsCsv).HasMaxLength(2000);
             entity.Property(e => e.ValidationIssuesJson);
+            entity.Property(e => e.SourcePerformanceJson);
+            entity.Property(e => e.SkippedSourcesJson);
             entity.HasIndex(e => e.CreatedAt);
             entity.HasIndex(e => e.Status);
         });

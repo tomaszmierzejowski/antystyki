@@ -135,6 +135,8 @@ internal sealed class ContentGenerationRunOrchestrator : IContentGenerationRunOr
                     run.SourceFailureCount = result.SourceFailures.Count;
                     run.ValidationFailureCount = result.ValidationIssues.Count;
                     run.ValidationIssuesJson = JsonSerializer.Serialize(result.ValidationIssues);
+                    run.SourcePerformanceJson = result.SourcePerformanceJson;
+                    run.SkippedSourcesJson = result.SkippedSourcesJson;
 
                     var hasTrustedData = createdStats > 0 || request.DryRun;
                     run.Status = hasTrustedData ? ContentGenerationRunStatuses.Succeeded : ContentGenerationRunStatuses.Failed;

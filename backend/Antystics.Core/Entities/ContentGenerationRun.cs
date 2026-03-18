@@ -21,6 +21,17 @@ public class ContentGenerationRun
     public string? ValidationIssuesJson { get; set; }
     public string? ErrorMessage { get; set; }
     public string? SourceIdsCsv { get; set; }
+    /// <summary>
+    /// JSON array of per-source outcome metrics for this run:
+    /// [{ "id", "name", "fetched", "prescreenPassed", "validated", "accepted" }].
+    /// Used to compute rolling acceptance rates for source quarantine decisions.
+    /// </summary>
+    public string? SourcePerformanceJson { get; set; }
+    /// <summary>
+    /// JSON array of source IDs that were skipped due to quarantine or low-yield gating.
+    /// [{ "id", "name", "reason" }]
+    /// </summary>
+    public string? SkippedSourcesJson { get; set; }
 }
 
 public static class ContentGenerationRunStatuses

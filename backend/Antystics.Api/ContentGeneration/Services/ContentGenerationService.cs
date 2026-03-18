@@ -36,6 +36,13 @@ internal sealed class ContentGenerationService : IContentGenerationService
     private static readonly Regex PercentageRegex = new(@"(?<!\d)(\d{1,3}(?:[.,]\d+)?)[ ]?%", RegexOptions.Compiled);
     private static readonly Regex RatioRegex = new(@"(?<!\d)(\d{1,3}(?:[.,]\d+)?)[ ]*/[ ]*(\d{1,3}(?:[.,]\d+)?)", RegexOptions.Compiled);
     private static readonly Regex YearRegex = new(@"\b(20\d{2})\b", RegexOptions.Compiled);
+    // "N na N" — Polish ratio phrasing (1 na 3, 5 na 10)
+    private static readonly Regex NaRatioRegex = new(@"\b\d+\s+na\s+\d+\b", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    // Growth/decline by a quantified amount: "wzrost o 5", "wzrósł o 3", "spadła o 12 proc"
+    // Handles Polish past-tense verb forms with both 'o' (wzrosł) and 'ó' (wzrósł).
+    private static readonly Regex QuantifiedChangeRegex = new(
+        @"(?:wzr[oó]s[łt][ałaą]?|spad(?:ek|ł[a]?)|obniży[łt](?:\s*się)?|zmniejszy[łt](?:\s*się)?|zwiększy[łt](?:\s*się)?)\s+o\s+\d",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
     private const int TitleMaxLength = 280;
     private const int SummaryMaxLength = 2000;
     private const string DefaultImageUrl = "/placeholder.png";
@@ -80,8 +87,16 @@ internal sealed class ContentGenerationService : IContentGenerationService
                 string.Join(", ", healthySources.UnhealthyIds));
         }
 
-        var candidateItems = await FetchCandidatesAsync(healthySources.HealthySources, cancellationToken).ConfigureAwait(false);
-        candidateItems = candidateItems
+        var quarantinedIds = await LoadQuarantinedSourceIdsAsync(cancellationToken).ConfigureAwait(false);
+        if (quarantinedIds.Count > 0)
+        {
+            _logger.LogInformation(
+                "Source quarantine: {Count} source(s) will be skipped this run: {Ids}",
+                quarantinedIds.Count, string.Join(", ", quarantinedIds));
+        }
+
+        var fetchResult = await FetchCandidatesAsync(healthySources.HealthySources, quarantinedIds, cancellationToken).ConfigureAwait(false);
+        var candidateItems = fetchResult.Items
             .Select(SanitizeItem)
             .Where(i => i != null)
             .Cast<SourceItem>()
@@ -114,9 +129,23 @@ internal sealed class ContentGenerationService : IContentGenerationService
             .Take(maxToProcess)
             .ToList();
 
+        // Per-source fetch counts (before dedup / validation)
+        var sourceFetchMap = candidateItems
+            .GroupBy(i => i.SourceId, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => (Name: g.First().SourceName, Fetched: g.Count()),
+                StringComparer.OrdinalIgnoreCase);
+
+        var sourceSentMap = itemsToProcess
+            .GroupBy(i => i.SourceId, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.Count(), StringComparer.OrdinalIgnoreCase);
+
         // 3. Validate (makes external LLM API calls)
         var validation = await ValidateItemsAsync(itemsToProcess, utcNow, cancellationToken).ConfigureAwait(false);
         var validatedItems = validation.ValidItems;
+
+        // Compute per-source outcome metrics for diagnostics and quarantine governance.
+        var sourcePerf = BuildSourcePerformanceJson(sourceFetchMap, sourceSentMap, validation.Issues, validatedItems);
+        var skippedSourcesJson = BuildSkippedSourcesJson(fetchResult.SkippedSources);
 
         if (validatedItems.Count == 0)
         {
@@ -147,7 +176,9 @@ internal sealed class ContentGenerationService : IContentGenerationService
                 SourceFailures = sourceFailures,
                 ValidationIssues = validation.Issues,
                 SkippedDuplicates = filteredCandidates.SkippedKeys,
-                Outcome = "failed_no_valid_data"
+                Outcome = "failed_no_valid_data",
+                SourcePerformanceJson = sourcePerf,
+                SkippedSourcesJson = skippedSourcesJson
             };
         }
 
@@ -168,6 +199,8 @@ internal sealed class ContentGenerationService : IContentGenerationService
                 sourceFailures,
                 filteredCandidates.SkippedKeys,
                 validation.Issues,
+                sourcePerf,
+                skippedSourcesJson,
                 true);
         }
 
@@ -212,7 +245,9 @@ internal sealed class ContentGenerationService : IContentGenerationService
                 SkippedDuplicates = filteredCandidates.SkippedKeys,
                 ValidationFailures = validation.Issues.Select(v => v.Reason).Distinct().ToList(),
                 ValidationIssues = validation.Issues,
-                Outcome = "duplicate_conflict"
+                Outcome = "duplicate_conflict",
+                SourcePerformanceJson = sourcePerf,
+                SkippedSourcesJson = skippedSourcesJson
             };
         }
 
@@ -225,7 +260,133 @@ internal sealed class ContentGenerationService : IContentGenerationService
             sourceFailures,
             filteredCandidates.SkippedKeys,
             validation.Issues,
+            sourcePerf,
+            skippedSourcesJson,
             false);
+    }
+
+    private async Task<IReadOnlyCollection<string>> LoadQuarantinedSourceIdsAsync(CancellationToken cancellationToken)
+    {
+        if (!_options.SourceQuarantineEnabled)
+        {
+            return Array.Empty<string>();
+        }
+
+        var windowRuns = Math.Max(1, _options.SourceQuarantineWindowRuns);
+        var minFetched = Math.Max(1, _options.SourceQuarantineMinFetched);
+        var minRate = Math.Max(0.0, Math.Min(1.0, _options.SourceQuarantineMinPrescreenRate));
+
+        var recentRuns = await _dbContext.ContentGenerationRuns
+            .Where(r => r.Status == ContentGenerationRunStatuses.Succeeded || r.Status == ContentGenerationRunStatuses.Failed)
+            .Where(r => r.SourcePerformanceJson != null)
+            .OrderByDescending(r => r.CompletedAt ?? r.CreatedAt)
+            .Take(windowRuns)
+            .Select(r => r.SourcePerformanceJson)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        if (recentRuns.Count == 0)
+        {
+            return Array.Empty<string>();
+        }
+
+        // Accumulate per-source stats across the evaluation window.
+        var sourceTotals = new Dictionary<string, (int Fetched, int PrescreenPassed)>(StringComparer.OrdinalIgnoreCase);
+        foreach (var json in recentRuns)
+        {
+            if (string.IsNullOrWhiteSpace(json)) continue;
+            try
+            {
+                using var doc = JsonDocument.Parse(json);
+                foreach (var entry in doc.RootElement.EnumerateArray())
+                {
+                    if (!entry.TryGetProperty("id", out var idProp)) continue;
+                    var id = idProp.GetString() ?? string.Empty;
+                    if (string.IsNullOrWhiteSpace(id)) continue;
+
+                    var fetched = entry.TryGetProperty("fetched", out var fp) ? fp.GetInt32() : 0;
+                    var passed = entry.TryGetProperty("prescreenPassed", out var pp) ? pp.GetInt32() : 0;
+
+                    if (!sourceTotals.TryGetValue(id, out var existing))
+                    {
+                        sourceTotals[id] = (fetched, passed);
+                    }
+                    else
+                    {
+                        sourceTotals[id] = (existing.Fetched + fetched, existing.PrescreenPassed + passed);
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogDebug(ex, "Could not parse SourcePerformanceJson entry during quarantine check — skipping.");
+            }
+        }
+
+        var quarantined = new List<string>();
+        foreach (var (id, (fetched, passed)) in sourceTotals)
+        {
+            if (fetched < minFetched) continue; // not enough data
+            var rate = fetched == 0 ? 0.0 : (double)passed / fetched;
+            if (rate < minRate)
+            {
+                _logger.LogWarning(
+                    "Source {SourceId} quarantined: pre-screen pass rate {Rate:P0} over last {Window} run(s) is below threshold {Threshold:P0}.",
+                    id, rate, recentRuns.Count, minRate);
+                quarantined.Add(id);
+            }
+        }
+
+        return quarantined;
+    }
+
+    private static string BuildSourcePerformanceJson(
+        Dictionary<string, (string Name, int Fetched)> fetchMap,
+        Dictionary<string, int> sentMap,
+        IReadOnlyCollection<ValidationIssue> issues,
+        IReadOnlyCollection<SourceItem> validatedItems)
+    {
+        var prescreenFailedPerSource = issues
+            .Where(i => i.Reason.StartsWith("Pre-screen", StringComparison.OrdinalIgnoreCase))
+            .GroupBy(i => i.SourceId, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.Count(), StringComparer.OrdinalIgnoreCase);
+
+        var validatedPerSource = validatedItems
+            .GroupBy(i => i.SourceId, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.Count(), StringComparer.OrdinalIgnoreCase);
+
+        var allIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var k in fetchMap.Keys) allIds.Add(k);
+        foreach (var k in sentMap.Keys) allIds.Add(k);
+
+        var entries = allIds.Select(id =>
+        {
+            fetchMap.TryGetValue(id, out var fetchInfo);
+            sentMap.TryGetValue(id, out var sent);
+            prescreenFailedPerSource.TryGetValue(id, out var prescreenFailed);
+            validatedPerSource.TryGetValue(id, out var validated);
+
+            var prescreenPassed = Math.Max(0, sent - prescreenFailed);
+            return new
+            {
+                id,
+                name = fetchInfo.Name ?? id,
+                fetched = fetchInfo.Fetched,
+                sentToValidation = sent,
+                prescreenPassed,
+                prescreenFailed,
+                validated
+            };
+        }).ToArray();
+
+        return JsonSerializer.Serialize(entries);
+    }
+
+    private static string BuildSkippedSourcesJson(IReadOnlyCollection<SkippedSourceInfo> skipped)
+    {
+        if (skipped.Count == 0) return "[]";
+        var entries = skipped.Select(s => new { id = s.Id, name = s.Name, reason = s.Reason }).ToArray();
+        return JsonSerializer.Serialize(entries);
     }
 
     private SourceItem? SanitizeItem(SourceItem item)
@@ -281,21 +442,10 @@ internal sealed class ContentGenerationService : IContentGenerationService
             }
 
             // Pre-screen: skip items with no percentage or ratio signal in the RSS snippet.
-            // This avoids burning Gemini API calls on pure news events (court decisions, political
+            // This avoids burning LLM API calls on pure news events (court decisions, political
             // statements, deaths) that cannot possibly yield a valid statistic.
             var combined = $"{item.Title} {item.Summary}";
-            var hasPercent = PercentageRegex.IsMatch(combined)
-                || combined.Contains("proc.", StringComparison.OrdinalIgnoreCase)
-                || combined.Contains("procent", StringComparison.OrdinalIgnoreCase)
-                || combined.Contains(" pkt proc", StringComparison.OrdinalIgnoreCase);
-            var hasRatio = RatioRegex.IsMatch(combined)
-                || combined.Contains("co drugi", StringComparison.OrdinalIgnoreCase)
-                || combined.Contains("co trzeci", StringComparison.OrdinalIgnoreCase)
-                || combined.Contains("co czwarty", StringComparison.OrdinalIgnoreCase)
-                || combined.Contains("co piąty", StringComparison.OrdinalIgnoreCase)
-                || combined.Contains("co dziesiąty", StringComparison.OrdinalIgnoreCase);
-
-            if (!hasPercent && !hasRatio)
+            if (!PassesPrescreen(combined))
             {
                 issues.Add(BuildIssue(item, "Pre-screen: no percentage or ratio found in title or summary — not a statistical article.", null, null));
                 continue;
@@ -621,17 +771,59 @@ internal sealed class ContentGenerationService : IContentGenerationService
         return (unhealthy, healthy);
     }
 
-    private async Task<IReadOnlyCollection<SourceItem>> FetchCandidatesAsync(
+    private async Task<FetchResult> FetchCandidatesAsync(
         IReadOnlyCollection<ContentSource> sources,
+        IReadOnlyCollection<string> quarantinedIds,
         CancellationToken cancellationToken)
     {
         var items = new List<SourceItem>();
-        foreach (var source in sources)
+        var skippedSources = new List<SkippedSourceInfo>();
+
+        // Process sources in descending yield order so high-density sources are fetched first.
+        var orderedSources = sources
+            .OrderByDescending(s => (int)s.StatYield)
+            .ThenByDescending(s => s.Reliability)
+            .ToList();
+
+        var lowYieldThreshold = _options.LowYieldGatingEnabled
+            ? (_options.LowYieldSkipThreshold > 0 ? _options.LowYieldSkipThreshold : Math.Max(3, _options.MinStatistics * 3))
+            : 0;
+
+        // Rolling count of items fetched from High+Medium sources — used for low-yield gating.
+        var highMediumFetchedCount = 0;
+
+        foreach (var source in orderedSources)
         {
+            // Skip quarantined sources.
+            if (quarantinedIds.Contains(source.Id, StringComparer.OrdinalIgnoreCase))
+            {
+                _logger.LogInformation(
+                    "Source {SourceId} skipped — quarantined due to historically low pre-screen acceptance.",
+                    source.Id);
+                skippedSources.Add(new SkippedSourceInfo(source.Id, source.Name,
+                    "quarantined: low historical pre-screen acceptance rate"));
+                continue;
+            }
+
+            // Gate Low-yield sources if enough candidates already fetched from higher-yield sources.
+            if (source.StatYield == StatYield.Low
+                && _options.LowYieldGatingEnabled
+                && lowYieldThreshold > 0
+                && highMediumFetchedCount >= lowYieldThreshold)
+            {
+                _logger.LogInformation(
+                    "Source {SourceId} (Low-yield) skipped — {Count} items already fetched from High/Medium sources (gate threshold: {Threshold}).",
+                    source.Id, highMediumFetchedCount, lowYieldThreshold);
+                skippedSources.Add(new SkippedSourceInfo(source.Id, source.Name,
+                    $"low-yield gate: {highMediumFetchedCount} items from higher-yield sources meet threshold ({lowYieldThreshold})"));
+                continue;
+            }
+
             var adapter = _adapters.FirstOrDefault(a => a.CanHandle(source.Type));
             if (adapter is null)
             {
                 _logger.LogWarning("No adapter found for source type {Type} ({Id})", source.Type, source.Id);
+                skippedSources.Add(new SkippedSourceInfo(source.Id, source.Name, "no adapter for source type"));
                 continue;
             }
 
@@ -671,8 +863,8 @@ internal sealed class ContentGenerationService : IContentGenerationService
             }
 
             _logger.LogInformation(
-                "Source {SourceId} ({SourceType}) returned {Count} items.",
-                source.Id, source.Type, fetched.Count);
+                "Source {SourceId} ({SourceType} / {Yield}) returned {Count} items.",
+                source.Id, source.Type, source.StatYield, fetched.Count);
 
             if (fetched.Count == 0)
             {
@@ -684,9 +876,88 @@ internal sealed class ContentGenerationService : IContentGenerationService
                 FetchedAtUtc = DateTimeOffset.UtcNow,
                 IsTrustedSource = true
             }));
+
+            if (source.StatYield != StatYield.Low)
+            {
+                highMediumFetchedCount += fetched.Count;
+            }
         }
 
-        return items;
+        return new FetchResult(items, skippedSources);
+    }
+
+    private sealed record SkippedSourceInfo(string Id, string Name, string Reason);
+
+    private sealed record FetchResult(
+        IReadOnlyCollection<SourceItem> Items,
+        IReadOnlyCollection<SkippedSourceInfo> SkippedSources);
+
+    /// <summary>
+    /// Returns true when <paramref name="combined"/> (title + summary) contains at least one
+    /// clear quantitative / statistical signal. The check covers:
+    /// <list type="bullet">
+    ///   <item>Explicit percentage figures (e.g. "45 %", "12,3%", "proc.", "procent", "pkt proc")</item>
+    ///   <item>N/M ratio notation (e.g. "1/3")</item>
+    ///   <item>Polish ratio phrasing (e.g. "1 na 3", "co drugi", "co trzeci")</item>
+    ///   <item>Multiplier phrases (e.g. "dwukrotnie", "razy więcej", "razy mniej")</item>
+    ///   <item>Fraction phrases (e.g. "jedna trzecia", "dwie trzecie", "połowa badanych")</item>
+    ///   <item>Quantified growth/decline (e.g. "wzrosła o 5", "spadek o 12")</item>
+    /// </list>
+    /// The gate is intentionally permissive enough to avoid missing real statistics,
+    /// while still filtering pure event articles (court decisions, deaths, announcements).
+    /// </summary>
+    private static bool PassesPrescreen(string combined)
+    {
+        // ── Explicit % signal ───────────────────────────────────────────
+        if (PercentageRegex.IsMatch(combined)) return true;
+        if (combined.Contains("proc.", StringComparison.OrdinalIgnoreCase)) return true;
+        if (combined.Contains("procent", StringComparison.OrdinalIgnoreCase)) return true;
+        if (combined.Contains("pkt proc", StringComparison.OrdinalIgnoreCase)) return true;
+        if (combined.Contains("p.p.", StringComparison.OrdinalIgnoreCase)) return true;
+
+        // ── N/M fraction notation ────────────────────────────────────────
+        if (RatioRegex.IsMatch(combined)) return true;
+
+        // ── "N na N" Polish ratio ("1 na 3 Polaków") ────────────────────
+        if (NaRatioRegex.IsMatch(combined)) return true;
+
+        // ── "co N-ty" distributional fractions ──────────────────────────
+        if (combined.Contains("co drugi", StringComparison.OrdinalIgnoreCase)) return true;
+        if (combined.Contains("co trzeci", StringComparison.OrdinalIgnoreCase)) return true;
+        if (combined.Contains("co czwarty", StringComparison.OrdinalIgnoreCase)) return true;
+        if (combined.Contains("co piąty", StringComparison.OrdinalIgnoreCase)) return true;
+        if (combined.Contains("co szósty", StringComparison.OrdinalIgnoreCase)) return true;
+        if (combined.Contains("co siódmy", StringComparison.OrdinalIgnoreCase)) return true;
+        if (combined.Contains("co ósmy", StringComparison.OrdinalIgnoreCase)) return true;
+        if (combined.Contains("co dziewiąty", StringComparison.OrdinalIgnoreCase)) return true;
+        if (combined.Contains("co dziesiąty", StringComparison.OrdinalIgnoreCase)) return true;
+
+        // ── Multiplier phrases ───────────────────────────────────────────
+        if (combined.Contains("dwukrotni", StringComparison.OrdinalIgnoreCase)) return true; // dwukrotnie / dwukrotny
+        if (combined.Contains("trzykrotni", StringComparison.OrdinalIgnoreCase)) return true;
+        if (combined.Contains("czterokrotni", StringComparison.OrdinalIgnoreCase)) return true;
+        if (combined.Contains("pięciokrotni", StringComparison.OrdinalIgnoreCase)) return true;
+        if (combined.Contains("razy więcej", StringComparison.OrdinalIgnoreCase)) return true;
+        if (combined.Contains("razy mniej", StringComparison.OrdinalIgnoreCase)) return true;
+        if (combined.Contains("razy drożej", StringComparison.OrdinalIgnoreCase)) return true;
+        if (combined.Contains("razy taniej", StringComparison.OrdinalIgnoreCase)) return true;
+
+        // ── Natural-language fractions ───────────────────────────────────
+        if (combined.Contains("jedna trzecia", StringComparison.OrdinalIgnoreCase)) return true;
+        if (combined.Contains("jedna czwarta", StringComparison.OrdinalIgnoreCase)) return true;
+        if (combined.Contains("jedna piąta", StringComparison.OrdinalIgnoreCase)) return true;
+        if (combined.Contains("dwie trzecie", StringComparison.OrdinalIgnoreCase)) return true;
+        if (combined.Contains("trzy czwarte", StringComparison.OrdinalIgnoreCase)) return true;
+        if (combined.Contains("połowa badanych", StringComparison.OrdinalIgnoreCase)) return true;
+        if (combined.Contains("połowa Polaków", StringComparison.OrdinalIgnoreCase)) return true;
+        if (combined.Contains("połowa respondentów", StringComparison.OrdinalIgnoreCase)) return true;
+        if (combined.Contains("połowa pracowników", StringComparison.OrdinalIgnoreCase)) return true;
+        if (combined.Contains("połowa ankietowanych", StringComparison.OrdinalIgnoreCase)) return true;
+
+        // ── Quantified growth / decline ("wzrosła o 5", "spadek o 12") ──
+        if (QuantifiedChangeRegex.IsMatch(combined)) return true;
+
+        return false;
     }
 
     private static int Clamp(int? requested, int min, int max)
@@ -1283,6 +1554,8 @@ internal sealed class ContentGenerationService : IContentGenerationService
         IReadOnlyCollection<string> sourceFailures,
         IReadOnlyCollection<string> duplicates,
         IReadOnlyCollection<ValidationIssue> validationIssues,
+        string? sourcePerformanceJson,
+        string? skippedSourcesJson,
         bool dryRun)
     {
         var statList = statistics.ToList();
@@ -1337,7 +1610,9 @@ internal sealed class ContentGenerationService : IContentGenerationService
             SkippedDuplicates = duplicates,
             ValidationFailures = validationIssues.Select(v => v.Reason).Distinct().ToList(),
             ValidationIssues = validationIssues,
-            Outcome = statDrafts.Count > 0 ? "succeeded" : "no_data"
+            Outcome = statDrafts.Count > 0 ? "succeeded" : "no_data",
+            SourcePerformanceJson = sourcePerformanceJson,
+            SkippedSourcesJson = skippedSourcesJson
         };
     }
 

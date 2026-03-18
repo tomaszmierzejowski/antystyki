@@ -13,6 +13,7 @@
     "polandFocus": true,
     "humorFriendly": false,
     "enabled": false,
+    "statYield": "low",
     "tags": ["official", "gov", "stats"],
     "rateLimitNotes": "Disabled: returns raw numeric value arrays with no narrative title; LLM cannot extract a % metric from this data."
   },
@@ -30,6 +31,7 @@
     "polandFocus": true,
     "humorFriendly": true,
     "enabled": false,
+    "statYield": "low",
     "tags": ["official", "central-bank"],
     "rateLimitNotes": "Disabled: returns raw rate tables without narrative context; LLM cannot extract a % metric from this data."
   },
@@ -46,8 +48,9 @@
     "updateFrequency": "twice-daily",
     "polandFocus": false,
     "humorFriendly": false,
+    "statYield": "low",
     "tags": ["official", "eu"],
-    "rateLimitNotes": "Public; CORS enabled"
+    "rateLimitNotes": "Public; CORS enabled. API returns raw SDMX arrays without narrative — low pre-screen pass rate."
   },
   {
     "id": "ecb-api",
@@ -63,6 +66,7 @@
     "polandFocus": false,
     "humorFriendly": false,
     "enabled": false,
+    "statYield": "low",
     "tags": ["official", "central-bank"],
     "rateLimitNotes": "Disabled: returns SDMX exchange-rate time-series without narrative; no % statistic or antistic can be generated."
   },
@@ -79,6 +83,7 @@
     "updateFrequency": "continuous",
     "polandFocus": true,
     "humorFriendly": true,
+    "statYield": "medium",
     "tags": ["wire", "official"],
     "rateLimitNotes": "RSS free"
   },
@@ -96,6 +101,7 @@
     "polandFocus": true,
     "humorFriendly": true,
     "enabled": false,
+    "statYield": "low",
     "tags": ["official", "weather"],
     "rateLimitNotes": "Disabled: returns raw synoptic sensor readings (temperature, wind speed) — no textual statistic with % metric."
   },
@@ -113,6 +119,7 @@
     "polandFocus": false,
     "humorFriendly": false,
     "enabled": false,
+    "statYield": "low",
     "tags": ["official", "multilateral"],
     "rateLimitNotes": "Disabled: returns JSON country-indicator matrices without narrative titles; no actionable statistic text for LLM."
   },
@@ -130,6 +137,7 @@
     "polandFocus": false,
     "humorFriendly": false,
     "enabled": false,
+    "statYield": "low",
     "tags": ["official", "oecd"],
     "rateLimitNotes": "Disabled: endpoint is the OECD portal homepage (HTML), not a data API — adapter fails silently on every run."
   },
@@ -146,6 +154,7 @@
     "updateFrequency": "monthly",
     "polandFocus": true,
     "humorFriendly": false,
+    "statYield": "medium",
     "tags": ["polling", "ngo"],
     "rateLimitNotes": "Registration for archives; public pages ok"
   },
@@ -162,6 +171,7 @@
     "updateFrequency": "daily",
     "polandFocus": true,
     "humorFriendly": true,
+    "statYield": "medium",
     "tags": ["fact-check", "news", "analysis"],
     "rateLimitNotes": "RSS free"
   },
@@ -178,8 +188,9 @@
     "updateFrequency": "annual",
     "polandFocus": true,
     "humorFriendly": false,
+    "statYield": "low",
     "tags": ["official", "gov"],
-    "rateLimitNotes": "CC BY 4.0"
+    "rateLimitNotes": "CC BY 4.0. Homepage meta — low pre-screen pass rate."
   },
   {
     "id": "worldbank-api",
@@ -195,6 +206,7 @@
     "polandFocus": false,
     "humorFriendly": false,
     "enabled": false,
+    "statYield": "low",
     "tags": ["multilateral"],
     "rateLimitNotes": "Disabled: returns indicator value arrays without narrative titles; LLM has no textual context to work with."
   },
@@ -211,8 +223,9 @@
     "updateFrequency": "weekly",
     "polandFocus": false,
     "humorFriendly": false,
+    "statYield": "low",
     "tags": ["un", "health"],
-    "rateLimitNotes": "Public OData/Athena"
+    "rateLimitNotes": "Public OData/Athena. API returns raw indicator arrays — low pre-screen pass rate."
   },
   {
     "id": "gazeta-rss",
@@ -228,6 +241,7 @@
     "polandFocus": true,
     "humorFriendly": true,
     "enabled": false,
+    "statYield": "low",
     "tags": ["news"],
     "rateLimitNotes": "Disabled: general news feed — articles describe events with no percentage statistics; consistently rejected by LLM."
   },
@@ -244,8 +258,9 @@
     "updateFrequency": "continuous",
     "polandFocus": true,
     "humorFriendly": true,
+    "statYield": "low",
     "tags": ["tech", "culture"],
-    "rateLimitNotes": "RSS free"
+    "rateLimitNotes": "RSS free. General media/tech news — low % article density."
   },
   {
     "id": "polsat-rss",
@@ -261,6 +276,7 @@
     "polandFocus": true,
     "humorFriendly": true,
     "enabled": false,
+    "statYield": "low",
     "tags": ["news"],
     "rateLimitNotes": "Disabled: TV news wire — nearly 100% event articles with no percentage statistics; consistently rejected by LLM."
   },
@@ -277,6 +293,7 @@
     "updateFrequency": "daily",
     "polandFocus": true,
     "humorFriendly": false,
+    "statYield": "high",
     "tags": ["official", "gov"],
     "rateLimitNotes": "RSS free"
   },
@@ -293,6 +310,7 @@
     "updateFrequency": "continuous",
     "polandFocus": true,
     "humorFriendly": true,
+    "statYield": "high",
     "tags": ["finance", "stats", "economy"],
     "rateLimitNotes": "RSS free; Poland's leading financial portal — headlines frequently contain inflation %, GDP %, and unemployment % data"
   },
@@ -309,6 +327,7 @@
     "updateFrequency": "continuous",
     "polandFocus": true,
     "humorFriendly": true,
+    "statYield": "high",
     "tags": ["finance", "stats", "surveys"],
     "rateLimitNotes": "RSS free; Ringier Axel Springer economic outlet — publishes survey results and macroeconomic data articles"
   },
@@ -325,6 +344,7 @@
     "updateFrequency": "continuous",
     "polandFocus": true,
     "humorFriendly": true,
+    "statYield": "high",
     "tags": ["tech", "research", "stats"],
     "rateLimitNotes": "RSS free; frequently publishes study summaries and research statistics with clear percentage figures"
   },
@@ -341,6 +361,7 @@
     "updateFrequency": "daily",
     "polandFocus": true,
     "humorFriendly": false,
+    "statYield": "high",
     "tags": ["finance", "economy", "analysis"],
     "rateLimitNotes": "RSS free; Rzeczpospolita economics section — in-depth data articles with percentage statistics"
   },
@@ -357,6 +378,7 @@
     "updateFrequency": "daily",
     "polandFocus": true,
     "humorFriendly": false,
+    "statYield": "high",
     "tags": ["finance", "economy", "stats"],
     "rateLimitNotes": "RSS free; dedicated Polish financial newspaper — data-heavy coverage of economic indicators"
   },
@@ -373,8 +395,9 @@
     "updateFrequency": "annual",
     "polandFocus": true,
     "humorFriendly": true,
+    "statYield": "low",
     "tags": ["official", "climate"],
-    "rateLimitNotes": "Public downloads"
+    "rateLimitNotes": "Public downloads. Portal homepage meta rarely contains % statistics."
   },
   {
     "id": "sdg-api",
@@ -389,8 +412,9 @@
     "updateFrequency": "regular",
     "polandFocus": true,
     "humorFriendly": false,
+    "statYield": "low",
     "tags": ["official", "sdg"],
-    "rateLimitNotes": "Public SDMX"
+    "rateLimitNotes": "Public SDMX. API returns raw indicator matrices — low pre-screen pass rate."
   },
   {
     "id": "polpan",
@@ -405,8 +429,9 @@
     "updateFrequency": "annual",
     "polandFocus": true,
     "humorFriendly": false,
+    "statYield": "low",
     "tags": ["academic", "longitudinal"],
-    "rateLimitNotes": "Registration for datasets"
+    "rateLimitNotes": "Registration for datasets. Homepage rarely has % in meta."
   },
   {
     "id": "300polityka",
@@ -421,7 +446,8 @@
     "updateFrequency": "continuous",
     "polandFocus": true,
     "humorFriendly": true,
+    "statYield": "low",
     "tags": ["news", "analysis"],
-    "rateLimitNotes": "Public web"
+    "rateLimitNotes": "Public web. Political news portal — low % density in meta description."
   }
 ]

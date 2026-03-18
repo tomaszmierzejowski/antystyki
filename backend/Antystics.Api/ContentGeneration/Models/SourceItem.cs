@@ -71,6 +71,17 @@ public sealed record ContentGenerationResult
     public DateTimeOffset ExecutedAt { get; init; }
     public bool DryRun { get; init; }
     public string Outcome { get; init; } = "unknown";
+    /// <summary>
+    /// JSON array of per-source outcome metrics for this run.
+    /// Stored in <see cref="Antystics.Core.Entities.ContentGenerationRun.SourcePerformanceJson"/>
+    /// and used for rolling quarantine calculations.
+    /// </summary>
+    public string? SourcePerformanceJson { get; init; }
+    /// <summary>
+    /// JSON array of sources that were skipped (quarantine / low-yield gate).
+    /// Stored in <see cref="Antystics.Core.Entities.ContentGenerationRun.SkippedSourcesJson"/>.
+    /// </summary>
+    public string? SkippedSourcesJson { get; init; }
 }
 
 public sealed record ValidationIssue

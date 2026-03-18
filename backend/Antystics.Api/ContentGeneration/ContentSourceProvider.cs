@@ -72,6 +72,10 @@ internal sealed class ContentSourceProvider : IContentSourceProvider
             ? parsed
             : ContentSourceType.Web;
 
+        var statYield = Enum.TryParse<StatYield>(dto.StatYield, true, out var yieldParsed)
+            ? yieldParsed
+            : StatYield.Medium;
+
         return new ContentSource
         {
             Id = dto.Id ?? string.Empty,
@@ -87,7 +91,8 @@ internal sealed class ContentSourceProvider : IContentSourceProvider
             PolandFocus = dto.PolandFocus,
             HumorFriendly = dto.HumorFriendly,
             Tags = dto.Tags?.Where(t => !string.IsNullOrWhiteSpace(t)).Select(t => t!.Trim()).ToArray() ?? Array.Empty<string>(),
-            RateLimitNotes = dto.RateLimitNotes ?? string.Empty
+            RateLimitNotes = dto.RateLimitNotes ?? string.Empty,
+            StatYield = statYield
         };
     }
 
@@ -112,5 +117,10 @@ internal sealed class ContentSourceProvider : IContentSourceProvider
         public bool Enabled { get; set; } = true;
         public List<string>? Tags { get; set; }
         public string? RateLimitNotes { get; set; }
+        /// <summary>
+        /// Expected statistical content density. Maps to the StatYield enum.
+        /// Valid values: "high", "medium", "low". Defaults to "medium" when omitted.
+        /// </summary>
+        public string? StatYield { get; set; }
     }
 }
