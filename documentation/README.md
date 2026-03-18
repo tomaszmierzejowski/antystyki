@@ -19,6 +19,7 @@ Welcome to the Antystyki documentation.
 - **[Monetization](features/monetization.md)**: AdSense and Buy Me a Coffee integration.
 - **[CAPTCHA](features/captcha.md)**: Bot protection setup.
 - **[Content Creation](features/content-creation.md)**: Guide for creating Antistics.
+- **[Content Generation Pipeline](features/content-generation-pipeline.md)**: AUTO-GEN-DAILY architecture, trust model, runbook, and failure states.
 
 ### [Operations](operations/)
 - **[Secrets Management](operations/secrets-management.md)**: Handling `.env` and API keys.

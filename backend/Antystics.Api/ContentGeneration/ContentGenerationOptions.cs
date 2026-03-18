@@ -13,7 +13,17 @@ public sealed class ContentGenerationOptions
     public int DuplicateWindowDays { get; set; } = 30;
     public double PolandRatioFloor { get; set; } = 0.5;
     public int HttpTimeoutSeconds { get; set; } = 12;
+    public int SourceHealthMaxAttempts { get; set; } = 3;
+    public int SourceFetchMaxAttempts { get; set; } = 3;
+    public int SourceUrlCheckMaxAttempts { get; set; } = 2;
+    public int RetryBaseDelaySeconds { get; set; } = 2;
+    public int RunMaxAttempts { get; set; } = 2;
     public List<string> EnabledSourceIds { get; set; } = new();
+    public List<string> TrustedSourceIds { get; set; } = new();
+    public bool EnforceTrustedSources { get; set; } = true;
+    public int MinimumSourceReliability { get; set; } = 4;
+    public bool RequireSourceUrlHttp200 { get; set; } = true;
+    public double MinimumValidationConfidence { get; set; } = 0.6;
     public bool RunAtStartup { get; set; } = true;
     public int StartupDelaySeconds { get; set; } = 30;
     public string? OpenAiApiKey { get; set; }

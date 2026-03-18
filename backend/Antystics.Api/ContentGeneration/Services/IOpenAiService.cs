@@ -18,6 +18,7 @@ public class LlmGenerationResult
     public string? Timeframe { get; set; }
     public string? ContextSentence { get; set; }
     public string? ReversedStatistic { get; set; }
+    public double? Confidence { get; set; }
     /// <summary>Chart type hint from Gemini: "pie" | "bar" | "trend" | "comparison"</summary>
     public string? ChartType { get; set; }
     /// <summary>Short Polish label (≤50 chars) for the main value, e.g. "Polacy bez oszczędności"</summary>

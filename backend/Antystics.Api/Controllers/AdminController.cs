@@ -445,6 +445,7 @@ public class AdminController : ControllerBase
             Description = statistic.Description,
             SourceUrl = statistic.SourceUrl,
             SourceCitation = statistic.SourceCitation,
+            ProvenanceData = !string.IsNullOrEmpty(statistic.ProvenanceData) ? System.Text.Json.JsonSerializer.Deserialize<object>(statistic.ProvenanceData) : null,
             ChartData = !string.IsNullOrEmpty(statistic.ChartData) ? System.Text.Json.JsonSerializer.Deserialize<object>(statistic.ChartData) : null,
             Status = statistic.Status.ToString(),
             Slug = UrlBuilder.GenerateSlug(statistic.Title, "statystyka"),

@@ -8,6 +8,7 @@ public class StatisticDto
     public string? Description { get; set; }
     public string SourceUrl { get; set; } = string.Empty;
     public string? SourceCitation { get; set; }
+    public object? ProvenanceData { get; set; }
     public object? ChartData { get; set; }
     public string Status { get; set; } = string.Empty;
     public string Slug { get; set; } = string.Empty;

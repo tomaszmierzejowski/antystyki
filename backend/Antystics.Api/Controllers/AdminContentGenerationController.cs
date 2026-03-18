@@ -1,75 +1,82 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using Antystics.Api.ContentGeneration.Models;
 using Antystics.Api.ContentGeneration.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Antystics.Api.Controllers;
 
 [ApiController]
 [Route("api/admin/content-generation")]
-[Authorize(Policy = "AdminOnly")]
+[Authorize(Roles = "Admin,Moderator")]
 public sealed class AdminContentGenerationController : ControllerBase
 {
-    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IContentGenerationRunOrchestrator _runOrchestrator;
     private readonly ILogger<AdminContentGenerationController> _logger;
 
-    public AdminContentGenerationController(IServiceScopeFactory scopeFactory, ILogger<AdminContentGenerationController> logger)
+    public AdminContentGenerationController(
+        IContentGenerationRunOrchestrator runOrchestrator,
+        ILogger<AdminContentGenerationController> logger)
     {
-        _scopeFactory = scopeFactory;
+        _runOrchestrator = runOrchestrator;
         _logger = logger;
     }
 
     [HttpPost("run")]
-    public IActionResult RunGeneration([FromBody] RunGenerationRequest request)
+    public async Task<IActionResult> RunGeneration([FromBody] RunGenerationRequest request, CancellationToken cancellationToken)
     {
         var req = new ContentGenerationRequest
         {
             DryRun = request.DryRun,
+            AllowDuplicates = request.AllowDuplicates,
             TargetStatistics = request.Statistics ?? request.TargetStatistics,
             TargetAntystics = request.Antystics ?? request.TargetAntystics,
             SourceIds = request.SourceIds,
             ExecutionTime = request.ExecutionTime ?? DateTimeOffset.UtcNow
         };
 
-        _logger.LogInformation("Accepting manual generation request. Background processing started.");
+        var requestedBy = User.FindFirstValue(ClaimTypes.Email)
+            ?? User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? "unknown";
 
-        _ = Task.Run(async () =>
+        var queued = await _runOrchestrator
+            .QueueRunAsync(req, trigger: "manual", requestedBy: requestedBy, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (!queued.Accepted)
         {
-            try
+            _logger.LogWarning("Manual generation request rejected: {Message}. ActiveRunId={ActiveRunId}", queued.Message, queued.ActiveRunId);
+            return Conflict(new
             {
-                using var scope = _scopeFactory.CreateScope();
-                var generationService = scope.ServiceProvider.GetRequiredService<IContentGenerationService>();
-                
-                // Do not pass the Controller's CancellationToken
-                // because it aborts when the HTTP request ends.
-                var result = await generationService.GenerateAsync(req, CancellationToken.None).ConfigureAwait(false);
-                
-                _logger.LogInformation(
-                    "Content generation finished: {Stats} statistics, {Antys} antystics created. {Rejected} items rejected during validation. DryRun={DryRun}.",
-                    result.CreatedStatistics.Count, result.CreatedAntystics.Count, result.ValidationIssues.Count, result.DryRun);
+                queued.Message,
+                queued.ActiveRunId
+            });
+        }
 
-                if (result.CreatedStatistics.Count == 0 && result.ValidationIssues.Count > 0)
-                {
-                    var rejectionSummary = string.Join(" | ", result.ValidationIssues
-                        .GroupBy(v => v.Reason)
-                        .Select(g => $"{g.Key} ({g.Count()}x)"));
-                    _logger.LogError("All items rejected — no statistics generated. Rejection summary: {Summary}", rejectionSummary);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Background manual generation failed.");
-            }
+        return Accepted(new
+        {
+            queued.Message,
+            queued.RunId,
+            statusUrl = Url.Action(nameof(GetRunStatus), values: new { runId = queued.RunId })
         });
+    }
 
-        return Accepted(new { Message = "Generation started in the background. Check logs or database for results." });
+    [HttpGet("runs/{runId:guid}")]
+    public async Task<IActionResult> GetRunStatus(Guid runId, CancellationToken cancellationToken)
+    {
+        var run = await _runOrchestrator.GetRunAsync(runId, cancellationToken).ConfigureAwait(false);
+        if (run == null)
+        {
+            return NotFound();
+        }
+
+        return Ok(run);
     }
 }
 
@@ -104,4 +111,9 @@ public sealed class RunGenerationRequest
     /// </summary>
     [DataType(DataType.DateTime)]
     public DateTimeOffset? ExecutionTime { get; set; }
+
+    /// <summary>
+    /// When true, bypasses same-day generation-key duplicate protection.
+    /// </summary>
+    public bool AllowDuplicates { get; set; }
 }

@@ -33,7 +33,6 @@ internal sealed class ContentGenerationService : IContentGenerationService
     private readonly ApplicationDbContext _dbContext;
     private readonly UserManager<User> _userManager;
     private readonly ILogger<ContentGenerationService> _logger;
-    private static readonly Regex NumberRegex = new(@"(\d+[.,]?\d*\%?)", RegexOptions.Compiled);
     private static readonly Regex PercentageRegex = new(@"(?<!\d)(\d{1,3}(?:[.,]\d+)?)[ ]?%", RegexOptions.Compiled);
     private static readonly Regex RatioRegex = new(@"(?<!\d)(\d{1,3}(?:[.,]\d+)?)[ ]*/[ ]*(\d{1,3}(?:[.,]\d+)?)", RegexOptions.Compiled);
     private static readonly Regex YearRegex = new(@"\b(20\d{2})\b", RegexOptions.Compiled);
@@ -67,25 +66,41 @@ internal sealed class ContentGenerationService : IContentGenerationService
     {
         var executionTime = request.ExecutionTime ?? DateTimeOffset.UtcNow;
         var utcNow = executionTime.UtcDateTime;
+        var sourceFilter = FilterSources(request.SourceIds);
+        var sourceFailures = new List<string>(sourceFilter.UntrustedIds);
+        var healthySources = await ValidateSourcesAsync(sourceFilter.Sources, cancellationToken).ConfigureAwait(false);
+        sourceFailures.AddRange(healthySources.UnhealthyIds);
+        sourceFailures = sourceFailures.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
-        var sources = FilterSources(request.SourceIds);
-        var healthySources = await ValidateSourcesAsync(sources, cancellationToken).ConfigureAwait(false);
+        if (healthySources.UnhealthyIds.Count > 0)
+        {
+            _logger.LogWarning(
+                "Content generation: {Count} source(s) failed health check and will be skipped: {Sources}",
+                healthySources.UnhealthyIds.Count,
+                string.Join(", ", healthySources.UnhealthyIds));
+        }
+
         var candidateItems = await FetchCandidatesAsync(healthySources.HealthySources, cancellationToken).ConfigureAwait(false);
         candidateItems = candidateItems
             .Select(SanitizeItem)
             .Where(i => i != null)
             .Cast<SourceItem>()
+            .Select(item => item with
+            {
+                IsTrustedSource = true,
+                GenerationKey = BuildGenerationKey(item, executionTime)
+            })
             .ToList();
 
         var targetStats = Clamp(request.TargetStatistics, _options.MinStatistics, _options.MaxStatistics);
         var targetAntystics = Clamp(request.TargetAntystics, _options.MinAntystics, _options.MaxAntystics);
 
-        // 1. Filter duplicates FIRST to avoid sending known duplicates to the LLM (saves API costs & time)
-        var duplicates = await LoadRecentDuplicateKeysAsync(utcNow, cancellationToken).ConfigureAwait(false);
-        var filteredCandidates = FilterDuplicates(candidateItems, duplicates);
+        var filteredCandidates = request.AllowDuplicates
+            ? new FilteredItems(candidateItems, Array.Empty<string>())
+            : FilterDuplicates(candidateItems, await LoadRecentDuplicateKeysAsync(utcNow, cancellationToken).ConfigureAwait(false));
 
-        // 2. Limit the number of items sent to the LLM (max 30 to handle the enriched source pool within API rate limits)
-        var maxToProcess = Math.Max(30, targetStats * 4);
+        // Limit the number of items sent to the LLM to stay under provider rate limits.
+        var maxToProcess = Math.Max(24, targetStats * 5);
         var desiredPoland = (int)Math.Ceiling(maxToProcess * _options.PolandRatioFloor);
         
         var polandCandidates = filteredCandidates.Items.Where(i => i.PolandFocus).ToList();
@@ -119,7 +134,7 @@ internal sealed class ContentGenerationService : IContentGenerationService
                 "Rejection reasons: {Reasons}",
                 itemsToProcess.Count,
                 filteredCandidates.SkippedKeys.Count,
-                healthySources.UnhealthyIds.Count,
+                sourceFailures.Count,
                 rejectionSummary);
 
             return new ContentGenerationResult
@@ -129,9 +144,10 @@ internal sealed class ContentGenerationService : IContentGenerationService
                 ExecutedAt = executionTime,
                 DryRun = request.DryRun,
                 ValidationFailures = validation.Issues.Select(v => v.Reason).Distinct().ToList(),
-                SourceFailures = healthySources.UnhealthyIds,
+                SourceFailures = sourceFailures,
                 ValidationIssues = validation.Issues,
-                SkippedDuplicates = filteredCandidates.SkippedKeys
+                SkippedDuplicates = filteredCandidates.SkippedKeys,
+                Outcome = "failed_no_valid_data"
             };
         }
 
@@ -149,39 +165,64 @@ internal sealed class ContentGenerationService : IContentGenerationService
                 selectedAntystics,
                 Array.Empty<Guid>(),
                 Array.Empty<Guid>(),
-                healthySources.UnhealthyIds,
+                sourceFailures,
                 filteredCandidates.SkippedKeys,
                 validation.Issues,
                 true);
         }
 
         var systemUserId = await EnsureSystemUserAsync(cancellationToken).ConfigureAwait(false);
-        var createdStatisticIds = new List<Guid>();
-        var createdAntysticIds = new List<Guid>();
+        var statisticEntities = selectedStatistics
+            .Select(stat => MapToStatistic(stat, systemUserId, utcNow))
+            .ToList();
+        var statisticIdsByGenerationKey = statisticEntities
+            .Where(s => !string.IsNullOrWhiteSpace(s.GenerationKey))
+            .ToDictionary(s => s.GenerationKey!, s => s.Id, StringComparer.OrdinalIgnoreCase);
 
-        foreach (var stat in selectedStatistics)
-        {
-            var entity = MapToStatistic(stat, systemUserId, utcNow);
-            _dbContext.Statistics.Add(entity);
-            createdStatisticIds.Add(entity.Id);
-        }
-
+        var antisticEntities = new List<Antistic>(selectedAntystics.Count);
         foreach (var antystyk in selectedAntystics)
         {
-            var entity = MapToAntystic(antystyk, systemUserId, utcNow);
-            _dbContext.Antistics.Add(entity);
-            createdAntysticIds.Add(entity.Id);
+            Guid? sourceStatisticId = null;
+            if (!string.IsNullOrWhiteSpace(antystyk.GenerationKey) &&
+                statisticIdsByGenerationKey.TryGetValue(antystyk.GenerationKey, out var linkedStatisticId))
+            {
+                sourceStatisticId = linkedStatisticId;
+            }
+
+            antisticEntities.Add(MapToAntystic(antystyk, systemUserId, utcNow, sourceStatisticId));
         }
 
-        await _dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        _dbContext.Statistics.AddRange(statisticEntities);
+        _dbContext.Antistics.AddRange(antisticEntities);
+
+        try
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (DbUpdateException ex) when (!request.AllowDuplicates && IsGenerationKeyConflict(ex))
+        {
+            _logger.LogWarning(ex, "Generation key conflict detected. This run produced only duplicates already queued for review.");
+            return new ContentGenerationResult
+            {
+                CreatedStatistics = Array.Empty<GeneratedDraft>(),
+                CreatedAntystics = Array.Empty<GeneratedDraft>(),
+                ExecutedAt = executionTime,
+                DryRun = false,
+                SourceFailures = sourceFailures,
+                SkippedDuplicates = filteredCandidates.SkippedKeys,
+                ValidationFailures = validation.Issues.Select(v => v.Reason).Distinct().ToList(),
+                ValidationIssues = validation.Issues,
+                Outcome = "duplicate_conflict"
+            };
+        }
 
         return BuildResult(
             executionTime,
             selectedStatistics,
             selectedAntystics,
-            createdStatisticIds,
-            createdAntysticIds,
-            healthySources.UnhealthyIds,
+            statisticEntities.Select(s => s.Id).ToList(),
+            antisticEntities.Select(a => a.Id).ToList(),
+            sourceFailures,
             filteredCandidates.SkippedKeys,
             validation.Issues,
             false);
@@ -221,16 +262,55 @@ internal sealed class ContentGenerationService : IContentGenerationService
 
         foreach (var item in items)
         {
+            if (!item.IsTrustedSource)
+            {
+                issues.Add(BuildIssue(item, "Source is not in the trusted-source allowlist.", null, null));
+                continue;
+            }
+
             if (item.PublishedAt.HasValue && item.PublishedAt.Value.UtcDateTime < utcNow.AddDays(-14))
             {
                 issues.Add(BuildIssue(item, "Stale item (older than 14 days).", null, null));
                 continue;
             }
 
+            if (string.IsNullOrWhiteSpace(item.SourceUrl))
+            {
+                issues.Add(BuildIssue(item, "Missing source URL - cannot verify provenance.", null, null));
+                continue;
+            }
+
+            // Pre-screen: skip items with no percentage or ratio signal in the RSS snippet.
+            // This avoids burning Gemini API calls on pure news events (court decisions, political
+            // statements, deaths) that cannot possibly yield a valid statistic.
+            var combined = $"{item.Title} {item.Summary}";
+            var hasPercent = PercentageRegex.IsMatch(combined)
+                || combined.Contains("proc.", StringComparison.OrdinalIgnoreCase)
+                || combined.Contains("procent", StringComparison.OrdinalIgnoreCase)
+                || combined.Contains(" pkt proc", StringComparison.OrdinalIgnoreCase);
+            var hasRatio = RatioRegex.IsMatch(combined)
+                || combined.Contains("co drugi", StringComparison.OrdinalIgnoreCase)
+                || combined.Contains("co trzeci", StringComparison.OrdinalIgnoreCase)
+                || combined.Contains("co czwarty", StringComparison.OrdinalIgnoreCase)
+                || combined.Contains("co piąty", StringComparison.OrdinalIgnoreCase)
+                || combined.Contains("co dziesiąty", StringComparison.OrdinalIgnoreCase);
+
+            if (!hasPercent && !hasRatio)
+            {
+                issues.Add(BuildIssue(item, "Pre-screen: no percentage or ratio found in title or summary — not a statistical article.", null, null));
+                continue;
+            }
+
             var statusCode = await GetSourceStatusCodeAsync(item.SourceUrl, sourceStatusCache, cancellationToken).ConfigureAwait(false);
-            // Only reject if we received a real non-200 HTTP response.
-            // null means the URL was empty or the request failed (network error) — we allow those through
-            // so that items sourced from feeds without direct URLs are not silently discarded.
+            if (_options.RequireSourceUrlHttp200 && statusCode != 200)
+            {
+                var reason = statusCode.HasValue
+                    ? $"Source URL returned HTTP {statusCode}."
+                    : "Source URL could not be verified (network/timeout).";
+                issues.Add(BuildIssue(item, reason, null, statusCode));
+                continue;
+            }
+
             if (statusCode.HasValue && statusCode != 200)
             {
                 issues.Add(BuildIssue(item, $"Source URL returned HTTP {statusCode}.", null, statusCode));
@@ -244,6 +324,7 @@ internal sealed class ContentGenerationService : IContentGenerationService
             string timeframe;
             string context;
             string? reversedStatistic;
+            double validationConfidence;
 
             if (llmResult == null)
             {
@@ -265,6 +346,7 @@ internal sealed class ContentGenerationService : IContentGenerationService
                 timeframe = BuildTimeframe(item);
                 context = ExtractContextSentence(item);
                 reversedStatistic = null; // no witty antistic without LLM
+                validationConfidence = 0.65;
             }
             else if (!llmResult.IsValid)
             {
@@ -290,6 +372,13 @@ internal sealed class ContentGenerationService : IContentGenerationService
                 timeframe = llmResult.Timeframe ?? BuildTimeframe(item);
                 context = llmResult.ContextSentence ?? ExtractContextSentence(item);
                 reversedStatistic = llmResult.ReversedStatistic;
+                validationConfidence = llmResult.Confidence ?? 0.85;
+            }
+
+            if (validationConfidence < _options.MinimumValidationConfidence)
+            {
+                issues.Add(BuildIssue(item, $"Validation confidence {validationConfidence:0.00} below threshold {_options.MinimumValidationConfidence:0.00}.", null, statusCode));
+                continue;
             }
 
             var numericStatement = BuildNumericStatement(percentageValue, context, timeframe);
@@ -304,6 +393,8 @@ internal sealed class ContentGenerationService : IContentGenerationService
                 ReversedStatistic = reversedStatistic,
                 Publisher = item.Publisher ?? item.SourceName,
                 SourceStatusCode = statusCode,
+                SourceUrlVerified = statusCode == 200,
+                ValidationConfidence = validationConfidence,
                 ChartType = llmResult?.ChartType,
                 ChartLabelMain = llmResult?.ChartLabelMain,
                 ChartLabelSecondary = llmResult?.ChartLabelSecondary
@@ -325,8 +416,10 @@ internal sealed class ContentGenerationService : IContentGenerationService
             SourceStatusCode = statusCode,
             PercentageValue = metric?.PercentageValue,
             Ratio = metric?.Ratio,
-            Timeframe = item.PublishedAt?.ToString("yyyy-MM-dd"),
-            ContextSentence = ExtractContextSentence(item)
+            Timeframe = item.Timeframe ?? item.PublishedAt?.ToString("yyyy-MM-dd"),
+            ContextSentence = ExtractContextSentence(item),
+            ValidationConfidence = item.ValidationConfidence,
+            TrustedSource = item.IsTrustedSource
         };
     }
 
@@ -346,19 +439,33 @@ internal sealed class ContentGenerationService : IContentGenerationService
         }
 
         var client = _httpClientFactory.CreateClient("content-generation");
-        try
+        var maxAttempts = Math.Max(1, _options.SourceUrlCheckMaxAttempts);
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
         {
-            using var response = await client.GetAsync(sourceUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
-            var statusCode = (int)response.StatusCode;
-            cache[sourceUrl] = statusCode;
-            return statusCode;
+            try
+            {
+                using var response = await client.GetAsync(sourceUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                var statusCode = (int)response.StatusCode;
+                cache[sourceUrl] = statusCode;
+                return statusCode;
+            }
+            catch (Exception ex)
+            {
+                if (attempt == maxAttempts)
+                {
+                    _logger.LogWarning(ex, "Source URL check failed for {Url} after {Attempts} attempts.", sourceUrl, maxAttempts);
+                    cache[sourceUrl] = null;
+                    return null;
+                }
+
+                var delayMs = (int)Math.Pow(2, attempt) * Math.Max(500, _options.RetryBaseDelaySeconds * 1000);
+                _logger.LogDebug(ex, "Source URL check failed for {Url} on attempt {Attempt}/{MaxAttempts}. Retrying in {DelayMs} ms.", sourceUrl, attempt, maxAttempts, delayMs);
+                await Task.Delay(delayMs, cancellationToken).ConfigureAwait(false);
+            }
         }
-        catch (Exception ex)
-        {
-            _logger.LogDebug(ex, "Source URL check failed for {Url}", sourceUrl);
-            cache[sourceUrl] = null;
-            return null;
-        }
+
+        cache[sourceUrl] = null;
+        return null;
     }
 
     private static MetricExtraction ExtractMetric(string text)
@@ -432,20 +539,58 @@ internal sealed class ContentGenerationService : IContentGenerationService
         return $"{percentage:0.#}% {cleanedContext} ({timeframe})";
     }
 
-    private IReadOnlyCollection<ContentSource> FilterSources(IReadOnlyCollection<string>? sourceIds)
+    private SourceFilterResult FilterSources(IReadOnlyCollection<string>? sourceIds)
     {
         var sources = _sourceProvider.GetAll();
 
         var enabledIds = _options.EnabledSourceIds?.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim()).ToHashSet(StringComparer.OrdinalIgnoreCase) ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var requestIds = sourceIds?.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim()).ToHashSet(StringComparer.OrdinalIgnoreCase) ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
+        var selected = sources;
         if (enabledIds.Count == 0 && requestIds.Count == 0)
         {
-            return sources;
+            selected = sources;
+        }
+        else
+        {
+            var filterSet = requestIds.Count > 0 ? requestIds : enabledIds;
+            selected = sources.Where(s => filterSet.Contains(s.Id)).ToList();
         }
 
-        var filterSet = requestIds.Count > 0 ? requestIds : enabledIds;
-        return sources.Where(s => filterSet.Contains(s.Id)).ToList();
+        var trusted = new List<ContentSource>();
+        var rejected = new List<string>();
+        foreach (var source in selected)
+        {
+            if (_options.EnforceTrustedSources && !IsTrustedSource(source))
+            {
+                rejected.Add(source.Id);
+                continue;
+            }
+
+            trusted.Add(source);
+        }
+
+        return new SourceFilterResult(trusted, rejected);
+    }
+
+    private bool IsTrustedSource(ContentSource source)
+    {
+        if (source.Reliability < Math.Max(1, _options.MinimumSourceReliability))
+        {
+            return false;
+        }
+
+        var allowlist = _options.TrustedSourceIds?
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Select(id => id.Trim())
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        if (allowlist == null || allowlist.Count == 0)
+        {
+            return true;
+        }
+
+        return allowlist.Contains(source.Id);
     }
 
     private async Task<(IReadOnlyCollection<string> UnhealthyIds, IReadOnlyCollection<ContentSource> HealthySources)> ValidateSourcesAsync(
@@ -486,13 +631,41 @@ internal sealed class ContentGenerationService : IContentGenerationService
                 continue;
             }
 
-            var fetched = await adapter.FetchAsync(source, cancellationToken).ConfigureAwait(false);
+            IReadOnlyCollection<SourceItem> fetched = Array.Empty<SourceItem>();
+            var maxAttempts = Math.Max(1, _options.SourceFetchMaxAttempts);
+            for (var attempt = 1; attempt <= maxAttempts; attempt++)
+            {
+                fetched = await adapter.FetchAsync(source, cancellationToken).ConfigureAwait(false);
+                if (fetched.Count > 0)
+                {
+                    break;
+                }
+
+                if (attempt >= maxAttempts)
+                {
+                    break;
+                }
+
+                var delayMs = (int)Math.Pow(2, attempt) * Math.Max(500, _options.RetryBaseDelaySeconds * 1000);
+                _logger.LogDebug("Source {SourceId} returned no items on attempt {Attempt}/{MaxAttempts}. Retrying in {DelayMs} ms.",
+                    source.Id, attempt, maxAttempts, delayMs);
+                await Task.Delay(delayMs, cancellationToken).ConfigureAwait(false);
+            }
+
+            _logger.LogInformation(
+                "Source {SourceId} ({SourceType}) returned {Count} items.",
+                source.Id, source.Type, fetched.Count);
+
             if (fetched.Count == 0)
             {
                 continue;
             }
 
-            items.AddRange(fetched);
+            items.AddRange(fetched.Select(item => item with
+            {
+                FetchedAtUtc = DateTimeOffset.UtcNow,
+                IsTrustedSource = true
+            }));
         }
 
         return items;
@@ -516,18 +689,19 @@ internal sealed class ContentGenerationService : IContentGenerationService
         var windowStart = utcNow.AddDays(-Math.Max(1, _options.DuplicateWindowDays));
         var recentStatisticTitles = await _dbContext.Statistics
             .Where(s => s.CreatedAt >= windowStart)
-            .Select(s => new { s.Title, s.SourceUrl })
+            .Select(s => new { s.Title, s.SourceUrl, s.GenerationKey })
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
         var recentAntysticTitles = await _dbContext.Antistics
             .Where(a => a.CreatedAt >= windowStart)
-            .Select(a => new { a.Title, a.SourceUrl })
+            .Select(a => new { a.Title, a.SourceUrl, a.GenerationKey })
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
         var titleSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var urlSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var generationKeySet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var row in recentStatisticTitles)
         {
@@ -539,6 +713,11 @@ internal sealed class ContentGenerationService : IContentGenerationService
             if (!string.IsNullOrWhiteSpace(row.SourceUrl))
             {
                 urlSet.Add(row.SourceUrl.Trim());
+            }
+
+            if (!string.IsNullOrWhiteSpace(row.GenerationKey))
+            {
+                generationKeySet.Add(row.GenerationKey.Trim());
             }
         }
 
@@ -553,9 +732,14 @@ internal sealed class ContentGenerationService : IContentGenerationService
             {
                 urlSet.Add(row.SourceUrl.Trim());
             }
+
+            if (!string.IsNullOrWhiteSpace(row.GenerationKey))
+            {
+                generationKeySet.Add(row.GenerationKey.Trim());
+            }
         }
 
-        return new DuplicateSnapshot(titleSet, urlSet);
+        return new DuplicateSnapshot(titleSet, urlSet, generationKeySet);
     }
 
     private FilteredItems FilterDuplicates(IReadOnlyCollection<SourceItem> items, DuplicateSnapshot duplicates)
@@ -567,16 +751,22 @@ internal sealed class ContentGenerationService : IContentGenerationService
         {
             var titleKey = item.Title.Trim();
             var urlKey = item.SourceUrl.Trim();
+            var generationKey = item.GenerationKey?.Trim();
 
-            if (duplicates.TitleKeys.Contains(titleKey) || duplicates.UrlKeys.Contains(urlKey))
+            if ((!string.IsNullOrWhiteSpace(generationKey) && duplicates.GenerationKeys.Contains(generationKey)) ||
+                duplicates.TitleKeys.Contains(titleKey) ||
+                duplicates.UrlKeys.Contains(urlKey))
             {
-                skipped.Add(titleKey);
+                skipped.Add(!string.IsNullOrWhiteSpace(generationKey) ? generationKey : titleKey);
                 continue;
             }
 
-            if (filtered.Any(f => f.Title.Equals(titleKey, StringComparison.OrdinalIgnoreCase) || f.SourceUrl.Equals(urlKey, StringComparison.OrdinalIgnoreCase)))
+            if (filtered.Any(f =>
+                    (!string.IsNullOrWhiteSpace(generationKey) && f.GenerationKey != null && f.GenerationKey.Equals(generationKey, StringComparison.OrdinalIgnoreCase)) ||
+                    f.Title.Equals(titleKey, StringComparison.OrdinalIgnoreCase) ||
+                    f.SourceUrl.Equals(urlKey, StringComparison.OrdinalIgnoreCase)))
             {
-                skipped.Add(titleKey);
+                skipped.Add(!string.IsNullOrWhiteSpace(generationKey) ? generationKey : titleKey);
                 continue;
             }
 
@@ -655,6 +845,25 @@ internal sealed class ContentGenerationService : IContentGenerationService
     {
         var sourceCitation = $"{item.SourceName} ({(item.PublishedAt?.ToString("yyyy-MM-dd") ?? utcNow.ToString("yyyy-MM-dd"))})";
         var chartData = BuildStatisticChartData(item);
+        if (!ValidateStatisticChartPayload(chartData))
+        {
+            chartData = JsonSerializer.Serialize(new
+            {
+                metricValue = item.PercentageValue,
+                metricUnit = "%",
+                metricLabel = Trim(item.ContextSentence ?? item.Title, 100),
+                chartSuggestion = new
+                {
+                    type = "pie",
+                    unit = "%",
+                    dataPoints = new[]
+                    {
+                        new { label = Trim(item.ChartLabelMain ?? item.ContextSentence ?? item.Title, 50), value = Math.Round(item.PercentageValue ?? 0, 1) },
+                        new { label = "Pozostałe", value = Math.Round(Math.Max(0, 100 - (item.PercentageValue ?? 0)), 1) }
+                    }
+                }
+            });
+        }
 
         return new Statistic
         {
@@ -664,6 +873,8 @@ internal sealed class ContentGenerationService : IContentGenerationService
             Description = Trim(item.Summary, SummaryMaxLength),
             SourceUrl = item.SourceUrl,
             SourceCitation = sourceCitation,
+            GenerationKey = item.GenerationKey,
+            ProvenanceData = BuildProvenanceData(item),
             ChartData = chartData,
             Status = ModerationStatus.Pending,
             CreatedAt = utcNow,
@@ -671,10 +882,27 @@ internal sealed class ContentGenerationService : IContentGenerationService
         };
     }
 
-    private Antistic MapToAntystic(SourceItem item, Guid userId, DateTime utcNow)
+    private Antistic MapToAntystic(SourceItem item, Guid userId, DateTime utcNow, Guid? sourceStatisticId)
     {
         var turned = BuildAntysticText(item);
         var (chartData, templateId) = BuildAntisticChartData(item);
+        if (!ValidateAntisticChartPayload(chartData))
+        {
+            chartData = JsonSerializer.Serialize(new
+            {
+                templateId = "text-focused",
+                title = Trim(item.Title, TitleMaxLength),
+                description = Trim(turned, SummaryMaxLength),
+                source = item.SourceUrl,
+                textData = new
+                {
+                    mainStatistic = Trim(item.NumericStatement ?? item.Title, 180),
+                    context = Trim(item.ContextSentence ?? item.Summary, 200),
+                    comparison = item.Ratio
+                }
+            });
+            templateId = "text-focused";
+        }
 
         return new Antistic
         {
@@ -682,166 +910,222 @@ internal sealed class ContentGenerationService : IContentGenerationService
             Title = Trim(item.Title, TitleMaxLength),
             ReversedStatistic = Trim(turned, SummaryMaxLength),
             SourceUrl = item.SourceUrl,
+            GenerationKey = item.GenerationKey,
             ImageUrl = DefaultImageUrl,
             TemplateId = templateId,
             ChartData = chartData,
             Status = ModerationStatus.Pending,
             CreatedAt = utcNow,
-            UserId = userId
+            UserId = userId,
+            SourceStatisticId = sourceStatisticId
         };
     }
 
-    /// <summary>
-    /// Builds ChartData JSON in the AntisticData shape the React frontend expects.
-    /// Dispatches on item.ChartType (pie/bar/trend/comparison); falls back to text-focused
-    /// only when no numeric data is available at all.
-    /// </summary>
     private static string BuildStatisticChartData(SourceItem item)
     {
-        var (json, _) = BuildChartDataCore(item, statisticColor: "#3b82f6");
-        return json;
+        var suggestion = BuildChartSuggestion(item);
+        return JsonSerializer.Serialize(new
+        {
+            metricValue = item.PercentageValue,
+            metricUnit = "%",
+            metricLabel = Trim(item.ChartLabelMain ?? item.ContextSentence ?? item.Title, 100),
+            chartSuggestion = new
+            {
+                type = suggestion.Type,
+                unit = suggestion.Unit,
+                dataPoints = suggestion.Points.Select(p => new { label = p.Label, value = Math.Round(p.Value, 2) })
+            }
+        });
     }
 
-    /// <summary>
-    /// Builds ChartData JSON for Antistics. Returns (chartDataJson, templateId).
-    /// Dispatches on item.ChartType; falls back to text-focused only when no numeric data exists.
-    /// </summary>
     private static (string ChartData, string TemplateId) BuildAntisticChartData(SourceItem item)
     {
-        return BuildChartDataCore(item, statisticColor: "#ef4444");
-    }
-
-    /// <summary>
-    /// Shared chart data builder. Selects template based on item.ChartType from the LLM hint,
-    /// then falls back gracefully when data is missing.
-    /// </summary>
-    private static (string Json, string TemplateId) BuildChartDataCore(SourceItem item, string statisticColor)
-    {
-        var hasPercentage = item.PercentageValue.HasValue && item.PercentageValue.Value > 0;
-
-        // Use LLM-suggested chart type; default to "pie" when a percentage is available.
-        var chartType = item.ChartType?.ToLowerInvariant();
-        if (string.IsNullOrWhiteSpace(chartType))
+        var suggestion = BuildChartSuggestion(item);
+        switch (suggestion.Type)
         {
-            chartType = hasPercentage ? "pie" : null;
-        }
-
-        switch (chartType)
-        {
-            case "pie" when hasPercentage:
+            case "line":
             {
-                var main = Math.Round(item.PercentageValue!.Value, 1);
-                var secondary = Math.Round(100.0 - main, 1);
-                var mainLabel = Trim(item.ChartLabelMain ?? item.ContextSentence ?? item.Title, 50);
-                var secondaryLabel = Trim(item.ChartLabelSecondary ?? "Pozostałe", 50);
-
                 var json = JsonSerializer.Serialize(new
                 {
-                    templateId = "two-column-default",
-                    perspectiveData = new
+                    templateId = "single-chart",
+                    title = Trim(item.Title, TitleMaxLength),
+                    description = Trim(BuildAntysticText(item), SummaryMaxLength),
+                    source = item.SourceUrl,
+                    singleChartData = new
                     {
-                        mainPercentage = main,
-                        mainLabel,
-                        secondaryPercentage = secondary,
-                        secondaryLabel,
-                        chartColor = statisticColor,
-                        type = "pie"
-                    },
-                    sourceData = new
-                    {
-                        type = "pie",
-                        segments = new[]
-                        {
-                            new { label = mainLabel, percentage = main, color = statisticColor },
-                            new { label = secondaryLabel, percentage = secondary, color = "#e5e7eb" }
-                        }
+                        title = Trim(item.Title, 120),
+                        type = "line",
+                        points = suggestion.Points.Select(p => new { label = p.Label, value = Math.Round(p.Value, 2) }),
+                        unit = suggestion.Unit
                     }
                 });
-                return (json, "two-column-default");
+                return (json, "single-chart");
             }
-
-            case "bar" when hasPercentage:
+            case "bar":
             {
-                var main = Math.Round(item.PercentageValue!.Value, 1);
-                var secondary = Math.Round(100.0 - main, 1);
-                var mainLabel = Trim(item.ChartLabelMain ?? item.ContextSentence ?? item.Title, 50);
-                var secondaryLabel = Trim(item.ChartLabelSecondary ?? "Pozostałe", 50);
-
                 var json = JsonSerializer.Serialize(new
                 {
-                    templateId = "bar-chart",
-                    barData = new
+                    templateId = "single-chart",
+                    title = Trim(item.Title, TitleMaxLength),
+                    description = Trim(BuildAntysticText(item), SummaryMaxLength),
+                    source = item.SourceUrl,
+                    singleChartData = new
                     {
-                        chartColor = statisticColor,
-                        segments = new[]
-                        {
-                            new { label = mainLabel, percentage = main, color = statisticColor },
-                            new { label = secondaryLabel, percentage = secondary, color = "#e5e7eb" }
-                        }
+                        title = Trim(item.Title, 120),
+                        type = "bar",
+                        points = suggestion.Points.Select(p => new { label = p.Label, value = Math.Round(p.Value, 2) }),
+                        unit = suggestion.Unit
                     }
                 });
-                return (json, "bar-chart");
+                return (json, "single-chart");
             }
-
-            case "trend" when hasPercentage:
-            {
-                var current = Math.Round(item.PercentageValue!.Value, 1);
-                var mainLabel = Trim(item.ChartLabelMain ?? item.ContextSentence ?? item.Title, 50);
-                var secondaryLabel = Trim(item.ChartLabelSecondary ?? "Poprzedni okres", 50);
-
-                var json = JsonSerializer.Serialize(new
-                {
-                    templateId = "trend-line",
-                    trendData = new
-                    {
-                        chartColor = statisticColor,
-                        timeframe = item.Timeframe,
-                        dataPoints = new[]
-                        {
-                            new { label = secondaryLabel, percentage = (double?)null },
-                            new { label = mainLabel, percentage = (double?)current }
-                        }
-                    }
-                });
-                return (json, "trend-line");
-            }
-
-            case "comparison" when hasPercentage:
-            {
-                var main = Math.Round(item.PercentageValue!.Value, 1);
-                var secondary = Math.Round(100.0 - main, 1);
-                var mainLabel = Trim(item.ChartLabelMain ?? item.ContextSentence ?? item.Title, 50);
-                var secondaryLabel = Trim(item.ChartLabelSecondary ?? "Pozostałe", 50);
-
-                var json = JsonSerializer.Serialize(new
-                {
-                    templateId = "comparison-default",
-                    comparisonData = new
-                    {
-                        chartColor = statisticColor,
-                        valueA = new { label = mainLabel, percentage = main, color = statisticColor },
-                        valueB = new { label = secondaryLabel, percentage = secondary, color = "#e5e7eb" }
-                    }
-                });
-                return (json, "comparison-default");
-            }
-
             default:
             {
-                // True last resort: no numeric data available at all.
-                var fallbackJson = JsonSerializer.Serialize(new
+                var piePoints = NormalizePiePoints(suggestion.Points);
+                var pieSegments = piePoints.Select((p, index) => new
                 {
-                    templateId = "text-focused",
-                    textData = new
+                    label = p.Label,
+                    percentage = Math.Round(p.Value, 1),
+                    color = index == 0 ? "#ef4444" : "#e5e7eb"
+                });
+
+                var json = JsonSerializer.Serialize(new
+                {
+                    templateId = "single-chart",
+                    title = Trim(item.Title, TitleMaxLength),
+                    description = Trim(BuildAntysticText(item), SummaryMaxLength),
+                    source = item.SourceUrl,
+                    singleChartData = new
                     {
-                        mainStatistic = Trim(item.NumericStatement ?? item.Title, 160),
-                        context = Trim(item.ContextSentence ?? item.Summary, 220),
-                        comparison = item.Ratio != null ? $"Proporcja: {item.Ratio}" : (string?)null
+                        title = Trim(item.Title, 120),
+                        type = "pie",
+                        segments = pieSegments
                     }
                 });
-                return (fallbackJson, "text-focused");
+                return (json, "single-chart");
             }
         }
+    }
+
+    private static ChartSuggestion BuildChartSuggestion(SourceItem item)
+    {
+        var trendPoints = ExtractTrendPoints(item);
+        if (trendPoints.Count >= 2)
+        {
+            return new ChartSuggestion("line", item.ChartType?.Equals("trend", StringComparison.OrdinalIgnoreCase) == true ? "%" : "%", trendPoints);
+        }
+
+        var main = Math.Round(Math.Clamp(item.PercentageValue ?? 0, 0, 100), 1);
+        var secondary = Math.Round(Math.Max(0, 100 - main), 1);
+        var mainLabel = Trim(item.ChartLabelMain ?? item.ContextSentence ?? item.Title, 50);
+        var secondaryLabel = Trim(item.ChartLabelSecondary ?? "Pozostałe", 50);
+
+        if (!string.IsNullOrWhiteSpace(item.Ratio) ||
+            string.Equals(item.ChartType, "bar", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(item.ChartType, "comparison", StringComparison.OrdinalIgnoreCase))
+        {
+            return new ChartSuggestion("bar", "%", new[]
+            {
+                new ChartPoint(mainLabel, main),
+                new ChartPoint(secondaryLabel, secondary)
+            });
+        }
+
+        return new ChartSuggestion("pie", "%", new[]
+        {
+            new ChartPoint(mainLabel, main),
+            new ChartPoint(secondaryLabel, secondary)
+        });
+    }
+
+    private static IReadOnlyCollection<ChartPoint> ExtractTrendPoints(SourceItem item)
+    {
+        var text = $"{item.Title} {item.Summary}";
+        var valueMatches = PercentageRegex.Matches(text);
+        if (valueMatches.Count < 2)
+        {
+            return Array.Empty<ChartPoint>();
+        }
+
+        var values = new List<double>();
+        foreach (Match match in valueMatches)
+        {
+            if (!double.TryParse(NormalizeNumber(match.Groups[1].Value), out var parsed))
+            {
+                continue;
+            }
+
+            values.Add(Math.Round(parsed, 2));
+            if (values.Count >= 6)
+            {
+                break;
+            }
+        }
+
+        if (values.Count < 2)
+        {
+            return Array.Empty<ChartPoint>();
+        }
+
+        var years = YearRegex.Matches(text)
+            .Select(m => m.Groups[1].Value)
+            .Distinct()
+            .Take(values.Count)
+            .ToList();
+
+        var points = new List<ChartPoint>(values.Count);
+        for (var i = 0; i < values.Count; i++)
+        {
+            var label = i < years.Count ? years[i] : $"Punkt {i + 1}";
+            points.Add(new ChartPoint(label, values[i]));
+        }
+
+        return points;
+    }
+
+    private static IReadOnlyCollection<ChartPoint> NormalizePiePoints(IReadOnlyCollection<ChartPoint> points)
+    {
+        var asList = points.ToList();
+        if (asList.Count == 0)
+        {
+            return new[]
+            {
+                new ChartPoint("Brak danych", 100)
+            };
+        }
+
+        if (asList.Count == 1)
+        {
+            var main = Math.Clamp(asList[0].Value, 0, 100);
+            return new[]
+            {
+                new ChartPoint(asList[0].Label, main),
+                new ChartPoint("Pozostałe", Math.Max(0, 100 - main))
+            };
+        }
+
+        var total = asList.Sum(p => Math.Max(0, p.Value));
+        if (total <= 0)
+        {
+            return new[]
+            {
+                new ChartPoint("Brak danych", 100)
+            };
+        }
+
+        var normalized = asList
+            .Select(p => new ChartPoint(p.Label, (Math.Max(0, p.Value) / total) * 100))
+            .ToList();
+
+        var roundedTotal = normalized.Sum(p => Math.Round(p.Value, 1));
+        if (roundedTotal > 100)
+        {
+            var overflow = roundedTotal - 100;
+            var last = normalized[^1];
+            normalized[^1] = last with { Value = Math.Max(0, last.Value - overflow) };
+        }
+
+        return normalized;
     }
 
     private static string BuildStatisticSummary(SourceItem item)
@@ -861,7 +1145,7 @@ internal sealed class ContentGenerationService : IContentGenerationService
             : "Statystyka z automatycznego źródła (brak szczegółowego opisu).";
     }
 
-    private string BuildAntysticText(SourceItem item)
+    private static string BuildAntysticText(SourceItem item)
     {
         if (!string.IsNullOrWhiteSpace(item.ReversedStatistic))
         {
@@ -875,15 +1159,101 @@ internal sealed class ContentGenerationService : IContentGenerationService
         return Trim($"{setup} — {turn}", SummaryMaxLength);
     }
 
-    private static string? ExtractNumber(string? value)
+    private static bool ValidateStatisticChartPayload(string chartData)
     {
-        if (string.IsNullOrWhiteSpace(value))
+        if (string.IsNullOrWhiteSpace(chartData))
         {
-            return null;
+            return false;
         }
 
-        var match = NumberRegex.Match(value);
-        return match.Success ? match.Value : null;
+        try
+        {
+            using var doc = JsonDocument.Parse(chartData);
+            if (!doc.RootElement.TryGetProperty("chartSuggestion", out var suggestion) || suggestion.ValueKind != JsonValueKind.Object)
+            {
+                return false;
+            }
+
+            if (!suggestion.TryGetProperty("type", out var typeNode) || typeNode.ValueKind != JsonValueKind.String)
+            {
+                return false;
+            }
+
+            var type = typeNode.GetString();
+            return type is "pie" or "bar" or "line";
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static bool ValidateAntisticChartPayload(string chartData)
+    {
+        if (string.IsNullOrWhiteSpace(chartData))
+        {
+            return false;
+        }
+
+        try
+        {
+            using var doc = JsonDocument.Parse(chartData);
+            if (!doc.RootElement.TryGetProperty("templateId", out var templateNode) || templateNode.ValueKind != JsonValueKind.String)
+            {
+                return false;
+            }
+
+            var template = templateNode.GetString();
+            if (template is not ("two-column-default" or "single-chart" or "text-focused" or "comparison"))
+            {
+                return false;
+            }
+
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static string BuildGenerationKey(SourceItem item, DateTimeOffset executionTime)
+    {
+        var runDay = executionTime.UtcDateTime.ToString("yyyy-MM-dd");
+        var topic = item.Topics?.FirstOrDefault() ?? "general";
+        var url = string.IsNullOrWhiteSpace(item.SourceUrl) ? "no-url" : item.SourceUrl.Trim().ToLowerInvariant();
+        return $"{runDay}|{item.SourceId.Trim().ToLowerInvariant()}|{topic.Trim().ToLowerInvariant()}|{url}";
+    }
+
+    private static string BuildProvenanceData(SourceItem item)
+    {
+        return JsonSerializer.Serialize(new
+        {
+            source = new
+            {
+                id = item.SourceId,
+                name = item.SourceName,
+                publisher = item.Publisher,
+                url = item.SourceUrl,
+                fetchedAtUtc = item.FetchedAtUtc
+            },
+            validation = new
+            {
+                trustedSource = item.IsTrustedSource,
+                sourceUrlVerified = item.SourceUrlVerified,
+                sourceStatusCode = item.SourceStatusCode,
+                confidence = item.ValidationConfidence,
+                percentageValue = item.PercentageValue,
+                ratio = item.Ratio,
+                timeframe = item.Timeframe
+            }
+        });
+    }
+
+    private static bool IsGenerationKeyConflict(DbUpdateException ex)
+    {
+        var message = ex.InnerException?.Message ?? ex.Message;
+        return message.Contains("GenerationKey", StringComparison.OrdinalIgnoreCase);
     }
 
     private ContentGenerationResult BuildResult(
@@ -904,7 +1274,7 @@ internal sealed class ContentGenerationService : IContentGenerationService
         {
             var item = statList[i];
             var id = i < statIds.Count ? statIds[i] : Guid.Empty;
-            var (statChartJson, statTemplateId) = BuildChartDataCore(item, statisticColor: "#3b82f6");
+            var statChartJson = BuildStatisticChartData(item);
             statDrafts.Add(new GeneratedDraft
             {
                 Id = id,
@@ -914,7 +1284,7 @@ internal sealed class ContentGenerationService : IContentGenerationService
                 SourceCitation = item.SourceName,
                 Kind = "statistic",
                 ChartData = statChartJson,
-                TemplateId = statTemplateId
+                TemplateId = "single-chart"
             });
         }
 
@@ -948,7 +1318,8 @@ internal sealed class ContentGenerationService : IContentGenerationService
             SourceFailures = sourceFailures,
             SkippedDuplicates = duplicates,
             ValidationFailures = validationIssues.Select(v => v.Reason).Distinct().ToList(),
-            ValidationIssues = validationIssues
+            ValidationIssues = validationIssues,
+            Outcome = statDrafts.Count > 0 ? "succeeded" : "no_data"
         };
     }
 
@@ -963,12 +1334,12 @@ internal sealed class ContentGenerationService : IContentGenerationService
         return trimmed.Length <= maxLength ? trimmed : trimmed[..maxLength];
     }
 
-    private sealed record DuplicateSnapshot(HashSet<string> TitleKeys, HashSet<string> UrlKeys)
-    {
-        public IReadOnlyCollection<string> SkippedKeys => TitleKeys;
-    }
+    private sealed record DuplicateSnapshot(HashSet<string> TitleKeys, HashSet<string> UrlKeys, HashSet<string> GenerationKeys);
 
     private sealed record FilteredItems(IReadOnlyCollection<SourceItem> Items, IReadOnlyCollection<string> SkippedKeys);
 
     private sealed record MetricExtraction(double? PercentageValue, string? Ratio);
+    private sealed record SourceFilterResult(IReadOnlyCollection<ContentSource> Sources, IReadOnlyCollection<string> UntrustedIds);
+    private sealed record ChartPoint(string Label, double Value);
+    private sealed record ChartSuggestion(string Type, string Unit, IReadOnlyCollection<ChartPoint> Points);
 }

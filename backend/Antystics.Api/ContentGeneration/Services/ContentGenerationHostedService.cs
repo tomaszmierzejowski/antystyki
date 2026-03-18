@@ -2,7 +2,6 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Antystics.Api.ContentGeneration.Models;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -11,16 +10,16 @@ namespace Antystics.Api.ContentGeneration.Services;
 
 internal sealed class ContentGenerationHostedService : BackgroundService
 {
-    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IContentGenerationRunOrchestrator _runOrchestrator;
     private readonly ContentGenerationOptions _options;
     private readonly ILogger<ContentGenerationHostedService> _logger;
 
     public ContentGenerationHostedService(
-        IServiceScopeFactory scopeFactory,
+        IContentGenerationRunOrchestrator runOrchestrator,
         IOptions<ContentGenerationOptions> options,
         ILogger<ContentGenerationHostedService> logger)
     {
-        _scopeFactory = scopeFactory;
+        _runOrchestrator = runOrchestrator;
         _options = options.Value;
         _logger = logger;
     }
@@ -34,6 +33,25 @@ internal sealed class ContentGenerationHostedService : BackgroundService
         }
 
         _logger.LogInformation("Content generation hosted service starting. Daily run scheduled at {Time} local time.", _options.DailyRunLocalTime);
+
+        if (_options.RunAtStartup && !stoppingToken.IsCancellationRequested)
+        {
+            var startupDelay = TimeSpan.FromSeconds(Math.Max(0, _options.StartupDelaySeconds));
+            if (startupDelay > TimeSpan.Zero)
+            {
+                _logger.LogInformation("Initial content generation run scheduled after startup delay {Delay}.", startupDelay);
+                try
+                {
+                    await Task.Delay(startupDelay, stoppingToken).ConfigureAwait(false);
+                }
+                catch (TaskCanceledException)
+                {
+                    return;
+                }
+            }
+
+            await QueueRunAsync("startup", stoppingToken).ConfigureAwait(false);
+        }
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -63,40 +81,40 @@ internal sealed class ContentGenerationHostedService : BackgroundService
                 break;
             }
 
-            await RunGenerationAsync(stoppingToken).ConfigureAwait(false);
+            await QueueRunAsync("scheduled", stoppingToken).ConfigureAwait(false);
         }
 
         _logger.LogInformation("Content generation hosted service stopping.");
     }
 
-    private async Task RunGenerationAsync(CancellationToken cancellationToken)
+    private async Task QueueRunAsync(string trigger, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Starting daily content generation run at {Time}", DateTimeOffset.UtcNow);
+        _logger.LogInformation("Queueing {Trigger} content generation run at {Time}", trigger, DateTimeOffset.UtcNow);
 
         try
         {
-            using var scope = _scopeFactory.CreateScope();
-            var service = scope.ServiceProvider.GetRequiredService<IContentGenerationService>();
-
             var request = new ContentGenerationRequest
             {
                 DryRun = false,
+                AllowDuplicates = false,
                 ExecutionTime = DateTimeOffset.UtcNow
             };
 
-            var result = await service.GenerateAsync(request, cancellationToken).ConfigureAwait(false);
+            var queued = await _runOrchestrator
+                .QueueRunAsync(request, trigger, requestedBy: "system", cancellationToken)
+                .ConfigureAwait(false);
 
-            _logger.LogInformation(
-                "Content generation completed: {StatsCount} statistics, {AntysticsCount} antystics created. Skipped duplicates: {Duplicates}. Source failures: {Failures}. Validation rejections: {Rejections}.",
-                result.CreatedStatistics.Count,
-                result.CreatedAntystics.Count,
-                result.SkippedDuplicates.Count,
-                result.SourceFailures.Count,
-                result.ValidationIssues.Count);
+            if (!queued.Accepted)
+            {
+                _logger.LogWarning("Unable to queue {Trigger} content generation run: {Message}. ActiveRunId={ActiveRunId}", trigger, queued.Message, queued.ActiveRunId);
+                return;
+            }
+
+            _logger.LogInformation("Queued {Trigger} content generation run. RunId={RunId}", trigger, queued.RunId);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Content generation run failed with error: {Message}", ex.Message);
+            _logger.LogError(ex, "Failed to queue {Trigger} content generation run.", trigger);
         }
     }
 

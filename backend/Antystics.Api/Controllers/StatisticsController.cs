@@ -261,6 +261,7 @@ public class StatisticsController : ControllerBase
             Description = statistic.Description,
             SourceUrl = statistic.SourceUrl,
             SourceCitation = statistic.SourceCitation,
+            ProvenanceData = !string.IsNullOrEmpty(statistic.ProvenanceData) ? JsonSerializer.Deserialize<object>(statistic.ProvenanceData) : null,
             ChartData = !string.IsNullOrEmpty(statistic.ChartData) ? JsonSerializer.Deserialize<object>(statistic.ChartData) : null,
             Status = statistic.Status.ToString(),
             Slug = UrlBuilder.GenerateSlug(statistic.Title, "statystyka"),

@@ -6,6 +6,7 @@ public class Antistic
     public string Title { get; set; } = string.Empty;
     public string ReversedStatistic { get; set; } = string.Empty;
     public string SourceUrl { get; set; } = string.Empty;
+    public string? GenerationKey { get; set; }
     public string ImageUrl { get; set; } = string.Empty;
     public string? BackgroundImageKey { get; set; }
     public string? TemplateId { get; set; }

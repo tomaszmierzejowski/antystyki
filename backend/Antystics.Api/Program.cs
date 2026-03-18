@@ -190,6 +190,7 @@ builder.Services.AddHttpClient<IOpenAiService, GeminiService>(client =>
     client.DefaultRequestHeaders.Add("User-Agent", "Antystics/1.0.0 (Custom Backend Application)");
 });
 builder.Services.AddScoped<IContentGenerationService, ContentGenerationService>();
+builder.Services.AddSingleton<IContentGenerationRunOrchestrator, ContentGenerationRunOrchestrator>();
 builder.Services.AddHostedService<ContentGenerationHostedService>();
 builder.Services.PostConfigure<ContentGenerationOptions>(options =>
 {

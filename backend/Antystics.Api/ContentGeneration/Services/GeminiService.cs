@@ -215,14 +215,15 @@ internal sealed class GeminiService : IOpenAiService
         5. timeframe (string) — rok lub okres np. "2024", "Q1 2025"
         6. contextSentence (string) — krótki opis co mierzono, po polsku (max 120 znaków)
         7. reversedStatistic (string) — ANTYSTYKA (patrz zasady poniżej); "" jeśli isValid=false
-        8. chartType (string) — typ wykresu: "pie" | "bar" | "trend" | "comparison"
+        8. confidence (number) — pewność walidacji 0.0-1.0 (dla danych oficjalnych i jasnego % zwykle >=0.8)
+        9. chartType (string) — typ wykresu: "pie" | "bar" | "trend" | "comparison"
            • pie        = jeden procent całości (np. "72% robi X")
            • bar        = porównanie wielu grup lub kategorii (np. "Niemcy 45%, Polska 38%, Francja 52%")
            • trend      = zmiana w czasie (rok do roku, miesięczna)
            • comparison = dwie kontrastujące wartości obok siebie (np. "biedni vs bogaci")
-        9. chartLabelMain (string) — krótka polska etykieta głównej wartości, max 50 znaków
+        10. chartLabelMain (string) — krótka polska etykieta głównej wartości, max 50 znaków
            Przykłady: "Polacy bez oszczędności", "Kierowcy po alkoholu", "Wzrost inflacji"
-        10. chartLabelSecondary (string) — etykieta wartości uzupełniającej / grupy kontrastowej, max 50 znaków
+        11. chartLabelSecondary (string) — etykieta wartości uzupełniającej / grupy kontrastowej, max 50 znaków
             Domyślnie "Pozostałe" dla pie; dla comparison — nazwa grupy porównawczej
 
         ════════════════════════════════
@@ -264,11 +265,12 @@ internal sealed class GeminiService : IOpenAiService
             timeframe = new { type = "STRING" },
             contextSentence = new { type = "STRING" },
             reversedStatistic = new { type = "STRING" },
+            confidence = new { type = "NUMBER" },
             chartType = new { type = "STRING" },
             chartLabelMain = new { type = "STRING" },
             chartLabelSecondary = new { type = "STRING" }
         },
-        required = new[] { "isValid", "reason", "timeframe", "contextSentence", "reversedStatistic", "chartType", "chartLabelMain", "chartLabelSecondary" }
+        required = new[] { "isValid", "reason", "timeframe", "contextSentence", "reversedStatistic", "confidence", "chartType", "chartLabelMain", "chartLabelSecondary" }
     };
 
     // ── Request model ──────────────────────────────────────────────────────────

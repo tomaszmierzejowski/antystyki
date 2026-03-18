@@ -8,6 +8,8 @@ public class Statistic
     public string? Description { get; set; }
     public string SourceUrl { get; set; } = string.Empty;
     public string? SourceCitation { get; set; }
+    public string? GenerationKey { get; set; }
+    public string? ProvenanceData { get; set; }
     public string? ChartData { get; set; }
     public ModerationStatus Status { get; set; } = ModerationStatus.Pending;
     public int LikeCount { get; set; }

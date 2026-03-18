@@ -41,6 +41,27 @@ type ContentGenerationResult = {
   dryRun: boolean;
 };
 
+type ContentGenerationRunStatus = {
+  id: string;
+  trigger: string;
+  dryRun: boolean;
+  status: 'queued' | 'running' | 'succeeded' | 'failed' | string;
+  createdAt: string;
+  startedAt?: string;
+  completedAt?: string;
+  requestedBy?: string;
+  requestedStatistics: number;
+  requestedAntystics: number;
+  attemptCount: number;
+  createdStatisticsCount: number;
+  createdAntysticsCount: number;
+  duplicateCount: number;
+  sourceFailureCount: number;
+  validationFailureCount: number;
+  validationIssues?: ValidationIssue[] | unknown;
+  errorMessage?: string;
+};
+
 const AdminPanel: React.FC = () => {
   const [pendingAntistics, setPendingAntistics] = useState<Antistic[]>([]);
   const [pendingStatistics, setPendingStatistics] = useState<Statistic[]>([]);
@@ -51,12 +72,55 @@ const AdminPanel: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'statistics' | 'antistics'>('statistics');
   const [autoGenLoading, setAutoGenLoading] = useState(false);
   const [autoGenMessage, setAutoGenMessage] = useState<string | null>(null);
-  const [autoGenSummary, setAutoGenSummary] = useState<ContentGenerationResult | null>(null);
+  const [autoGenSummary, setAutoGenSummary] = useState<ContentGenerationRunStatus | ContentGenerationResult | null>(null);
+  const [autoGenRunId, setAutoGenRunId] = useState<string | null>(null);
   const [autoGenStatsTarget, setAutoGenStatsTarget] = useState(5);
   const [autoGenAntysticsTarget, setAutoGenAntysticsTarget] = useState(2);
   const [autoGenSourceIds, setAutoGenSourceIds] = useState('');
   const { user } = useAuth();
   const canViewWebsiteStats = user?.email?.toLowerCase() === 'tmierzejowski@gmail.com';
+  const canRunAutoGeneration = user?.role === 'Admin' || user?.role === 'Moderator';
+
+  useEffect(() => {
+    if (!autoGenRunId) {
+      return;
+    }
+
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const poll = async () => {
+      try {
+        const status = (await adminApi.getContentGenerationRunStatus(autoGenRunId)) as ContentGenerationRunStatus;
+        if (cancelled) return;
+        setAutoGenSummary(status);
+
+        const isTerminal = status.status === 'succeeded' || status.status === 'failed';
+        if (isTerminal) {
+          setAutoGenLoading(false);
+          if (status.status === 'succeeded' && !status.dryRun) {
+            fetchPendingAntistics();
+            fetchPendingStatistics();
+          }
+          return;
+        }
+
+        timer = setTimeout(poll, 3000);
+      } catch (error) {
+        if (cancelled) return;
+        console.error('Error polling auto-generation status:', error);
+        setAutoGenLoading(false);
+        setAutoGenMessage('Nie udało się pobrać statusu uruchomienia auto-generacji.');
+      }
+    };
+
+    poll();
+
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [autoGenRunId]);
 
   useEffect(() => {
     fetchPendingAntistics();
@@ -118,37 +182,35 @@ const AdminPanel: React.FC = () => {
   };
 
   const handleRunAutoGeneration = async (dryRun: boolean) => {
-    if (!canViewWebsiteStats) return;
+    if (!canRunAutoGeneration) return;
     setAutoGenLoading(true);
     setAutoGenMessage(null);
+    setAutoGenSummary(null);
+    setAutoGenRunId(null);
     try {
       const sourceIds = autoGenSourceIds
         .split(',')
         .map((entry) => entry.trim())
         .filter((entry) => entry.length > 0);
-      const data: any = await adminApi.runContentGeneration({
+      const data = (await adminApi.runContentGeneration({
         dryRun,
         statistics: autoGenStatsTarget,
         antystics: autoGenAntysticsTarget,
         sourceIds: sourceIds.length > 0 ? sourceIds : undefined,
-      });
-      
-      const asyncMsg = data.message || data.Message;
-      if (asyncMsg) {
-        setAutoGenMessage(asyncMsg);
-        setAutoGenSummary(null);
-      } else {
-        setAutoGenSummary(data);
-        setAutoGenMessage(dryRun ? 'Suche uruchomienie zakończone — nic nie zapisano.' : 'Wygenerowano nowe drafty (pending_review).');
-        if (!dryRun) {
-          fetchPendingAntistics();
-          fetchPendingStatistics();
-        }
+      })) as { runId?: string; RunId?: string; message?: string; Message?: string };
+
+      const runId = data.runId ?? data.RunId;
+      if (!runId) {
+        setAutoGenLoading(false);
+        setAutoGenMessage('Backend nie zwrócił identyfikatora uruchomienia.');
+        return;
       }
+
+      setAutoGenRunId(runId);
+      setAutoGenMessage(`${data.message || data.Message || 'Uruchomiono auto-generację.'} (Run ID: ${runId})`);
     } catch (error) {
       console.error('Error triggering auto-generation:', error);
       setAutoGenMessage('Nie udało się uruchomić generowania. Sprawdź uprawnienia lub backend.');
-    } finally {
       setAutoGenLoading(false);
     }
   };
@@ -157,6 +219,13 @@ const AdminPanel: React.FC = () => {
   if (!user || (user.role !== 'Admin' && user.role !== 'Moderator')) {
     return <Navigate to="/" />;
   }
+
+  const autoGenValidationIssues: ValidationIssue[] =
+    autoGenSummary &&
+    'validationIssues' in autoGenSummary &&
+    Array.isArray(autoGenSummary.validationIssues)
+      ? (autoGenSummary.validationIssues as ValidationIssue[])
+      : [];
 
   const renderAntisticsSection = () => {
     if (loadingAntistics) {
@@ -477,6 +546,10 @@ const AdminPanel: React.FC = () => {
                 >
                   📈 Website Statistics
                 </Link>
+              </div>
+            )}
+            {canRunAutoGeneration && (
+              <div className="flex flex-col gap-2 items-end">
                 <div className="w-full max-w-xs bg-white border border-gray-200 rounded-xl p-3 space-y-2 text-xs text-gray-700">
                   <div className="font-semibold text-gray-900">AUTO-GEN-DAILY</div>
                   <label className="flex items-center justify-between gap-2">
@@ -535,19 +608,35 @@ const AdminPanel: React.FC = () => {
                     {autoGenMessage}
                     {autoGenSummary && (
                       <div className="mt-2 space-y-1">
-                        <div>Statystyki: {autoGenSummary.createdStatistics.length}</div>
-                        <div>Antystyki: {autoGenSummary.createdAntystics.length}</div>
-                        {autoGenSummary.validationIssues && autoGenSummary.validationIssues.length > 0 && (
+                        {'status' in autoGenSummary ? (
+                          <>
+                            <div>Status: {autoGenSummary.status}</div>
+                            <div>Statystyki: {autoGenSummary.createdStatisticsCount}</div>
+                            <div>Antystyki: {autoGenSummary.createdAntysticsCount}</div>
+                            <div>Duplikaty: {autoGenSummary.duplicateCount}</div>
+                            <div>Źródła odrzucone/offline: {autoGenSummary.sourceFailureCount}</div>
+                            <div>Walidacja odrzuceń: {autoGenSummary.validationFailureCount}</div>
+                            {autoGenSummary.errorMessage && (
+                              <div className="text-rose-700">Błąd: {autoGenSummary.errorMessage}</div>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <div>Statystyki: {autoGenSummary.createdStatistics.length}</div>
+                            <div>Antystyki: {autoGenSummary.createdAntystics.length}</div>
+                          </>
+                        )}
+                        {autoGenValidationIssues.length > 0 && (
                           <div className="text-amber-700">
-                            Odrzucone: {autoGenSummary.validationIssues.length}
+                            Odrzucone: {autoGenValidationIssues.length}
                           </div>
                         )}
-                        {autoGenSummary.skippedDuplicates.length > 0 && (
+                        {'skippedDuplicates' in autoGenSummary && autoGenSummary.skippedDuplicates.length > 0 && (
                           <div className="text-amber-700">
                             Pomiń dup.: {autoGenSummary.skippedDuplicates.length}
                           </div>
                         )}
-                        {autoGenSummary.sourceFailures.length > 0 && (
+                        {'sourceFailures' in autoGenSummary && autoGenSummary.sourceFailures.length > 0 && (
                           <div className="text-rose-700">
                             Źródła offline: {autoGenSummary.sourceFailures.join(', ')}
                           </div>
@@ -556,11 +645,11 @@ const AdminPanel: React.FC = () => {
                     )}
                   </div>
                 )}
-                {autoGenSummary?.validationIssues && autoGenSummary.validationIssues.length > 0 && (
+                {autoGenValidationIssues.length > 0 && (
                   <div className="text-xs text-left max-w-sm text-gray-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
                     <div className="font-semibold text-amber-900">Odrzucone kandydaty</div>
                     <div className="mt-1 space-y-2">
-                      {autoGenSummary.validationIssues.slice(0, 6).map((issue, index) => (
+                      {autoGenValidationIssues.slice(0, 6).map((issue, index) => (
                         <div key={`${issue.sourceId}-${index}`} className="border-b border-amber-100 pb-2 last:border-b-0 last:pb-0">
                           <div className="font-medium text-gray-900">{issue.title}</div>
                           <div className="text-amber-800">{issue.reason}</div>
@@ -573,7 +662,7 @@ const AdminPanel: React.FC = () => {
                           </div>
                         </div>
                       ))}
-                      {autoGenSummary.validationIssues.length > 6 && (
+                      {autoGenValidationIssues.length > 6 && (
                         <div className="text-amber-800">...i więcej</div>
                       )}
                     </div>

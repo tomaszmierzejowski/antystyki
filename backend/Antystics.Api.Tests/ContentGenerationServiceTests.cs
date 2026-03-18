@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Antystics.Api.ContentGeneration;
@@ -41,8 +42,8 @@ public class ContentGenerationServiceTests
 
         var sources = new[]
         {
-            new ContentSource { Id = "rss-1", Name = "RSS 1", Type = ContentSourceType.Rss, Endpoint = "http://example.com", HealthCheckUrl = "http://example.com", PolandFocus = true },
-            new ContentSource { Id = "rss-2", Name = "RSS 2", Type = ContentSourceType.Rss, Endpoint = "http://example.com", HealthCheckUrl = "http://example.com", PolandFocus = false }
+            new ContentSource { Id = "rss-1", Name = "RSS 1", Type = ContentSourceType.Rss, Endpoint = "http://example.com", HealthCheckUrl = "http://example.com", PolandFocus = true, Reliability = 5 },
+            new ContentSource { Id = "rss-2", Name = "RSS 2", Type = ContentSourceType.Rss, Endpoint = "http://example.com", HealthCheckUrl = "http://example.com", PolandFocus = false, Reliability = 5 }
         };
 
         var provider = new TestSourceProvider(sources);
@@ -64,6 +65,9 @@ public class ContentGenerationServiceTests
         Assert.Equal(1, db.Antistics.Count());
         Assert.All(db.Statistics, s => Assert.Equal(ModerationStatus.Pending, s.Status));
         Assert.All(db.Antistics, a => Assert.Equal(ModerationStatus.Pending, a.Status));
+        Assert.All(db.Statistics, s => Assert.False(string.IsNullOrWhiteSpace(s.GenerationKey)));
+        Assert.All(db.Statistics, s => Assert.False(string.IsNullOrWhiteSpace(s.ProvenanceData)));
+        Assert.All(db.Antistics, a => Assert.NotNull(a.SourceStatisticId));
     }
 
     [Fact]
@@ -86,7 +90,7 @@ public class ContentGenerationServiceTests
 
         var sources = new[]
         {
-            new ContentSource { Id = "rss-1", Name = "RSS 1", Type = ContentSourceType.Rss, Endpoint = "http://example.com", HealthCheckUrl = "http://example.com", PolandFocus = true }
+            new ContentSource { Id = "rss-1", Name = "RSS 1", Type = ContentSourceType.Rss, Endpoint = "http://example.com", HealthCheckUrl = "http://example.com", PolandFocus = true, Reliability = 5 }
         };
 
         var provider = new TestSourceProvider(sources);
@@ -108,6 +112,162 @@ public class ContentGenerationServiceTests
         Assert.Empty(db.Antistics);
         Assert.Single(result.CreatedStatistics);
         Assert.Single(result.CreatedAntystics);
+    }
+
+    [Fact]
+    public async Task GenerateAsync_FiltersUntrustedSources()
+    {
+        var services = BuildServices();
+        var scopeFactory = services.GetRequiredService<IServiceScopeFactory>();
+        using var scope = scopeFactory.CreateScope();
+
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+
+        var options = Options.Create(new ContentGenerationOptions
+        {
+            MinStatistics = 1,
+            MaxStatistics = 1,
+            MinAntystics = 0,
+            MaxAntystics = 0,
+            EnforceTrustedSources = true,
+            MinimumSourceReliability = 4
+        });
+
+        var sources = new[]
+        {
+            new ContentSource
+            {
+                Id = "low-trust-rss",
+                Name = "Low Trust",
+                Type = ContentSourceType.Rss,
+                Endpoint = "http://example.com",
+                HealthCheckUrl = "http://example.com",
+                PolandFocus = true,
+                Reliability = 2
+            }
+        };
+
+        var provider = new TestSourceProvider(sources);
+        var health = new TestHealthChecker();
+        var httpClientFactory = new TestHttpClientFactory();
+        var openAiService = new TestOpenAiService();
+        var adapters = new List<IContentSourceAdapter> { new TestAdapter() };
+        var service = new ContentGenerationService(adapters, provider, health, httpClientFactory, options, db, userManager, NullLogger<ContentGenerationService>.Instance, openAiService);
+
+        var result = await service.GenerateAsync(new ContentGenerationRequest
+        {
+            DryRun = false,
+            TargetStatistics = 1,
+            TargetAntystics = 0
+        }, CancellationToken.None);
+
+        Assert.Empty(result.CreatedStatistics);
+        Assert.Contains("low-trust-rss", result.SourceFailures);
+        Assert.Equal("failed_no_valid_data", result.Outcome);
+    }
+
+    [Fact]
+    public async Task GenerateAsync_PreventsDuplicates_ForSameExecutionDay()
+    {
+        var services = BuildServices();
+        var scopeFactory = services.GetRequiredService<IServiceScopeFactory>();
+        using var scope = scopeFactory.CreateScope();
+
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+
+        var options = Options.Create(new ContentGenerationOptions
+        {
+            MinStatistics = 1,
+            MaxStatistics = 1,
+            MinAntystics = 0,
+            MaxAntystics = 0,
+            DuplicateWindowDays = 30
+        });
+
+        var sources = new[]
+        {
+            new ContentSource { Id = "rss-1", Name = "RSS 1", Type = ContentSourceType.Rss, Endpoint = "http://example.com", HealthCheckUrl = "http://example.com", PolandFocus = true, Reliability = 5 }
+        };
+
+        var provider = new TestSourceProvider(sources);
+        var health = new TestHealthChecker();
+        var httpClientFactory = new TestHttpClientFactory();
+        var openAiService = new TestOpenAiService();
+        var adapters = new List<IContentSourceAdapter> { new TestAdapter() };
+        var service = new ContentGenerationService(adapters, provider, health, httpClientFactory, options, db, userManager, NullLogger<ContentGenerationService>.Instance, openAiService);
+
+        var runTime = DateTimeOffset.UtcNow;
+        var first = await service.GenerateAsync(new ContentGenerationRequest
+        {
+            DryRun = false,
+            TargetStatistics = 1,
+            TargetAntystics = 0,
+            ExecutionTime = runTime
+        }, CancellationToken.None);
+
+        var second = await service.GenerateAsync(new ContentGenerationRequest
+        {
+            DryRun = false,
+            TargetStatistics = 1,
+            TargetAntystics = 0,
+            ExecutionTime = runTime
+        }, CancellationToken.None);
+
+        Assert.Single(first.CreatedStatistics);
+        Assert.Empty(second.CreatedStatistics);
+        Assert.NotEmpty(second.SkippedDuplicates);
+    }
+
+    [Fact]
+    public async Task GenerateAsync_WritesChartPayloads_InSupportedSchema()
+    {
+        var services = BuildServices();
+        var scopeFactory = services.GetRequiredService<IServiceScopeFactory>();
+        using var scope = scopeFactory.CreateScope();
+
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+
+        var options = Options.Create(new ContentGenerationOptions
+        {
+            MinStatistics = 1,
+            MaxStatistics = 1,
+            MinAntystics = 1,
+            MaxAntystics = 1
+        });
+
+        var sources = new[]
+        {
+            new ContentSource { Id = "rss-1", Name = "RSS 1", Type = ContentSourceType.Rss, Endpoint = "http://example.com", HealthCheckUrl = "http://example.com", PolandFocus = true, Reliability = 5 }
+        };
+
+        var provider = new TestSourceProvider(sources);
+        var health = new TestHealthChecker();
+        var httpClientFactory = new TestHttpClientFactory();
+        var openAiService = new TestOpenAiService();
+        var adapters = new List<IContentSourceAdapter> { new TestAdapter() };
+        var service = new ContentGenerationService(adapters, provider, health, httpClientFactory, options, db, userManager, NullLogger<ContentGenerationService>.Instance, openAiService);
+
+        await service.GenerateAsync(new ContentGenerationRequest
+        {
+            DryRun = false,
+            TargetStatistics = 1,
+            TargetAntystics = 1
+        }, CancellationToken.None);
+
+        var statistic = db.Statistics.Single();
+        var antistic = db.Antistics.Single();
+
+        using var statDoc = JsonDocument.Parse(statistic.ChartData!);
+        Assert.True(statDoc.RootElement.TryGetProperty("chartSuggestion", out var suggestion));
+        Assert.True(suggestion.TryGetProperty("type", out var typeNode));
+        Assert.Contains(typeNode.GetString(), new[] { "pie", "bar", "line" });
+
+        using var antDoc = JsonDocument.Parse(antistic.ChartData!);
+        Assert.True(antDoc.RootElement.TryGetProperty("templateId", out var templateNode));
+        Assert.Contains(templateNode.GetString(), new[] { "two-column-default", "single-chart", "text-focused", "comparison" });
     }
 
     private static ServiceProvider BuildServices()
@@ -155,7 +315,8 @@ public class ContentGenerationServiceTests
                     SourceUrl = $"http://example.com/{source.Id}",
                     PublishedAt = DateTimeOffset.UtcNow,
                     PolandFocus = source.PolandFocus,
-                    HumorFriendly = true
+                    HumorFriendly = true,
+                    Topics = new[] { "economy" }
                 }
             };
 
@@ -190,7 +351,11 @@ public class ContentGenerationServiceTests
                 PercentageValue = 42,
                 ContextSentence = "Test context",
                 Timeframe = "2024",
-                ReversedStatistic = "Ironia na 42%!"
+                ReversedStatistic = "Ironia na 42%!",
+                Confidence = 0.95,
+                ChartType = "pie",
+                ChartLabelMain = "Główna wartość",
+                ChartLabelSecondary = "Pozostałe"
             });
         }
     }

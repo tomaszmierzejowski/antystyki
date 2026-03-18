@@ -41,6 +41,7 @@ const adminApi = {
     antystics?: number;
     sourceIds?: string[];
     executionTime?: string;
+    allowDuplicates?: boolean;
   }) => {
     const response = await api.post('/admin/content-generation/run', {
       dryRun: payload.dryRun ?? true,
@@ -48,7 +49,13 @@ const adminApi = {
       antystics: payload.antystics,
       sourceIds: payload.sourceIds,
       executionTime: payload.executionTime,
+      allowDuplicates: payload.allowDuplicates ?? false,
     });
+    return response.data;
+  },
+
+  getContentGenerationRunStatus: async (runId: string) => {
+    const response = await api.get(`/admin/content-generation/runs/${runId}`);
     return response.data;
   },
 };

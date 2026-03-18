@@ -5,6 +5,9 @@
 **Purpose**: Help create 20-30 high-quality launch antistics  
 **Target**: Week 2, Days 8-10  
 
+> Update (2026-03-18): this document remains focused on manual editorial creation patterns.  
+> For current backend automation behavior (daily scheduler, moderator trigger, trust filtering, retries, idempotency, run statuses), use `documentation/features/content-generation-pipeline.md`.
+
 ---
 
 ## 📋 Overview

@@ -23,6 +23,7 @@ public class ApplicationDbContext : IdentityDbContext<User, IdentityRole<Guid>, 
     public DbSet<EmailVerificationToken> EmailVerificationTokens { get; set; }
     public DbSet<GaStatistic> GaStatistics { get; set; }
     public DbSet<VisitorMetric> VisitorMetrics { get; set; }
+    public DbSet<ContentGenerationRun> ContentGenerationRuns { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -47,6 +48,7 @@ public class ApplicationDbContext : IdentityDbContext<User, IdentityRole<Guid>, 
             entity.Property(e => e.Title).IsRequired().HasMaxLength(500);
             entity.Property(e => e.ReversedStatistic).IsRequired().HasMaxLength(2000);
             entity.Property(e => e.SourceUrl).IsRequired().HasMaxLength(2000);
+            entity.Property(e => e.GenerationKey).HasMaxLength(512);
             entity.Property(e => e.ImageUrl).IsRequired().HasMaxLength(2000);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
 
@@ -76,6 +78,7 @@ public class ApplicationDbContext : IdentityDbContext<User, IdentityRole<Guid>, 
             entity.HasIndex(e => e.PublishedAt);
             entity.HasIndex(e => e.UserId);
             entity.HasIndex(e => e.HiddenAt);
+            entity.HasIndex(e => e.GenerationKey).IsUnique().HasFilter("\"GenerationKey\" IS NOT NULL");
         });
 
         // Statistic configuration
@@ -87,6 +90,8 @@ public class ApplicationDbContext : IdentityDbContext<User, IdentityRole<Guid>, 
             entity.Property(e => e.Description).HasMaxLength(4000);
             entity.Property(e => e.SourceUrl).IsRequired().HasMaxLength(2000);
             entity.Property(e => e.SourceCitation).HasMaxLength(500);
+            entity.Property(e => e.GenerationKey).HasMaxLength(512);
+            entity.Property(e => e.ProvenanceData);
             entity.Property(e => e.ModeratorNotes).HasMaxLength(2000);
             entity.Property(e => e.ChartData);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
@@ -116,6 +121,7 @@ public class ApplicationDbContext : IdentityDbContext<User, IdentityRole<Guid>, 
             entity.HasIndex(e => e.PublishedAt);
             entity.HasIndex(e => e.CreatedAt);
             entity.HasIndex(e => e.HiddenAt);
+            entity.HasIndex(e => e.GenerationKey).IsUnique().HasFilter("\"GenerationKey\" IS NOT NULL");
         });
 
         // StatisticVote configuration
@@ -272,6 +278,20 @@ public class ApplicationDbContext : IdentityDbContext<User, IdentityRole<Guid>, 
             entity.Property(e => e.TotalBotRequests).HasColumnType("bigint");
             entity.Property(e => e.UniqueBots).HasColumnType("bigint");
             entity.Property(e => e.LastUpdatedAtUtc).HasColumnType("timestamp with time zone");
+        });
+
+        builder.Entity<ContentGenerationRun>(entity =>
+        {
+            entity.ToTable("content_generation_runs");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Trigger).IsRequired().HasMaxLength(32);
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(32);
+            entity.Property(e => e.RequestedBy).HasMaxLength(256);
+            entity.Property(e => e.ErrorMessage).HasMaxLength(4000);
+            entity.Property(e => e.SourceIdsCsv).HasMaxLength(2000);
+            entity.Property(e => e.ValidationIssuesJson);
+            entity.HasIndex(e => e.CreatedAt);
+            entity.HasIndex(e => e.Status);
         });
     }
 }

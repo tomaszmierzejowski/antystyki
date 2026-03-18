@@ -24,6 +24,11 @@ public sealed record SourceItem
     public string? NumericStatement { get; init; }
     public string? ReversedStatistic { get; init; }
     public int? SourceStatusCode { get; init; }
+    public DateTimeOffset FetchedAtUtc { get; init; } = DateTimeOffset.UtcNow;
+    public bool SourceUrlVerified { get; init; }
+    public bool IsTrustedSource { get; init; }
+    public double? ValidationConfidence { get; init; }
+    public string? GenerationKey { get; init; }
     /// <summary>Chart type hint from LLM: "pie" | "bar" | "trend" | "comparison"</summary>
     public string? ChartType { get; init; }
     /// <summary>Short Polish label (≤50 chars) for the main chart value, e.g. "Polacy bez oszczędności"</summary>
@@ -48,6 +53,7 @@ public sealed record GeneratedDraft
 public sealed record ContentGenerationRequest
 {
     public bool DryRun { get; init; }
+    public bool AllowDuplicates { get; init; }
     public int? TargetStatistics { get; init; }
     public int? TargetAntystics { get; init; }
     public IReadOnlyCollection<string>? SourceIds { get; init; }
@@ -64,6 +70,7 @@ public sealed record ContentGenerationResult
     public IReadOnlyCollection<ValidationIssue> ValidationIssues { get; init; } = Array.Empty<ValidationIssue>();
     public DateTimeOffset ExecutedAt { get; init; }
     public bool DryRun { get; init; }
+    public string Outcome { get; init; } = "unknown";
 }
 
 public sealed record ValidationIssue
@@ -78,4 +85,6 @@ public sealed record ValidationIssue
     public string? Ratio { get; init; }
     public string? Timeframe { get; init; }
     public string? ContextSentence { get; init; }
+    public double? ValidationConfidence { get; init; }
+    public bool? TrustedSource { get; init; }
 }
