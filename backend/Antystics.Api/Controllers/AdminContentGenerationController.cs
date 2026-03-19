@@ -78,6 +78,26 @@ public sealed class AdminContentGenerationController : ControllerBase
 
         return Ok(run);
     }
+
+    [HttpPost("runs/{runId:guid}/cancel")]
+    public async Task<IActionResult> CancelRun(Guid runId, CancellationToken cancellationToken)
+    {
+        var requestedBy = User.FindFirstValue(ClaimTypes.Email)
+            ?? User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? "unknown";
+
+        var cancelled = await _runOrchestrator
+            .CancelRunAsync(runId, $"Manually cancelled by {requestedBy}.", cancellationToken)
+            .ConfigureAwait(false);
+
+        if (!cancelled)
+        {
+            return NotFound(new { message = $"Run {runId} not found." });
+        }
+
+        _logger.LogInformation("Run {RunId} force-cancelled by {RequestedBy}.", runId, requestedBy);
+        return Ok(new { message = $"Run {runId} has been cancelled." });
+    }
 }
 
 public sealed class RunGenerationRequest

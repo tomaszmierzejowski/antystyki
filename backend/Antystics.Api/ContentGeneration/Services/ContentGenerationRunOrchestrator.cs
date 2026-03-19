@@ -22,6 +22,18 @@ public interface IContentGenerationRunOrchestrator
         CancellationToken cancellationToken);
 
     Task<ContentGenerationRunView?> GetRunAsync(Guid runId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Marks a specific run as Failed. Used by the admin force-cancel endpoint to
+    /// unblock production when a run is orphaned or stuck.
+    /// </summary>
+    Task<bool> CancelRunAsync(Guid runId, string reason, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Marks all Queued/Running runs as Failed. Called once on startup to recover
+    /// runs orphaned by a previous process crash or deployment rollout.
+    /// </summary>
+    Task RecoverOrphanedRunsAsync(CancellationToken cancellationToken);
 }
 
 internal sealed class ContentGenerationRunOrchestrator : IContentGenerationRunOrchestrator
@@ -58,12 +70,35 @@ internal sealed class ContentGenerationRunOrchestrator : IContentGenerationRunOr
 
         if (active != null)
         {
-            return new ContentGenerationRunStartResult
+            // A run is considered stale if it has been in a non-terminal state for
+            // longer than RunTimeoutSeconds × (RunMaxAttempts + 1). This handles the
+            // case where the process was killed before the run could write a terminal
+            // status (orphaned run). Default: 360 × 3 = 1080 s ≈ 18 minutes.
+            var staleThreshold = TimeSpan.FromSeconds(
+                _options.RunTimeoutSeconds * (Math.Max(1, _options.RunMaxAttempts) + 1));
+            var staleSince = active.StartedAt ?? active.CreatedAt;
+            if (DateTime.UtcNow - staleSince > staleThreshold)
             {
-                Accepted = false,
-                Message = "Another content generation run is already in progress.",
-                ActiveRunId = active.Id
-            };
+                _logger.LogWarning(
+                    "Found stale run {RunId} (status={Status}, age={AgeMinutes:F1} min). " +
+                    "Auto-expiring and proceeding with new run.",
+                    active.Id, active.Status, (DateTime.UtcNow - staleSince).TotalMinutes);
+
+                active.Status = ContentGenerationRunStatuses.Failed;
+                active.ErrorMessage = $"Orphaned: run exceeded stale threshold " +
+                    $"({staleThreshold.TotalSeconds:F0} s). Process may have restarted mid-run.";
+                active.CompletedAt = DateTime.UtcNow;
+                await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            }
+            else
+            {
+                return new ContentGenerationRunStartResult
+                {
+                    Accepted = false,
+                    Message = "Another content generation run is already in progress.",
+                    ActiveRunId = active.Id
+                };
+            }
         }
 
         var run = new ContentGenerationRun
@@ -187,6 +222,68 @@ internal sealed class ContentGenerationRunOrchestrator : IContentGenerationRunOr
         {
             RunGate.Release();
         }
+    }
+
+    public async Task<bool> CancelRunAsync(Guid runId, string reason, CancellationToken cancellationToken)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var run = await db.ContentGenerationRuns
+            .FirstOrDefaultAsync(r => r.Id == runId, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (run == null)
+        {
+            return false;
+        }
+
+        if (run.Status is ContentGenerationRunStatuses.Succeeded or ContentGenerationRunStatuses.Failed)
+        {
+            // Already terminal — nothing to do but report success so the caller
+            // knows the run is no longer blocking the queue.
+            return true;
+        }
+
+        run.Status = ContentGenerationRunStatuses.Failed;
+        run.ErrorMessage = reason;
+        run.CompletedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+        _logger.LogWarning("Run {RunId} force-cancelled. Reason: {Reason}", runId, reason);
+        return true;
+    }
+
+    public async Task RecoverOrphanedRunsAsync(CancellationToken cancellationToken)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var orphans = await db.ContentGenerationRuns
+            .Where(r => r.Status == ContentGenerationRunStatuses.Queued
+                     || r.Status == ContentGenerationRunStatuses.Running)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        if (orphans.Count == 0)
+        {
+            return;
+        }
+
+        var now = DateTime.UtcNow;
+        foreach (var run in orphans)
+        {
+            run.Status = ContentGenerationRunStatuses.Failed;
+            run.ErrorMessage = "Orphaned: process restarted before run completed.";
+            run.CompletedAt = now;
+        }
+
+        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+        _logger.LogWarning(
+            "Startup orphan recovery: marked {Count} run(s) as failed. Ids: {Ids}",
+            orphans.Count,
+            string.Join(", ", orphans.Select(r => r.Id)));
     }
 
     private static ContentGenerationRunView Map(ContentGenerationRun run)

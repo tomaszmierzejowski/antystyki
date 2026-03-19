@@ -32,6 +32,10 @@ internal sealed class ContentGenerationHostedService : BackgroundService
             return;
         }
 
+        // Recover any runs that were left in Queued/Running state by a previous
+        // process crash or deployment rollout before the scheduler loop starts.
+        await _runOrchestrator.RecoverOrphanedRunsAsync(stoppingToken).ConfigureAwait(false);
+
         _logger.LogInformation("Content generation hosted service starting. Daily run scheduled at {Time} local time.", _options.DailyRunLocalTime);
 
         if (_options.RunAtStartup && !stoppingToken.IsCancellationRequested)
