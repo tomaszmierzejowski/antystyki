@@ -149,10 +149,14 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.PROD_SERVER_IP }} >> ~/.ssh/known_hosts
           
+      - name: 🧹 Clean up old artifacts on server
+        run: |
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.PROD_SERVER_IP }} 'rm -f /var/www/antystyki/antystyki-image.tar'
+
       - name: 📤 Transfer Files to Server
         run: |
-          # Transfer Docker image
-          scp /tmp/antystyki-image.tar ${{ secrets.SSH_USER }}@${{ secrets.PROD_SERVER_IP }}:/tmp/
+          # Transfer Docker image to app directory (avoids /tmp size limits)
+          scp /tmp/antystyki-image.tar ${{ secrets.SSH_USER }}@${{ secrets.PROD_SERVER_IP }}:/var/www/antystyki/
           
           # Transfer docker-compose files
           scp docker-compose.production.yml ${{ secrets.SSH_USER }}@${{ secrets.PROD_SERVER_IP }}:/var/www/antystyki/
@@ -170,8 +174,8 @@ jobs:
             
             # Load Docker image
             echo "📥 Loading new Docker image..."
-            docker load -i /tmp/antystyki-image.tar
-            rm /tmp/antystyki-image.tar
+            docker load -i /var/www/antystyki/antystyki-image.tar
+            rm -f /var/www/antystyki/antystyki-image.tar
             
             # Tag current image as previous (for rollback)
             echo "🏷️ Tagging previous version..."
