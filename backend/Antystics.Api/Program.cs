@@ -1,5 +1,6 @@
 using System;
 using System.Data.Common;
+using System.IO.Compression;
 using System.Security.Claims;
 using System.Text;
 using Antystics.Api.ContentGeneration;
@@ -12,6 +13,7 @@ using Antystics.Infrastructure.Data;
 using Antystics.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -47,6 +49,23 @@ if (!string.IsNullOrWhiteSpace(sentryDsn) && sentryEnabled)
 }
 
 // Add services to the container
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
+    options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(new[]
+    {
+        "image/svg+xml",
+        "application/javascript",
+        "text/css"
+    });
+});
+builder.Services.Configure<BrotliCompressionProviderOptions>(options =>
+    options.Level = CompressionLevel.Fastest);
+builder.Services.Configure<GzipCompressionProviderOptions>(options =>
+    options.Level = CompressionLevel.SmallestSize);
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddMemoryCache();
@@ -360,7 +379,8 @@ app.Use(async (context, next) =>
 
 app.UseVisitorMetrics();
 
-// Serve static files from uploads folder
+app.UseResponseCompression();
+
 app.UseStaticFiles();
 
 app.UseCors("AllowFrontend");
