@@ -149,14 +149,29 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.PROD_SERVER_IP }} >> ~/.ssh/known_hosts
           
-      - name: 🧹 Clean up old artifacts on server
+      - name: 🧹 Free disk space on server
         run: |
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.PROD_SERVER_IP }} 'rm -f /var/www/antystyki/antystyki-image.tar'
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.PROD_SERVER_IP }} << 'ENDSSH'
+            echo "📊 Disk usage before cleanup:"
+            df -h / | tail -1
+            
+            # Remove previous image tar if leftover
+            rm -f /var/www/antystyki/antystyki-image.tar.gz
+            
+            # Prune unused Docker resources (old images, stopped containers, build cache)
+            docker system prune -af --filter "until=24h" || true
+            
+            echo "📊 Disk usage after cleanup:"
+            df -h / | tail -1
+          ENDSSH
 
       - name: 📤 Transfer Files to Server
         run: |
-          # Transfer Docker image to app directory (avoids /tmp size limits)
-          scp /tmp/antystyki-image.tar ${{ secrets.SSH_USER }}@${{ secrets.PROD_SERVER_IP }}:/var/www/antystyki/
+          # Compress image before transfer to reduce size by ~50%
+          gzip /tmp/antystyki-image.tar
+          
+          # Transfer compressed Docker image
+          scp /tmp/antystyki-image.tar.gz ${{ secrets.SSH_USER }}@${{ secrets.PROD_SERVER_IP }}:/var/www/antystyki/
           
           # Transfer docker-compose files
           scp docker-compose.production.yml ${{ secrets.SSH_USER }}@${{ secrets.PROD_SERVER_IP }}:/var/www/antystyki/
@@ -172,10 +187,10 @@ jobs:
             
             cd /var/www/antystyki
             
-            # Load Docker image
+            # Load Docker image (decompress inline to avoid needing 2x disk space)
             echo "📥 Loading new Docker image..."
-            docker load -i /var/www/antystyki/antystyki-image.tar
-            rm -f /var/www/antystyki/antystyki-image.tar
+            gunzip -c /var/www/antystyki/antystyki-image.tar.gz | docker load
+            rm -f /var/www/antystyki/antystyki-image.tar.gz
             
             # Tag current image as previous (for rollback)
             echo "🏷️ Tagging previous version..."
